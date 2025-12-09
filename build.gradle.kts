@@ -90,7 +90,7 @@ tasks.jar {
     manifest {
         attributes(
             "provider" to "gradle",
-            "Application-Name" to "OmniPeak $version",
+            "Application-Name" to "Qfarm $version",
             "Built-By" to "JetBrains Research TeamCity"
         )
     }
