@@ -1,0 +1,62 @@
+// OK?, not much to improve?
+
+package org.jetbrains.bio.qfarm
+
+import io.jenetics.Gene
+import kotlin.math.max
+import kotlin.math.min
+
+data class AttributeGene(
+    val attributeIndex: Int,
+    val lowerBound: Double,
+    val upperBound: Double,
+    val min: Double,
+    val max: Double,
+    private val cfg: RuleInitConfig = init_cfg
+) : Gene<Pair<Double, Double>, AttributeGene> {
+
+    override fun allele(): Pair<Double, Double> = lowerBound to upperBound
+
+    override fun isValid(): Boolean =
+        lowerBound <= upperBound && lowerBound >= min && upperBound <= max
+
+    val isDefault: Boolean
+        get() = lowerBound == min && upperBound == max
+
+    override fun newInstance(): AttributeGene {
+        // bounded loop instead of unbounded recursion
+        var attempts = 0
+        while (attempts < 10) {
+            val p1 = rand.nextDouble()
+            val p2 = rand.nextDouble()
+            val loP = min(p1, p2)
+            val hiP = max(p1, p2)
+
+            val lower = cfg.percentile.value(attributeIndex, loP)
+            val upper = cfg.percentile.value(attributeIndex, hiP)
+
+            // Fast sanity: clamp to [min,max] (protects percentile edge rounding)
+            val g = copy(
+                lowerBound = if (lower < min) min else lower,
+                upperBound = if (upper > max) max else upper
+            )
+            if (g.isValid()) return g
+            attempts++
+        }
+        // Fallback: default valid range (won't invalidate chromosome)
+        return copy(lowerBound = min, upperBound = max)
+    }
+
+    override fun newInstance(value: Pair<Double, Double>): AttributeGene =
+        copy(lowerBound = value.first, upperBound = value.second)
+
+    companion object {
+        fun of(attributeIndex: Int, min: Double, max: Double, cfg: RuleInitConfig): AttributeGene {
+            return AttributeGene(attributeIndex, min, max, min, max, cfg).newInstance()
+        }
+
+        fun default(attributeIndex: Int, min: Double, max: Double, cfg: RuleInitConfig): AttributeGene {
+            return AttributeGene(attributeIndex, min, max, min, max, cfg)
+        }
+    }
+}

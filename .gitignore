@@ -1,0 +1,46 @@
+# Build
+.gradle/
+build/
+out/
+
+# Gradle Wrapper
+!gradle/wrapper/gradle-wrapper.jar
+
+# ignore all files in data/
+data/
+
+# ignore plots
+front_plots/
+step_log.json
+tree.dot
+tree.svg
+
+# IntelliJ IDEA
+.idea/
+
+# VS Code
+.vscode/
+
+.venv/
+
+# macOS
+.DS_Store
+
+# Kotlin
+.kotlin/
+
+# Eclipse
+.classpath
+.project
+.settings
+.apt_generated
+.factorypath
+.sts4-cache
+bin/
+
+# NetBeans
+nbproject/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
