@@ -4,6 +4,9 @@ import io.jenetics.util.RandomRegistry
 import java.io.File
 import kotlin.collections.MutableSet
 
+const val RUN_NAME = "run_"
+const val PLOTS_DIR = "plots"
+
 val rand = RandomRegistry.random()
 
 // all these become lateinit / vars, initialized by initEnvironment()
@@ -115,8 +118,14 @@ fun runSearch() {
     }
 
     val dot = toDOTFromTrie(RULE_TREE_ROOT, header = datasetWithHeader.header)
-    File("tree.dot").writeText(dot)
+    val filename = "$PLOTS_DIR/tree_$RUN_NAME"
+    File("$filename.dot").writeText(dot)
     saveStepLogToJson("step_log.json")
+
+    ProcessBuilder("dot", "-Tsvg", "$filename.dot", "-o", "$filename.svg")
+        .redirectErrorStream(true)
+        .start()
+        .waitFor()
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
     println("\nTOTAL RUNTIME: $elapsed s")

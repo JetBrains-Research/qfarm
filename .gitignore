@@ -10,7 +10,7 @@ out/
 data/
 
 # ignore plots
-front_plots/
+plots/
 step_log.json
 tree.dot
 tree.svg

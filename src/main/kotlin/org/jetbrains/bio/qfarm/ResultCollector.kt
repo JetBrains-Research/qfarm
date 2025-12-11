@@ -121,7 +121,7 @@ fun recordStep(
         // keep first range if you prefer; otherwise comment this out to always overwrite
         additionNode.additionRange = add.range
     }
-    val url = meta["frontUrl"]?.toString()?.let { toRelativePath(it) }
+    val url = meta["frontUrl"]?.toString()
     if (!url.isNullOrBlank()) additionNode.frontUrl = url
 
     return additionNode
@@ -247,7 +247,6 @@ fun toDOTFromTrie(
         val tip   = esc(tooltip(node))
 
         val url = node.frontUrl
-            ?.let { toRelativePath(it, keepSegments = 2) }
             ?.let(::esc)
 
         val urlAttr = if (url != null) """ , URL="$url", target="_blank" """ else ""

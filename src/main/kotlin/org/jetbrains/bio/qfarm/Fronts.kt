@@ -17,15 +17,12 @@ import org.jetbrains.letsPlot.letsPlot
 import org.jetbrains.letsPlot.scale.guides
 import org.jetbrains.letsPlot.scale.scaleColorManual
 import org.jetbrains.letsPlot.tooltips.layerTooltips
-import java.awt.Desktop
 import java.io.File
-import java.time.LocalDateTime
-import java.time.format.DateTimeFormatter
 import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
-import java.net.URI
 
+const val plots_file_path = "$PLOTS_DIR/front_plots_$RUN_NAME"
 
 data class PFSeries(
     val name: String,
@@ -106,14 +103,13 @@ fun toPFSeries(
 
 
 object FrontStore {
-    private val dir = File("front_plots").apply { mkdirs() }
-    private val tsFmt = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss_SSS")
+    private val dir = File(plots_file_path).apply { mkdirs() }
 
     private fun safeName(s: String) = s.replace(Regex("""[^\w\-.]+"""), "_").take(120)
 
     /** Saves plot as HTML and returns file:// URL, or null on failure. */
     fun saveAndUrl(plot: org.jetbrains.letsPlot.intern.Plot, titleHint: String): String? = try {
-        val base = "${safeName(titleHint)}_${LocalDateTime.now().format(tsFmt)}"
+        val base = safeName(titleHint)
         val out = File(dir, "$base.html")
         ggsave(plot, path = out.parent, filename = out.name)
         out.toURI().toString()
@@ -447,63 +443,6 @@ fun buildParetoFrontPlotCombined(
     return plot
 }
 
-fun tryOpenFrontPlot(
-    parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
-    childFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
-    title: String,
-    randomFront: Boolean
-) {
-    val name = if (randomFront) "Random" else "Child"
-
-    try {
-        val p = buildParetoFrontPlotCombined(
-            listOf(
-                toPFSeries(parentFront, "Parent"),
-                toPFSeries(childFront, name)
-            ),
-            title = title,
-            randomFront = randomFront
-        )
-
-        val tmpHtml = File.createTempFile("pareto_front_", ".html").apply { deleteOnExit() }
-        ggsave(p, path = tmpHtml.parent, filename = tmpHtml.name)
-
-        if (Desktop.isDesktopSupported()) {
-            Desktop.getDesktop().browse(tmpHtml.toURI())
-        } else {
-            println("$YELLOW[⚠️ Desktop browsing not supported on this system.]$RESET")
-        }
-    } catch (t: Throwable) {
-        println("$YELLOW[⚠️ Couldn’t open plot: ${t.message}]$RESET")
-    }
-}
-
-/**
- * Returns the last [keepSegments] path segments (default 2) from a URL or file path.
- * Examples:
- *  - "user/a/b/c/d/name.file" -> "d/name.file"
- *  - "http://host/user/a/b/c/d/name.file" -> "d/name.file"
- *  - "/user/a/b/c/d/name.file" -> "d/name.file"
- * Keeps query/fragment if present (for URLs).
- */
-fun toRelativePath(pathOrUrl: String, keepSegments: Int = 2): String {
-    val uri = runCatching { URI(pathOrUrl) }.getOrNull()
-    val rawPath = (uri?.path ?: pathOrUrl).replace('\\', '/')
-    val parts = rawPath.trim('/').split('/').filter { it.isNotBlank() }
-    val core = if (parts.size >= keepSegments) {
-        parts.takeLast(keepSegments).joinToString("/")
-    } else {
-        parts.joinToString("/")
-    }
-    val suffix = buildString {
-        if (uri != null) {
-            if (!uri.query.isNullOrEmpty()) append('?').append(uri.query)
-            if (!uri.fragment.isNullOrEmpty()) append('#').append(uri.fragment)
-        }
-    }
-    return core + suffix
-}
-
 
 fun renderFrontPlotUrl(
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?,
@@ -516,7 +455,8 @@ fun renderFrontPlotUrl(
         add(toPFSeries(childFront, if (randomFront) "Random" else "Child"))
     }
     val plot = buildParetoFrontPlotCombined(series, title = title, randomFront = randomFront)
-    FrontStore.saveAndUrl(plot, title)?.let { toRelativePath(it) }   // <<< only keep d/name.file
+    val filename = title.substringBefore("Improvement").ifBlank { title }.trim()
+    FrontStore.saveAndUrl(plot, filename).let { it?.substring(it.indexOf(plots_file_path)) }
 } catch (t: Throwable) {
     println("$YELLOW[⚠️ Couldn’t render plot: ${t.message}]$RESET"); null
 }
