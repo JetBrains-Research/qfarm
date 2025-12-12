@@ -22,7 +22,8 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-const val plots_file_path = "$PLOTS_DIR/front_plots_$RUN_NAME"
+const val plotDir = "front_plots_$RUN_NAME"
+const val plots_file_path = "$PLOTS_DIR/$plotDir"
 
 data class PFSeries(
     val name: String,
@@ -456,7 +457,7 @@ fun renderFrontPlotUrl(
     }
     val plot = buildParetoFrontPlotCombined(series, title = title, randomFront = randomFront)
     val filename = title.substringBefore("Improvement").ifBlank { title }.trim()
-    FrontStore.saveAndUrl(plot, filename).let { it?.substring(it.indexOf(plots_file_path)) }
+    FrontStore.saveAndUrl(plot, filename).let { it?.substring(it.indexOf(plotDir)) }
 } catch (t: Throwable) {
     println("$YELLOW[⚠️ Couldn’t render plot: ${t.message}]$RESET"); null
 }
