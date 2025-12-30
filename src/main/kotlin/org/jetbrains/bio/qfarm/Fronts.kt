@@ -185,10 +185,13 @@ fun buildParetoFrontPlotCombined(
         dataset: DatasetWithHeader,
         sortedCols: List<DoubleArray>
     ): List<SeriesPoint> {
-        return s.front.mapIndexed { idx, pt ->
+        return s.front.mapIndexedNotNull { idx, pt ->
             val f = pt.fitness().data()
 
             val rawSupport = f[0]
+
+            if (rawSupport < hp.minSupport || rawSupport > hp.maxSupport) return@mapIndexedNotNull null
+
             val x = rawSupport.toInt()
 
             val y = f[1]
