@@ -19,8 +19,6 @@ private fun pickDelimiter(headerLine: String): Char {
 
 fun loadDatasetSubset(
     filePath: String,
-    maxRows: Int = hp.maxDatasetRows,
-    maxCols: Int = hp.maxDatasetCols,
     excludeColumns: Set<String> = emptySet()
 ): DatasetWithHeader {
     val file = File(filePath)
@@ -36,12 +34,11 @@ fun loadDatasetSubset(
             .map {it.removeSurrounding("\"")}
         if (fullHeader.isEmpty()) throw IllegalArgumentException("Header row has no columns.")
 
-        // Indices to keep: exclude requested columns, then cap by maxCols
+        // Indices to keep: exclude requested columns
         val keepIndices = fullHeader.withIndex()
             .asSequence()
             .filter { (_, name) -> name !in excludeColumns }
             .map { it.index }
-            .take(maxCols)
             .toList()
 
         if (keepIndices.isEmpty()) {
@@ -50,8 +47,7 @@ fun loadDatasetSubset(
 
         val header = keepIndices.map { idx -> fullHeader[idx] }
 
-        val dataset = ArrayList<DoubleArray>(minOf(30_024, maxRows))
-        var rowsRead = 0
+        val dataset = ArrayList<DoubleArray>()
 
         // Stream data lines; stop at maxRows or EOF
         sequence {
@@ -60,8 +56,6 @@ fun loadDatasetSubset(
                 yield(line)
             }
         }.forEach { line ->
-            if (rowsRead >= maxRows) return@forEach
-
             if (line.isBlank()) return@forEach
             val cells = line.split(delimiter)
 
@@ -77,15 +71,18 @@ fun loadDatasetSubset(
             while (j < keepIndices.size) {
                 val idx = keepIndices[j]
                 val raw = cells[idx].trim()
+                // TODO: when allowing nulls, change below
                 val v = raw.toDoubleOrNull()
-                if (v == null) { ok = false; break }
+                if (v == null) {
+                    println("$RED Non numerical value found (Null, string or other). Please add the non-numerical columns to exlc-cols $RESET")
+                    ok = false;
+                    break }
                 row[j] = v
                 j++
             }
 
             if (ok) {
                 dataset.add(row)
-                rowsRead++
             }
         }
 

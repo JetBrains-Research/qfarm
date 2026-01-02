@@ -22,8 +22,8 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-const val plotDir = "front_plots_$RUN_NAME"
-const val plots_file_path = "$PLOTS_DIR/$plotDir"
+val plotDir = "front_plots_${hp.runName}"
+val plots_file_path = "$PLOTS_DIR/$plotDir"
 
 data class PFSeries(
     val name: String,
@@ -164,7 +164,7 @@ fun numericRuleString(
 fun buildParetoFrontPlotCombined(
     seriesList: List<PFSeries>,
     dataset: DatasetWithHeader = datasetWithHeader,
-    title: String = "Pareto Front (Gen ${hp.maxGenerations})",
+    title: String = "Pareto Front (Gen ${hp.maxGenAttrFirst})",
     randomFront: Boolean = false
 ): org.jetbrains.letsPlot.intern.Plot {
 
@@ -369,7 +369,7 @@ fun buildParetoFrontPlotCombined(
 
         val metrics = s.metrics
         fun <T> getMetric(name: String, idx: Int): T? {
-            val list = metrics?.get(name) as? List<*>
+            val list = metrics?.get(name)
             @Suppress("UNCHECKED_CAST")
             return list?.getOrNull(idx) as? T
         }

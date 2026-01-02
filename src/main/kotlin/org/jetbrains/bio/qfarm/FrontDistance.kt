@@ -1,13 +1,9 @@
-// OK for now, changes to be made later (see TODO)
-
 package org.jetbrains.bio.qfarm
 
 import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import kotlin.math.max
-
-// TODO: normalize the axes, bcz now support is higher scale than lift
 
 fun frontDistance(
     parent: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?,

@@ -4,7 +4,6 @@ import io.jenetics.util.RandomRegistry
 import java.io.File
 import kotlin.collections.MutableSet
 
-const val RUN_NAME = "run_"
 const val PLOTS_DIR = "plots"
 
 val rand = RandomRegistry.random()
@@ -38,8 +37,6 @@ fun initEnvironment(
 
     datasetWithHeader = loadDatasetSubset(
         filePath = dataPath,
-        maxRows = hp.maxDatasetRows,
-        maxCols = hp.maxDatasetCols,
         excludeColumns = hp.excludedColumns.toSet()
     )
 
@@ -118,7 +115,7 @@ fun runSearch() {
     }
 
     val dot = toDOTFromTrie(RULE_TREE_ROOT, header = datasetWithHeader.header)
-    val filename = "$PLOTS_DIR/tree_$RUN_NAME"
+    val filename = "$PLOTS_DIR/tree_${hp.runName}"
     File("$filename.dot").writeText(dot)
     saveStepLogToJson("step_log.json")
 

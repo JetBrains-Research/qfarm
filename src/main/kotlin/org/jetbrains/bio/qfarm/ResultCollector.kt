@@ -198,21 +198,17 @@ fun toDOTFromTrie(
     }
     computeCumulative(root, 0.0)
 
-// Build rank map based on cumulative improvement
-    val positiveNodes = cumulativeImprovement.filter { it.value > 0.0 }.keys.toList()
-    val rankIntensity: Map<RuleTreeNode, Double> = if (positiveNodes.isEmpty()) {
-        emptyMap()
-    } else {
-        val sorted = positiveNodes.sortedBy { cumulativeImprovement[it] ?: 0.0 }
-        val n = sorted.size
-        sorted.withIndex().associate { (i, node) ->
-            val t = if (n == 1) 1.0 else i.toDouble() / (n - 1).coerceAtLeast(1)
-            node to t
-        }
-    }
+    // Linear normalization based on actual cumulative improvement
+    val positiveValues = cumulativeImprovement.values.filter { it > 0.0 }
+    val minImp = positiveValues.minOrNull() ?: 0.0
+    val maxImp = positiveValues.maxOrNull() ?: 0.0
+    val impRange = (maxImp - minImp).takeIf { it > 0.0 } ?: 1.0
 
-    fun improvementIntensity(n: RuleTreeNode): Double =
-        rankIntensity[n] ?: 0.0
+    fun improvementIntensity(n: RuleTreeNode): Double {
+        val v = cumulativeImprovement[n] ?: 0.0
+        if (v <= 0.0) return 0.0
+        return ((v - minImp) / impRange).coerceIn(0.0, 1.0)
+    }
 
 
     // Interpolate between *very pale* and *strong* orange, with 50% opacity
