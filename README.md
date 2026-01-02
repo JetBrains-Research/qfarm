@@ -22,7 +22,11 @@ From the project root:
 
 The runnable JAR is generated at:
 
-    build/libs/qfarm.jar
+    build/libs/qfarm-<version>.jar
+
+Example:
+    
+    build/libs/qfarm-0.1.build.jar
 
 Rebuild the JAR whenever you modify the source code.
 
@@ -35,14 +39,16 @@ Basic syntax:
     java -jar qfarm.jar \
       --data <path/to.csv> \
       --rhs <column_name> \
-      [--rhs-range <lo,hi>] \
-      [--rhs-range-percentile <pLo,pHi>] \
+      [--rhs-range <lo,hi> | --rhs-range-percentile <pLo,pHi>] \
       [optional hyperparameters...]
 
-### Required arguments
+---
+
+## Required arguments
 
 --data  
-    Path to CSV dataset.
+    Path to CSV dataset.  
+    NOTE: the full dataset is always loaded; no row or column limits are applied.
 
 --rhs  
     Column name of the right-hand-side attribute.
@@ -108,6 +114,21 @@ Anything not provided falls back to defaults in `HyperParameters`.
 
 --improvement-threshold (default: 10.0)
 
+### Dataset & run metadata
+
+--excl-cols (default: [])  
+    Comma-separated list of column names to exclude from the dataset before rule mining.
+
+    Example:
+        --excl-cols Sex,ID,Timestamp
+
+--name (default: auto-generated)  
+    Optional run name / experiment label.
+    Used for logging, plots, output directories, and DOT URLs.
+
+    Example:
+        --name glucose_support_90_100
+
 ---
 
 ## Full Example
@@ -116,6 +137,8 @@ Anything not provided falls back to defaults in `HyperParameters`.
       --data data/data_f.csv \
       --rhs BC_LDL.direct \
       --rhs-range 4.0, MAX \
+      --excl-cols Sex,ID \
+      --name ldl_range_search_v2 \
       --max-depth 3 \
       --max-children 2 \
       --max-first-children 1 \
@@ -137,18 +160,17 @@ Anything not provided falls back to defaults in `HyperParameters`.
 
 After execution, QFARM produces:
 
-tree.dot  
-    GraphViz DOT file describing the discovered rule tree.
+`tree.dot`  
+    GraphViz DOT file describing the discovered rule tree (with color-coded cumulative front improvement).
 
-step_log.json  
+`tree.svg`  
+    The rendered tree.
+
+`step_log.json`  
     NDJSON step-by-step evolution log.
 
-stdout  
+`stdout`  
     Contains printed rules, evolutionary progress, and runtime information.
-
-You can render `tree.dot` using GraphViz:
-
-    dot -Tsvg tree.dot -o tree.svg
 
 ---
 
