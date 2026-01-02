@@ -4,28 +4,6 @@ import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import java.time.Instant
-import java.io.File
-import kotlinx.serialization.*
-import kotlinx.serialization.json.*
-import kotlinx.serialization.builtins.ListSerializer
-
-/* --------------------------- Serializable DTOs --------------------------- */
-
-@Serializable
-data class AttrRangeDTO(
-    val index: Int,
-    val lo: Double,
-    val hi: Double
-)
-
-@Serializable
-data class SerializableRuleStep(
-    val prefix: List<AttrRangeDTO>,           // full path BEFORE addition
-    val addition: AttrRangeDTO,               // the new node added
-    val meta: Map<String, String?>,           // extra info
-    val createdAt: String,                    // ISO-8601
-    val fitness: List<List<Double>>           // front(prefix+addition): fitness vectors
-)
 
 /* ------------------------- In-memory data model -------------------------- */
 
@@ -127,156 +105,42 @@ fun recordStep(
     return additionNode
 }
 
-/* ---------------------------- DOT Visualization ------------------------- */
-
-/**
- * Export the rule tree to Graphviz DOT.
- * Each node = one addition (attribute label; tooltip shows range).
- * Edges connect prefix → addition, preserving DFS insertion order.
- */
-fun toDOTFromTrie(
-    root: RuleTreeNode = RULE_TREE_ROOT,
-    header: List<String> = columnNames,
-    title: String = "Rule Search Tree (prefix + addition)"
-): String {
-    val sb = StringBuilder()
-    sb.appendLine("digraph G {")
-    sb.appendLine("""  label="$title"; labelloc="t"; fontsize=18;""")
-    sb.appendLine("""  rankdir=TB; splines=true; overlap=false;""")
-    sb.appendLine("""  node [shape=box, style="rounded,filled", fillcolor="#f9f9f9", color="#cccccc", fontsize=11];""")
-    sb.appendLine("""  edge [color="#999999", arrowsize=0.6];""")
-
-    var nextId = 0
-    fun newId() = "n${nextId++}"
-    fun esc(s: String) = s.replace("\"", "\\\"")
-
-    fun nodeLabel(n: RuleTreeNode): String =
-        n.additionAttrIndex?.let { idx -> header.getOrNull(idx) ?: "attr#$idx" } ?: "START"
-
-    fun tooltip(n: RuleTreeNode): String {
-        val name = nodeLabel(n)
-        val lastRange = n.steps.lastOrNull()?.addition?.range
-        val r = lastRange ?: n.additionRange
-        val imp = n.steps.lastOrNull()
-            ?.meta
-            ?.get("improvement")
-            ?.toString()
-            ?.toDoubleOrNull()
-
-        return if (imp != null) "$name\nΔFront area = ${"%.4f".format(imp)}" else name
-    }
-
-    // -------- rank-based intensity per node --------
-
-    // Collect all nodes & raw improvements (this part is unchanged)
-    val allNodes = mutableListOf<RuleTreeNode>()
-    fun collectNodes(n: RuleTreeNode) {
-        allNodes += n
-        n.children.forEach(::collectNodes)
-    }
-    collectNodes(root)
-
-    val nodeImprovement: Map<RuleTreeNode, Double> = allNodes.associateWith { n ->
-        n.steps.lastOrNull()
-            ?.meta
-            ?.get("improvement")
-            ?.toString()
-            ?.toDoubleOrNull()
-            ?.takeIf { it > 0.0 }
-            ?: 0.0
-    }
-
-// NEW: compute cumulative improvement = sum(parent + self) along each path
-    val cumulativeImprovement = mutableMapOf<RuleTreeNode, Double>()
-    fun computeCumulative(n: RuleTreeNode, parentCum: Double) {
-        val own = nodeImprovement[n] ?: 0.0
-        val cum = parentCum + own
-        cumulativeImprovement[n] = cum
-        n.children.forEach { child ->
-            computeCumulative(child, cum)
-        }
-    }
-    computeCumulative(root, 0.0)
-
-    // Linear normalization based on actual cumulative improvement
-    val positiveValues = cumulativeImprovement.values.filter { it > 0.0 }
-    val minImp = positiveValues.minOrNull() ?: 0.0
-    val maxImp = positiveValues.maxOrNull() ?: 0.0
-    val impRange = (maxImp - minImp).takeIf { it > 0.0 } ?: 1.0
-
-    fun improvementIntensity(n: RuleTreeNode): Double {
-        val v = cumulativeImprovement[n] ?: 0.0
-        if (v <= 0.0) return 0.0
-        return ((v - minImp) / impRange).coerceIn(0.0, 1.0)
-    }
-
-
-    // Interpolate between *very pale* and *strong* orange, with 50% opacity
-    fun orangeFor(node: RuleTreeNode): String {
-        if (node.additionAttrIndex == null) {
-            // root: light blue at 50% opacity
-            return "#EEF6FF80"
-        }
-        val t = improvementIntensity(node)
-
-        // light -> strong orange
-        val r0 = 0xFF; val g0 = 0xFB; val b0 = 0xF2   // almost white warm
-        val r1 = 0xFF; val g1 = 0x8C; val b1 = 0x00   // strong orange
-
-        fun lerp(a: Int, b: Int) = (a + (t * (b - a)).toInt()).coerceIn(0, 255)
-
-        val r = lerp(r0, r1)
-        val g = lerp(g0, g1)
-        val b = lerp(b0, b1)
-
-        // 80 = 50% alpha
-        return String.format("#%02X%02X%02X80", r, g, b)
-    }
-
-    // ----------------------------------------------------
-
-    fun walk(node: RuleTreeNode, id: String = newId()): String {
-        val isRoot = node.additionAttrIndex == null
-        val fill  = if (isRoot) "#EEF6FF80" else orangeFor(node)
-        val color = if (isRoot) "#4B8AE6" else "#cccccc"
-        val label = esc(nodeLabel(node))
-        val tip   = esc(tooltip(node))
-
-        val url = node.frontUrl
-            ?.let(::esc)
-
-        val urlAttr = if (url != null) """ , URL="$url", target="_blank" """ else ""
-        sb.appendLine("""  $id [label="$label", tooltip="$tip", fillcolor="$fill", color="$color"$urlAttr];""")
-
-        for (child in node.children) {
-            val cid = newId()
-            val childId = walk(child, cid)
-            sb.appendLine("  $id -> $childId;")
-        }
-        return id
-    }
-
-    walk(root)
-    sb.appendLine("}")
-    return sb.toString()
-}
 
 /* --------------------------- JSON persistence --------------------------- */
 
-/** Save the whole STEP_LOG as JSON (portable, readable). */
-fun saveStepLogToJson(path: String, stepLog: List<RuleStep> = STEP_LOG) {
-    val serial = stepLog.map { step ->
-        SerializableRuleStep(
-            prefix = step.prefix.map { p -> AttrRangeDTO(p.index, p.range.start, p.range.endInclusive) },
-            addition = AttrRangeDTO(step.addition.index, step.addition.range.start, step.addition.range.endInclusive),
-            meta = step.meta.mapValues { it.value?.toString() },
-            createdAt = step.createdAt.toString(),
-            fitness = step.front.map { it.fitness().data().toList() }.toList()
-        )
-    }
+/* --------------------------- Serializable DTOs --------------------------- */
 
-    val json = Json { prettyPrint = true; encodeDefaults = true }
-        .encodeToString(ListSerializer(SerializableRuleStep.serializer()), serial)
+//@Serializable
+//data class AttrRangeDTO(
+//    val index: Int,
+//    val lo: Double,
+//    val hi: Double
+//)
 
-    File(path).writeText(json)
-}
+//@Serializable
+//data class SerializableRuleStep(
+//    val prefix: List<AttrRangeDTO>,           // full path BEFORE addition
+//    val addition: AttrRangeDTO,               // the new node added
+//    val meta: Map<String, String?>,           // extra info
+//    val createdAt: String,                    // ISO-8601
+//    val fitness: List<List<Double>>           // front(prefix+addition): fitness vectors
+//)
+
+
+///** Save the whole STEP_LOG as JSON (portable, readable). */
+//fun saveStepLogToJson(path: String, stepLog: List<RuleStep> = STEP_LOG) {
+//    val serial = stepLog.map { step ->
+//        SerializableRuleStep(
+//            prefix = step.prefix.map { p -> AttrRangeDTO(p.index, p.range.start, p.range.endInclusive) },
+//            addition = AttrRangeDTO(step.addition.index, step.addition.range.start, step.addition.range.endInclusive),
+//            meta = step.meta.mapValues { it.value?.toString() },
+//            createdAt = step.createdAt.toString(),
+//            fitness = step.front.map { it.fitness().data().toList() }.toList()
+//        )
+//    }
+//
+//    val json = Json { prettyPrint = true; encodeDefaults = true }
+//        .encodeToString(ListSerializer(SerializableRuleStep.serializer()), serial)
+//
+//    File(path).writeText(json)
+//}

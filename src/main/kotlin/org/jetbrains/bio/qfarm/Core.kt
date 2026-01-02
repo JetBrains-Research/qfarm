@@ -117,7 +117,7 @@ fun runSearch() {
     val dot = toDOTFromTrie(RULE_TREE_ROOT, header = datasetWithHeader.header)
     val filename = "$PLOTS_DIR/tree_${hp.runName}"
     File("$filename.dot").writeText(dot)
-    saveStepLogToJson("step_log.json")
+//    saveStepLogToJson("step_log.json")
 
     ProcessBuilder("dot", "-Tsvg", "$filename.dot", "-o", "$filename.svg")
         .redirectErrorStream(true)
