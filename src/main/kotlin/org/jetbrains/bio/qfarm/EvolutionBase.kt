@@ -18,8 +18,8 @@ import io.jenetics.util.MSeq
 fun runEvolution(
     fixedAttributes: List<Pair<Int, ClosedFloatingPointRange<Double>>>,
     searchAttributes: List<Int> = listOf(),
-    popSize: Int = hp.populationSize,
-    generationCount: Int = hp.maxGenerations,
+    popSize: Int = hp.popSizeAttrParent,
+    generationCount: Int = hp.maxGenAttrParent,
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of(),
     logEvery: Int = 10
 ): ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> {

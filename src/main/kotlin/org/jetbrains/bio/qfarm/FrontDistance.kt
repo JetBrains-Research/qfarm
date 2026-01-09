@@ -1,5 +1,3 @@
-// OK for now, changes to be made later (see TODO)
-
 package org.jetbrains.bio.qfarm
 
 import io.jenetics.Phenotype
@@ -7,18 +5,27 @@ import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import kotlin.math.max
 
-// TODO: normalize the axes, bcz now support is higher scale than lift
-
 fun frontDistance(
     parent: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?,
     child: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?
 ): Double {
+    val supRange = hp.maxSupport - hp.minSupport
+
     // Extract sorted (x=SupportX, y=Lift) pairs; sorted by x asc
     fun toPoints(front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?): List<Pair<Double, Double>> {
         if (front == null || front.isEmpty) return emptyList()
-        return front.map {
+
+        return front.mapNotNull {
             val f = it.fitness().data()
-            f[0] to f[1]
+            val support = f[0]
+            val lift = f[1]
+
+            if (support < hp.minSupport || support > hp.maxSupport) {
+                null
+            } else {
+                val xNorm = (support - hp.minSupport) / supRange
+                xNorm to lift
+            }
         }.sortedBy { it.first }
     }
 

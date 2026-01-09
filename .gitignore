@@ -12,8 +12,6 @@ data/
 # ignore plots
 plots/
 step_log.json
-tree.dot
-tree.svg
 
 # IntelliJ IDEA
 .idea/

@@ -41,6 +41,8 @@ dependencies {
     implementation("org.slf4j:slf4j-nop:2.0.13")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
     implementation("org.jetbrains.lets-plot:lets-plot-kotlin:4.9.0")
+    implementation("org.jsoup:jsoup:1.17.2")
+    implementation("org.apache.commons:commons-text:1.11.0")
 }
 
 tasks.jar {

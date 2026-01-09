@@ -59,6 +59,15 @@ class Main {
                     .describedAs("percentile pLo,pHi or pLo..pHi in [0,100]")
 
                 // ============== OPTIONAL PARAMETERS ==================
+                accepts("name")
+                    .withRequiredArg()
+                    .ofType(String::class.java)
+                    .describedAs("run name / experiment label (default: ${hp.runName})")
+
+                accepts("excl-cols")
+                    .withRequiredArg()
+                    .ofType(String::class.java)
+                    .describedAs("comma-separated list of column names to exclude (default: ${hp.excludedColumns})")
 
                 accepts("min-support")
                     .withRequiredArg()
@@ -169,6 +178,9 @@ class Main {
             }
 
             // -------- optional overrides (read all) --------
+            val exclColsOpt            = opts.valueOf("excl-cols") as String?
+            val runNameOpt             = opts.valueOf("name") as String?
+
             val minSupportOpt          = opts.valueOf("min-support") as Int?
             val maxSupportOpt          = opts.valueOf("max-support") as Int?
 
@@ -189,6 +201,13 @@ class Main {
             val stdMutationOpt         = opts.valueOf("std-mutation") as Double?
 
             val improvementThresholdOpt = opts.valueOf("improvement-threshold") as Double?
+
+
+            val excludedColumnsOpt: List<String>? =
+                exclColsOpt
+                    ?.split(',')
+                    ?.map { it.trim() }
+                    ?.filter { it.isNotEmpty() }
 
 
             // update global hp BEFORE initEnvironment
@@ -216,6 +235,9 @@ class Main {
 
                 // improvement threshold
                 improvementThreshold = improvementThresholdOpt ?: hp.improvementThreshold,
+
+                excludedColumns     = excludedColumnsOpt ?: hp.excludedColumns,
+                runName             = runNameOpt ?: hp.runName,
 
                 // dataset + RHS are always overridden by required args
                 dataPath            = dataPath,
