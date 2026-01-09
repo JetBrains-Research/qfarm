@@ -46,11 +46,9 @@ fun runEvolution(
         .constraint(SupportThresholdConstraint(genotypeFactory))
         .populationSize(popSize)
         .offspringFraction(0.75)
-        .alterers(GaussianAttributeMutator(hp.probabilityMutation))
+        .alterers(GaussianAttributeMutator(hp.probabilityMutation, cfg.fixedAttributes))
         .survivorsSelector(NSGA2Selector.ofVec())
-        // TODO: pay attention to the type of selector in this case ... Maybe different ones per different evolutions
         .offspringSelector(NSGA2Selector.ofVec())
-//        .offspringSelector(RandomNSGA2(genotypeFactory, fitness))
         .build()
 
 //    val start = System.nanoTime()
@@ -74,7 +72,7 @@ fun runEvolution(
     // If you provided a non-empty padded list, start from it; else use the normal stream()
     val stream = if (padded != null) {
         val init = EvolutionInit.of(initGenotypes, 1)
-        engine.stream(init) // starts from your genotypes
+        engine.stream(init) // starts from parent front genotypes
     } else {
         engine.stream() // default random init from genotypeFactory
     }

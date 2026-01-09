@@ -1,5 +1,3 @@
-// OK?, not much to improve?
-
 package org.jetbrains.bio.qfarm
 
 import io.jenetics.Gene
@@ -58,5 +56,9 @@ data class AttributeGene(
         fun default(attributeIndex: Int, min: Double, max: Double, cfg: RuleInitConfig): AttributeGene {
             return AttributeGene(attributeIndex, min, max, min, max, cfg)
         }
+    }
+
+    fun descript(): String {
+        return "Gene of attribute ${columnNames[attributeIndex]} with index $attributeIndex in range ${lowerBound.roundTo(4)} to ${upperBound.roundTo(4)} with min=$min and max=$max"
     }
 }
