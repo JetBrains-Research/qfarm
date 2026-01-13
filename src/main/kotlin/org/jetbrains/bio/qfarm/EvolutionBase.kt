@@ -1,6 +1,5 @@
 package org.jetbrains.bio.qfarm
 
-import org.jetbrains.bio.qfarm.RandomNSGA2.Companion.currentGeneration
 import io.jenetics.Genotype
 import io.jenetics.engine.Engine
 import io.jenetics.Optimize
@@ -20,8 +19,7 @@ fun runEvolution(
     searchAttributes: List<Int> = listOf(),
     popSize: Int = hp.popSizeAttrParent,
     generationCount: Int = hp.maxGenAttrParent,
-    parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of(),
-    logEvery: Int = 10
+    parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of()
 ): ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> {
 
 //  Build the config:
@@ -33,7 +31,7 @@ fun runEvolution(
         searchAttributes = searchAttributes
     )
 
-    // --- build engine using your existing genotype factory ---
+    // --- build engine using existing genotype factory ---
     val genotypeFactory = createGenotypeFactory(cfg)
 
     val fitness: (Genotype<AttributeGene>) -> Vec<DoubleArray> = { gt ->
@@ -69,7 +67,7 @@ fun runEvolution(
         initGenotypes.append(randomFill)
     }
 
-    // If you provided a non-empty padded list, start from it; else use the normal stream()
+    // If provided a non-empty padded list, start from it; else use the normal stream()
     val stream = if (padded != null) {
         val init = EvolutionInit.of(initGenotypes, 1)
         engine.stream(init) // starts from parent front genotypes
@@ -82,11 +80,6 @@ fun runEvolution(
         .peek { res ->
             val population = res.population()
             val g = res.generation()
-            currentGeneration = g.toInt()
-//            if (g % logEvery == 0L) {
-//                val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
-//                println("[gen $g] pop=${res.population().size()} elapsed=%.2fs".format(elapsed))
-//            }
             if (g.toInt() == generationCount) {
                 front = ISeq.of(paretoFrontOf(population))
             }

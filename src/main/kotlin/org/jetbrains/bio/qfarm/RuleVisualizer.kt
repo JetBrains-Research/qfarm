@@ -17,7 +17,6 @@ import java.awt.Desktop
 import java.nio.file.Paths
 import java.util.UUID
 
-// --- small helpers you already had ---
 private fun inRange(v: Double, r: ClosedFloatingPointRange<Double>) =
     !v.isNaN() && v >= r.start && v <= r.endInclusive
 
@@ -46,7 +45,7 @@ private fun openPlotInBrowser(plot: Plot, suggestedName: String = "plot") {
     else println("↗ Open manually: file://${f.absolutePath}")
 }
 
-// ---------------- 1) unchanged 1D visualizer (returns one Plot) ----------------
+// ---------------- 1) 1D visualizer (returns one Plot) ----------------
 fun visualizeRuleWithDataset(
     dataset: DatasetWithHeader,
     lhsRanges: Map<String, ClosedFloatingPointRange<Double>>,   // 1 key

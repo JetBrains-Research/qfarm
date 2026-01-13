@@ -38,13 +38,6 @@ fun nextBestFinder(
     println("$CYAN ΔFront area improvement = ${"%.4f".format(improvement)}$RESET")
 
     if (parentFront != null && !parentFront.isEmpty) {
-//        tryOpenFrontPlot(
-//            parentFront,
-//            bestFront,
-//            title = "Front shift: ${readLHS(bestRule.toList(), onlyNames = true)} \nwith addition ${columnNames[bestAttribute]}",
-//            randomFront = false
-//        )
-
         if (improvement < hp.improvementThreshold) {
             println("$RED Addition rejected (below threshold: ${hp.improvementThreshold})$RESET")
             return null
@@ -70,7 +63,7 @@ fun nextBestFinder(
         )
     )
 
-    // Ensure node stores the URL (recordStep already does this, but keep explicit if you like)
+    // Ensure node stores the URL
     if (url != null) additionNode.frontUrl = url
 
     return bestRule to bestAttribute

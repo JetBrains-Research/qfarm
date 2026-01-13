@@ -79,7 +79,7 @@ fun topRange(
 
     println("$PURPLE[🏁 Pareto front (all) has ${front.size()} solutions]$RESET")
 
-    // If nothing matched, bail out early with an empty result (or throw, your call)
+    // If nothing matched, bail out early with an empty result
     if (bestGenes.isEmpty()) {
         println("$YELLOW[⚠️ No solutions matched the requested attributes. Returning empty result.]$RESET")
         return TopRangeResult(

@@ -1,5 +1,3 @@
-// OK, nothing to do, trivial
-
 package org.jetbrains.bio.qfarm
 
 import io.jenetics.Genotype

@@ -8,7 +8,7 @@ import kotlin.collections.List
 fun readLHS(
     side: List<Pair<Int, ClosedFloatingPointRange<Double>>>,
     perc: Boolean = true,
-    onlyNames: Boolean = false          // <<< NEW OPTION
+    onlyNames: Boolean = false
 ): String {
     if (side.isEmpty()) return ""
 
@@ -22,7 +22,6 @@ fun readLHS(
             val name = names.getOrNull(idx) ?: "attr_$idx"
 
             if (onlyNames) {
-                // <<< NEW BEHAVIOR: PRINT ONLY ATTRIBUTE NAMES
                 append(name)
             } else if (perc) {
                 val pleft  = cumulativePercentage(cols[idx], range.start).toInt()
@@ -72,7 +71,6 @@ fun compactRuleString(
             } else {
                 "[%.4f, %.4f] from [%.4f, %.4f] %s"
                     .format(gene.lowerBound, gene.upperBound, gene.min, gene.max, percentilesStr)
-                // If you want locale-stable: String.format(Locale.US, ...)
             }
 
         return if (isConsequent) "===>  $name $body"
@@ -92,14 +90,9 @@ fun compactRuleString(
     }.trimEnd()
 }
 
-
-
-// If you ever need a plain-text version (no ANSI) after-the-fact:
 private val ANSI_RE: Regex = Regex("\\u001B\\[[;\\d]*m")
 
 fun stripAnsi(s: String): String = ANSI_RE.replace(s, "")
-
-
 
 // choose color by percentile range (0..100)
 // here we use the midpoint of [lowerPct, upperPct]

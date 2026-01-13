@@ -121,7 +121,7 @@ fun frontDistance(
     val pInterp = Interp(pPts)
     val cInterp = Interp(cPts)
 
-    // Trapezoidal areas on the common grid (single pass, reusing moving pointers)
+    // Trapezoidal areas on the common grid
     var parentArea = 0.0
     var childArea  = 0.0
     var k = 0
@@ -198,8 +198,8 @@ private fun lastIndexLE(xs: DoubleArray, x: Double): Int {
 }
 
 // y(x) on a polyline with optional vertical runs:
-// - if x outside range: clamps to endpoint Y (as your code did).
-// - if segment has dx == 0: returns the max Y across that vertical run (envelope).
+// - if x outside range: clamps to endpoint Y
+// - if segment has dx == 0: returns the max Y across that vertical run
 private fun yAt(poly: Polyline, x: Double): Double {
     val xs = poly.xs
     val ys = poly.ys

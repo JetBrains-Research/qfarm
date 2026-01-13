@@ -59,7 +59,6 @@ class RuleSideChromosome(
 
                 val gene = when {
                     index in fixedIndices ->
-                        // use cfg.bounds (not a global)
                         AttributeGene.of(index, min, max, cfg)
 
                     selectedIndex != null && index == selectedIndex ->

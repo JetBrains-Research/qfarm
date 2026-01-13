@@ -1,4 +1,3 @@
-// OK
 package org.jetbrains.bio.qfarm
 
 const val RED = "\u001B[31m"

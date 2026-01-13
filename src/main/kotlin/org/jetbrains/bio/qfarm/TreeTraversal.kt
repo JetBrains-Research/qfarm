@@ -1,12 +1,9 @@
-// OK, a lot to improve
-
 package org.jetbrains.bio.qfarm
 
 fun treeTraversal(prefix: List<Pair<Int, ClosedFloatingPointRange<Double>>>) {
     val locUsed = mutableSetOf<Int>()
     var maxLength = true
 
-    // decide max direct children: 5 for the root, 2 otherwise
     val maxChildren = if (prefix.isEmpty()) hp.maxFirstChildren else hp.maxChildren
     var childCount = 0
 

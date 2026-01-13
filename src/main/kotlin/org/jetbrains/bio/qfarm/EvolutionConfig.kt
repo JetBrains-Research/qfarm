@@ -61,7 +61,7 @@ class IndexPool(indices: Set<Int>) {
 
     @Synchronized
     fun takeRandom(n: Int = all.size): List<Int> {
-        if (all.isEmpty() || n <= 0) return emptyList()              // nothing to take
+        if (all.isEmpty() || n <= 0) return emptyList()
         if (remaining.size < n) {
             remaining.clear()
             remaining.addAll(all)

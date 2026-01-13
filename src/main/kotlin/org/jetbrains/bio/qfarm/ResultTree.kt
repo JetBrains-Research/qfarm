@@ -47,10 +47,8 @@ fun toDOTFromTrie(
         val file = File(path)
 
         return when {
-            // absolute path → trust it
             file.isAbsolute -> file
 
-            // relative path → resolve against plotsDir (THE KEY FIX)
             else -> File(PLOTS_DIR, path)
         }.takeIf { it.exists() }
     }
@@ -99,7 +97,7 @@ fun toDOTFromTrie(
         }.trimEnd()
     }
 
-    // Collect all nodes & raw improvements (this part is unchanged)
+    // Collect all nodes & raw improvements
     val allNodes = mutableListOf<RuleTreeNode>()
     fun collectNodes(n: RuleTreeNode) {
         allNodes += n
@@ -117,7 +115,7 @@ fun toDOTFromTrie(
             ?: 0.0
     }
 
-    // NEW: compute cumulative improvement = sum(parent + self) along each path
+    // compute cumulative improvement = sum(parent + self) along each path
     val cumulativeImprovement = mutableMapOf<RuleTreeNode, Double>()
     fun computeCumulative(n: RuleTreeNode, parentCum: Double) {
         val own = nodeImprovement[n] ?: 0.0

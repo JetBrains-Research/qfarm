@@ -14,7 +14,6 @@ fun topAttribute(
     println("\n$BLUE\uD83E\uDD47 SEARCHING FOR THE BEST ATTRIBUTE ... $RESET")
     require(searchAttributes.isNotEmpty()) { "searchAttributes must not be empty." }
 
-    // "Other" front to compare against — parent from the stack
     val parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
         EvolutionContext.frontStack.lastOrNull() ?: ISeq.empty()
     val hasParent = !parentFront.isEmpty
@@ -23,19 +22,12 @@ fun topAttribute(
         if (hasParent) hp.popSizeAttrParent to hp.maxGenAttrParent   // case: WITH parent
         else hp.popSizeAttrFirst to hp.maxGenAttrFirst   // case: NO parent
 
-    // Run evolution for this prefix to obtain the "child" front
     val randomFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
         runEvolution(prefixAttributes, searchAttributes, popSize, maxGen, parentFront)
 
     val result = if (!hasParent) {
         topAttributeNoParent(prefixAttributes, randomFront, currentDataset)
     } else {
-//        tryOpenFrontPlot(
-//            parentFront,
-//            randomFront,
-//            title = "Front random attribute for prefix: \n ${readLHS(prefixAttributes, onlyNames = true)}",
-//            randomFront = true
-//        )
         topAttributeWithParent(prefixAttributes, randomFront, parentFront, currentDataset)
     }
 
