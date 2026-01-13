@@ -7,12 +7,10 @@ import java.time.Instant
 
 /* ------------------------- In-memory data model -------------------------- */
 
-data class AttrRange(val index: Int, val range: ClosedFloatingPointRange<Double>)
-
 /** One DFS step: prefix (before), the new addition, and the resulting front for prefix+addition. */
 data class RuleStep(
-    val prefix: List<AttrRange>,   // full path BEFORE addition
-    val addition: AttrRange,       // the node we add
+    val prefix: List<Int>,   // full path BEFORE addition
+    val addition: Int,       // the node we add
     val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
     val meta: Map<String, Any?> = emptyMap(),
     val createdAt: Instant = Instant.now()
@@ -25,7 +23,6 @@ data class RuleStep(
  */
 class RuleTreeNode(
     val additionAttrIndex: Int? = null,                            // null for root
-    var additionRange: ClosedFloatingPointRange<Double>? = null,   // null for root
     val depth: Int = 0,
     var frontUrl: String? = null
 ) {
@@ -44,18 +41,18 @@ val STEP_LOG: MutableList<RuleStep> = mutableListOf()
 /* ----------------------------- Recording API ---------------------------- */
 
 /** Ensure the chain of nodes for a FULL path (list of additions = attr+range at each depth). */
-fun ensurePath(prefix: List<AttrRange>): RuleTreeNode {
+fun ensurePath(prefix: List<Int>): RuleTreeNode {
     var node = RULE_TREE_ROOT
     var d = 0
     for (ar in prefix) {
         d += 1
         // find existing child with SAME attribute index (ignore range)
         val found = node.children.firstOrNull {
-            it.additionAttrIndex == ar.index
+            it.additionAttrIndex == ar
         }
         node = if (found != null) found else {
             // we can still store the first-seen range on the node; identity is by index only
-            val created = RuleTreeNode(ar.index, ar.range, d)
+            val created = RuleTreeNode(ar, d)
             node.children += created
             created
         }
@@ -73,32 +70,25 @@ fun ensurePath(prefix: List<AttrRange>): RuleTreeNode {
  * @return the node representing `addition` under `prefix`.
  */
 fun recordStep(
-    prefixRanges: List<Pair<Int, ClosedFloatingPointRange<Double>>>,
-    addition: Pair<Int, ClosedFloatingPointRange<Double>>,
+    prefix: List<Int>,
+    addition: Int,
     front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
     meta: Map<String, Any?> = emptyMap()
 ): RuleTreeNode {
-    val prefix = prefixRanges.map { AttrRange(it.first, it.second) }
-    val add    = AttrRange(addition.first, addition.second)
 
     val prefixNode = ensurePath(prefix)
 
     // find/create child using ONLY the attribute index
     val additionNode = prefixNode.children.firstOrNull {
-        it.additionAttrIndex == add.index
-    } ?: RuleTreeNode(add.index, add.range, prefixNode.depth + 1).also {
+        it.additionAttrIndex == addition
+    } ?: RuleTreeNode(addition, prefixNode.depth + 1).also {
         prefixNode.children += it
     }
 
-    val step = RuleStep(prefix = prefix, addition = add, front = front, meta = meta)
+    val step = RuleStep(prefix = prefix, addition = addition, front = front, meta = meta)
     additionNode.steps += step
     STEP_LOG += step
 
-    // optionally update node’s stored range & url to the latest
-    if (additionNode.additionRange == null) {
-        // keep first range if you prefer; otherwise comment this out to always overwrite
-        additionNode.additionRange = add.range
-    }
     val url = meta["frontUrl"]?.toString()
     if (!url.isNullOrBlank()) additionNode.frontUrl = url
 

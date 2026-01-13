@@ -17,8 +17,8 @@ data class RuleInitConfig(
     val bounds: Array<DoubleArray>,
     val percentile: PercentileProvider,
 
-    // Fixed attributes: (index, range) — these are always present & will mutate
-    val fixedAttributes: List<Pair<Int, ClosedFloatingPointRange<Double>>> = emptyList(),
+    // Fixed attributes: (index) — these are always present & will mutate
+    val fixedAttributes: List<Int> = emptyList(),
 
     // Explicit list of attribute indices to search among for the “additional” attribute
     // If empty, chromosome will use only the fixed attributes.

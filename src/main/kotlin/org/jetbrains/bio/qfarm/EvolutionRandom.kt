@@ -6,7 +6,7 @@ import io.jenetics.util.ISeq
 
 
 fun topAttribute(
-    prefixAttributes: List<Pair<Int, ClosedFloatingPointRange<Double>>>,
+    prefixAttributes: List<Int>,
     searchAttributes: List<Int>,
     currentDataset: DatasetWithHeader = datasetWithHeader,
 ): Int? {
@@ -61,11 +61,11 @@ private fun groupFrontByAttribute(
 }
 
 private fun topAttributeNoParent(
-    prefixAttributes: List<Pair<Int, ClosedFloatingPointRange<Double>>>,
+    prefixAttributes: List<Int>,
     childFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
     currentDataset: DatasetWithHeader
 ): Int? {
-    val fixedIndices = prefixAttributes.map { it.first }.toSet()
+    val fixedIndices = prefixAttributes.toSet()
     val groups = groupFrontByAttribute(childFront, fixedIndices)
 
     if (groups.isEmpty()) {
@@ -88,12 +88,12 @@ private fun topAttributeNoParent(
 /* -------------------------- Case: WITH parent front ------------------------ */
 
 private fun topAttributeWithParent(
-    prefixAttributes: List<Pair<Int, ClosedFloatingPointRange<Double>>>,
+    prefixAttributes: List<Int>,
     childFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
     currentDataset: DatasetWithHeader
 ): Int? {
-    val fixedIndices = prefixAttributes.map { it.first }.toSet()
+    val fixedIndices = prefixAttributes.toSet()
     val groups = groupFrontByAttribute(childFront, fixedIndices)
 
     if (groups.isEmpty()) {

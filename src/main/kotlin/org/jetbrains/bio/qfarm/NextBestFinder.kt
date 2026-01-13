@@ -2,10 +2,10 @@ package org.jetbrains.bio.qfarm
 
 fun nextBestFinder(
     used: MutableSet<Int>,
-    prefix: List<Pair<Int, ClosedFloatingPointRange<Double>>>,
+    prefix: List<Int>,
     dataset: DatasetWithHeader = datasetWithHeader
-): Pair<Map<Int, ClosedFloatingPointRange<Double>>, Int>? {
-    println("\n$CYAN\uD83C\uDF1F FINDING THE NEXT BEST ADDITION TO THE PREFIX ${readLHS(prefix, false)} ... $RESET")
+): Int? {
+    println("\n$CYAN\uD83C\uDF1F FINDING THE NEXT BEST ADDITION TO THE PREFIX ${readLHS(prefix)} ... $RESET")
 
     // Exclude already-used + right attribute from candidates
     val right = rightAttrIndex
@@ -28,9 +28,7 @@ fun nextBestFinder(
         return null
     }
 
-    val lowerBest = bounds[bestAttribute][0]
-    val upperBest = bounds[bestAttribute][1]
-    val best = topRange(prefix + listOf(bestAttribute to (lowerBest..upperBest)))
+    val best = topRange(prefix + listOf(bestAttribute))
     val bestRule = best.ranges
     val bestFront = best.front
 
@@ -49,12 +47,12 @@ fun nextBestFinder(
     val url = renderFrontPlotUrl(
         parentFront,
         bestFront,
-        title = "Front shift: ${readLHS(bestRule.toList(), onlyNames = true)} \nwith addition ${columnNames[bestAttribute]} \nImprovement area = ${"%.3f".format(improvement)}",
+        title = "Front shift: ${readLHS(bestRule.toList())} \nwith addition ${columnNames[bestAttribute]} \nImprovement area = ${"%.3f".format(improvement)}",
         randomFront = false
     )
     val additionNode = recordStep(
-        prefixRanges = prefix,
-        addition = bestAttribute to bestRule[bestAttribute]!!,
+        prefix = prefix,
+        addition = bestAttribute,
         front = bestFront,
         meta = mapOf(
             "depth" to (prefix.size + 1),
@@ -66,5 +64,5 @@ fun nextBestFinder(
     // Ensure node stores the URL
     if (url != null) additionNode.frontUrl = url
 
-    return bestRule to bestAttribute
+    return bestAttribute
 }

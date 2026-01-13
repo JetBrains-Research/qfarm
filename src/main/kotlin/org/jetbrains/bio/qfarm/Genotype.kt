@@ -4,7 +4,7 @@ import io.jenetics.Genotype
 import io.jenetics.util.Factory
 
 fun createGenotypeFactory(cfg: RuleInitConfig): Factory<Genotype<AttributeGene>> {
-    val fixedIndices = cfg.fixedAttributes.map { it.first }.toSet()
+    val fixedIndices = cfg.fixedAttributes.toSet()
 
     // Pool is strictly the cfg.searchAttributes minus RHS & fixed
     val availableSearch = cfg.searchAttributes

@@ -19,7 +19,7 @@ data class AttributeGene(
         lowerBound <= upperBound && lowerBound >= min && upperBound <= max
 
     val isDefault: Boolean
-        get() = lowerBound == min && upperBound == max && attributeIndex !in cfg.fixedAttributes.map{it -> it.first}
+        get() = lowerBound == min && upperBound == max
 
     override fun newInstance(): AttributeGene {
         val p1 = rand.nextDouble()

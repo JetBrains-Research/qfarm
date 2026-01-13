@@ -1,6 +1,6 @@
 package org.jetbrains.bio.qfarm
 
-fun treeTraversal(prefix: List<Pair<Int, ClosedFloatingPointRange<Double>>>) {
+fun treeTraversal(prefix: List<Int>) {
     val locUsed = mutableSetOf<Int>()
     var maxLength = true
 
@@ -20,10 +20,10 @@ fun treeTraversal(prefix: List<Pair<Int, ClosedFloatingPointRange<Double>>>) {
             break
         }
 
-        val currentRule = newRule.first.toList()
+        val currentRule = prefix + newRule
         TOPRULES += currentRule
-        locUsed += newRule.second
-        USED += newRule.second
+        locUsed += newRule
+        USED += newRule
 
         println("→ exploring child ${childCount + 1} of current prefix")
 

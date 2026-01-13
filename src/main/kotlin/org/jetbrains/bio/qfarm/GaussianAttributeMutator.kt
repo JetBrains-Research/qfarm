@@ -6,7 +6,7 @@ import java.util.random.RandomGenerator
 
 class GaussianAttributeMutator(
     probability: Double = hp.probabilityMutation,
-    private val fixedAttributeIndices: List<Pair<Int, ClosedFloatingPointRange<Double>>>,
+    private val fixedAttributeIndices: List<Int>,
     private val stddev: Double = hp.stdMutation
 ) : Mutator<AttributeGene, Vec<DoubleArray>>(probability) {
 
@@ -14,7 +14,7 @@ class GaussianAttributeMutator(
         // is not default covers additions in random front, while fixed attr the ones in final front,
         // as parent front passes the rules with default additions
         // TODO: what about the search attributes in random front? Rn there should be no way for them to appear after parent front initialization of the initial population...
-        if (!gene.isDefault || gene.attributeIndex in fixedAttributeIndices.map { it -> it.first }) {
+        if (!gene.isDefault || gene.attributeIndex in fixedAttributeIndices) {
 
             val range = gene.max - gene.min
             val noise = random.nextGaussian() * stddev * range

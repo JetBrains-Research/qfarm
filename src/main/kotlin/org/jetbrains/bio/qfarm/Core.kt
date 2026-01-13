@@ -20,7 +20,7 @@ lateinit var rightGene: AttributeGene
 var rightAttrIndex: Int = -1
 
 var USED: MutableSet<Int> = mutableSetOf()
-var TOPRULES: MutableList<List<Pair<Int, ClosedFloatingPointRange<Double>>>> = mutableListOf()
+var TOPRULES: MutableList<List<Int>> = mutableListOf()
 
 
 fun initEnvironment(
@@ -98,19 +98,14 @@ fun initEnvironment(
 fun runSearch() {
     val start = System.nanoTime()
 
-    val emptyPrefix: MutableList<Pair<Int, ClosedFloatingPointRange<Double>>> = mutableListOf()
+    val emptyPrefix: MutableList<Int> = mutableListOf()
     treeTraversal(emptyPrefix)
 
     TOPRULES.forEach { rule ->
         println()
-        rule.forEach { (idx, range) ->
-            val lowerPct = cumulativePercentage(sortedColumns[idx], range.start).toInt()
-            val upperPct = cumulativePercentage(sortedColumns[idx], range.endInclusive).toInt()
-            val color = colorForPercentiles(lowerPct, upperPct)
-
+        rule.forEach { idx ->
             print(
-                " + $BLUE${columnNames[idx]}$RESET: ${range.start} .. ${range.endInclusive}  " +
-                        "${color}(${lowerPct}% .. ${upperPct}%)$RESET"
+                " + $BLUE${columnNames[idx]}$RESET"
             )
         }
     }

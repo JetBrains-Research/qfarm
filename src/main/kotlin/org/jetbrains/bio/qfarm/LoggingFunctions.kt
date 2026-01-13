@@ -1,39 +1,23 @@
 package org.jetbrains.bio.qfarm
 
 import io.jenetics.Genotype
-import kotlin.Double
 import kotlin.String
 import kotlin.collections.List
 
 fun readLHS(
-    side: List<Pair<Int, ClosedFloatingPointRange<Double>>>,
-    perc: Boolean = true,
-    onlyNames: Boolean = false
+    side: List<Int>
 ): String {
     if (side.isEmpty()) return ""
 
     val names = columnNames
-    val cols  = sortedColumns
     val last  = side.lastIndex
 
     return buildString {
         for (i in 0..last) {
-            val (idx, range) = side[i]
+            val idx = side[i]
             val name = names.getOrNull(idx) ?: "attr_$idx"
 
-            if (onlyNames) {
-                append(name)
-            } else if (perc) {
-                val pleft  = cumulativePercentage(cols[idx], range.start).toInt()
-                val pright = cumulativePercentage(cols[idx], range.endInclusive).toInt()
-                append(name).append(" ∈ [")
-                    .append(pleft).append(", ").append(pright).append("]%")
-            } else {
-                append(name).append(" ∈ [")
-                    .append(range.start).append(", ")
-                    .append(range.endInclusive).append(']')
-            }
-
+            append(name)
             if (i < last) append(" AND ")
         }
     }
@@ -93,16 +77,3 @@ fun compactRuleString(
 private val ANSI_RE: Regex = Regex("\\u001B\\[[;\\d]*m")
 
 fun stripAnsi(s: String): String = ANSI_RE.replace(s, "")
-
-// choose color by percentile range (0..100)
-// here we use the midpoint of [lowerPct, upperPct]
-fun colorForPercentiles(lowerPct0: Int, upperPct0: Int): String {
-    val lowerPct = lowerPct0.coerceIn(0, 100)
-    val upperPct = upperPct0.coerceIn(0, 100)
-    val mid = (lowerPct + upperPct) / 2.0
-    return when {
-        mid < 33.334 -> GREEN     // low
-        mid < 66.667 -> YELLOW    // medium
-        else         -> PURPLE   // high
-    }
-}

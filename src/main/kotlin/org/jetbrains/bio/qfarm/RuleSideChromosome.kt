@@ -34,7 +34,7 @@ class RuleSideChromosome(
     companion object {
         fun of(cfg: RuleInitConfig, indexPool: IndexPool): RuleSideChromosome {
             // Precompute fixed/search sets
-            val fixedIndices = cfg.fixedAttributes.map { it.first }.toSet()
+            val fixedIndices = cfg.fixedAttributes.toSet()
 
             // Only allow search among cfg.searchAttributes, excluding RHS & fixed
             val searchSet = cfg.searchAttributes

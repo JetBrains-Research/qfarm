@@ -15,7 +15,7 @@ import io.jenetics.util.MSeq
  * Genotype = one RuleSideChromosome (LHS). RHS is handled by evaluation as before.
  */
 fun runEvolution(
-    fixedAttributes: List<Pair<Int, ClosedFloatingPointRange<Double>>>,
+    fixedAttributes: List<Int>,
     searchAttributes: List<Int> = listOf(),
     popSize: Int = hp.popSizeAttrParent,
     generationCount: Int = hp.maxGenAttrParent,
