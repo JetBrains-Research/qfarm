@@ -35,10 +35,11 @@ fun initEnvironment(
     println("  rhsRange = $rhsRange")
     println("  rhsPercentiles = $rhsPercentiles")
 
-    datasetWithHeader = loadDatasetSubset(
+    datasetWithHeader = loadNumericDataset(
         filePath = dataPath,
         excludeColumns = hp.excludedColumns.toSet()
     )
+    printFirstRows(datasetWithHeader, 5)
 
     columnNames = datasetWithHeader.header
     dataset = datasetWithHeader.data

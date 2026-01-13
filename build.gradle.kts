@@ -43,6 +43,7 @@ dependencies {
     implementation("org.jetbrains.lets-plot:lets-plot-kotlin:4.9.0")
     implementation("org.jsoup:jsoup:1.17.2")
     implementation("org.apache.commons:commons-text:1.11.0")
+    implementation("tech.tablesaw:tablesaw-core:0.43.1")
 }
 
 tasks.jar {
@@ -82,7 +83,7 @@ tasks.register<Copy>("processBuildProperties") {
             expand(tokens)
         }
     }
-    into(sourceSets.main.get().output.resourcesDir)
+    sourceSets.main.get().output.resourcesDir?.let { into(it) }
 }
 
 
