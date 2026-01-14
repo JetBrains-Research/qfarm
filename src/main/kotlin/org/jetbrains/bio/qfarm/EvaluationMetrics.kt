@@ -47,14 +47,17 @@ fun evaluateRule(
 
         // Y first, independent of X
         val yv = row[rIdx]
-        val yOk = (yv >= rLo && yv <= rUp)
+        val yOk = !yv.isNaN() && (yv >= rLo && yv <= rUp)
 
         // X check with early exit
         var xOk = true
         var j = 0
         while (j < k) {
             val v = row[idxs[j]]
-            if (v < lows[j] || v > ups[j]) { xOk = false; break }
+            if (v.isNaN() || v < lows[j] || v > ups[j]) {
+                xOk = false
+                break
+            }
             j++
         }
         if (xOk) {

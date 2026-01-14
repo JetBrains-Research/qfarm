@@ -1,6 +1,5 @@
 package org.jetbrains.bio.qfarm
 
-import java.util.Arrays
 import kotlin.math.pow
 import kotlin.math.round
 import java.util.stream.IntStream
@@ -17,25 +16,46 @@ fun computeSortedColumns(dataset: List<DoubleArray>): List<DoubleArray> {
         throw IllegalArgumentException("Inconsistent row lengths in dataset")
     }
 
-    // Transpose: columns[c][r] = dataset[r][c]
-    val columns = Array(cols) { DoubleArray(rows) }
+    // Collect finite values per column
+    val columns = Array(cols) { ArrayList<Double>(rows) }
+
     for (r in 0 until rows) {
         val row = dataset[r]
         for (c in 0 until cols) {
-            columns[c][r] = row[c]
+            val v = row[c]
+            if (!v.isNaN()) {
+                columns[c].add(v)
+            }
         }
     }
 
-    // Sort columns (parallel for large problems)
-    if (cols > 8 && rows > 10_000) {
-        IntStream.range(0, cols).parallel().forEach { i ->
-            Arrays.sort(columns[i])
+    // Sort each column independently
+    val sortedColumns = ArrayList<DoubleArray>(cols)
+
+    if (cols > 10 && rows > 10_000) {
+        // Parallel sort for large problems
+        IntStream.range(0, cols).parallel().forEach { c ->
+            val col = columns[c]
+            col.sort()
+        }
+        for (c in 0 until cols) {
+            require(columns[c].isNotEmpty()) {
+                "Column $c contains only NaN values"
+            }
+            sortedColumns.add(columns[c].toDoubleArray())
         }
     } else {
-        for (c in 0 until cols) Arrays.sort(columns[c])
+        for (c in 0 until cols) {
+            val col = columns[c]
+            require(col.isNotEmpty()) {
+                "Column $c contains only NaN values"
+            }
+            col.sort()
+            sortedColumns.add(col.toDoubleArray())
+        }
     }
 
-    return columns.asList()
+    return sortedColumns
 }
 
 
@@ -72,6 +92,13 @@ fun computeBoundsFromSorted(sortedColumns: List<DoubleArray>): Array<DoubleArray
         out[i][0] = col[0]                    // min
         out[i][1] = col[col.lastIndex]        // max
     }
+    println("Computed bounds (min, max) per column:")
+    for (i in out.indices) {
+        val min = out[i][0]
+        val max = out[i][1]
+        println("  ${columnNames[i]}: min=$min, max=$max")
+    }
+
     return out
 }
 

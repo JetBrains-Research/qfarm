@@ -66,9 +66,20 @@ fun toPFSeries(
 
         var tp = 0; var fp = 0; var fn = 0; var tn = 0
         for (row in data) {
-            val xOk = bounds.all { b -> val v = row[b.idx]; !v.isNaN() && v >= b.lo && v <= b.hi }
-            val yOk = (row[rIdx] >= rLo && row[rIdx] <= rUp)
-            if (xOk) { if (yOk) tp++ else fp++ } else { if (yOk) fn++ else tn++ }
+            val yv = row[rIdx]
+            if (yv.isNaN()) continue   // skip this row entirely
+            val yOk = (yv >= rLo && yv <= rUp)
+
+            val xOk = bounds.all { b ->
+                val v = row[b.idx]
+                !v.isNaN() && v >= b.lo && v <= b.hi
+            }
+
+            if (xOk) {
+                if (yOk) tp++ else fp++
+            } else {
+                if (yOk) fn++ else tn++
+            }
         }
 
         val denom1 = fp + tn

@@ -11,20 +11,20 @@ fun frontDistance(
 ): Double {
     val supRange = hp.maxSupport - hp.minSupport
 
-    // Extract sorted (x=SupportX, y=Lift) pairs; sorted by x asc
+    // Extract sorted (x=SupportX, y=Conf) pairs; sorted by x asc
     fun toPoints(front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?): List<Pair<Double, Double>> {
         if (front == null || front.isEmpty) return emptyList()
 
         return front.mapNotNull {
             val f = it.fitness().data()
             val support = f[0]
-            val lift = f[1]
+            val conf = f[1]
 
             if (support < hp.minSupport || support > hp.maxSupport) {
                 null
             } else {
                 val xNorm = (support - hp.minSupport) / supRange
-                xNorm to lift
+                xNorm to conf
             }
         }.sortedBy { it.first }
     }

@@ -19,7 +19,11 @@ class SupportThresholdConstraint(
 ) : Constraint<AttributeGene, Vec<DoubleArray>> {
 
     override fun test(individual: Phenotype<AttributeGene, Vec<DoubleArray>>): Boolean {
-        val sx = supportXOf(individual.genotype(), data)
+        val sx = if (individual.isEvaluated) {
+            individual.fitness().data()[0].toInt()
+        } else {
+            supportXOf(individual.genotype(), data)
+        }
         return sx in minSupport..maxSupport
     }
 
@@ -27,12 +31,13 @@ class SupportThresholdConstraint(
         individual: Phenotype<AttributeGene, Vec<DoubleArray>>,
         generation: Long
     ): Phenotype<AttributeGene, Vec<DoubleArray>> {
-        // If original already feasible, keep it.
-        val originalGenotype = individual.genotype()
-        val sx0 = supportXOf(originalGenotype, data)
-        if (sx0 in minSupport..maxSupport) return individual
-
         // Try up to maxAttempts new candidates from the factory.
+        val sx0 = if (individual.isEvaluated) {
+            individual.fitness().data()[0].toInt()
+        } else {
+            supportXOf(individual.genotype(), data)
+        }
+
         // Track the best (closest) candidate so we can still improve feasibility if none perfect.
         var bestGenotype: Genotype<AttributeGene>? = null
         var bestGap = Int.MAX_VALUE
@@ -122,7 +127,10 @@ private fun supportXOf(genotype: Genotype<AttributeGene>, data: List<DoubleArray
         j = 0
         while (j < k) {
             val v = row[idxs[j]]
-            if (v < lows[j] || v > ups[j]) { ok = false; break }
+            if (v.isNaN() || v < lows[j] || v > ups[j]) {
+                ok = false
+                break
+            }
             j++
         }
         if (ok) supportX++
