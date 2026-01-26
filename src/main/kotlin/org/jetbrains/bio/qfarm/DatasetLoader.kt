@@ -1,7 +1,9 @@
 package org.jetbrains.bio.qfarm
 
-import tech.tablesaw.api.*
-import tech.tablesaw.columns.Column
+import com.univocity.parsers.csv.*
+import java.io.*
+import java.util.zip.GZIPInputStream
+
 
 // ---------------------------------------------------------------------
 // Data model
@@ -11,24 +13,13 @@ data class DatasetWithHeader(
     val data: List<DoubleArray>
 )
 
-// ---------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------
-private fun isNumericColumn(col: Column<*>): Boolean =
-    col is DoubleColumn ||
-            col is IntColumn ||
-            col is LongColumn ||
-            col is FloatColumn ||
-            col is ShortColumn
+fun delimiterFor(filePath: String): Char =
+    when {
+        filePath.endsWith(".tsv") || filePath.endsWith(".tsv.gz") -> '\t'
+        filePath.endsWith(".csv") || filePath.endsWith(".csv.gz") -> ','
+        else -> error("Unknown dataset format: $filePath")
+    }
 
-private fun getAsDouble(col: Column<*>, row: Int): Double = when (col) {
-    is DoubleColumn -> col.getDouble(row)
-    is IntColumn    -> col.get(row).toDouble()
-    is LongColumn   -> col.get(row).toDouble()
-    is FloatColumn  -> col.get(row).toDouble()
-    is ShortColumn  -> col.get(row).toDouble()
-    else -> Double.NaN // unreachable if filtered correctly
-}
 
 // ---------------------------------------------------------------------
 // Dataset loader
@@ -38,92 +29,119 @@ fun loadNumericDataset(
     excludeColumns: Set<String> = emptySet()
 ): DatasetWithHeader {
 
-    val table = Table.read().csv(filePath)
-    // The following are considered NaN: "", N/A, null, NaN, NA,
+    // -----------------------------------------------------------------
+    // Reader (supports .gz)
+    // -----------------------------------------------------------------
+    val reader: Reader =
+        if (filePath.endsWith(".gz")) {
+            BufferedReader(InputStreamReader(GZIPInputStream(FileInputStream(filePath))))
+        } else {
+            BufferedReader(FileReader(filePath))
+        }
+
+    // -----------------------------------------------------------------
+    // UniVocity parser configuration (wide tables)
+    // -----------------------------------------------------------------
+    val settings = CsvParserSettings().apply {
+        format.delimiter = delimiterFor(filePath)
+        isLineSeparatorDetectionEnabled = true
+        maxColumns = 50_000
+        nullValue = ""
+        emptyValue = ""
+    }
+
+    val parser = CsvParser(settings)
+
+    // -----------------------------------------------------------------
+    // Parse all rows
+    // -----------------------------------------------------------------
+    val rows = parser.parseAll(reader)
+    require(rows.isNotEmpty()) { "Dataset is empty" }
+
+    val header = rows.first().toList()
+    val rawData = rows.drop(1)
+
+    val cols = header.size
+    val rowsCount = rawData.size
 
     println("=== Dataset parsing ===")
-    println("Columns present (${table.columnCount()}):")
-    table.columnNames().forEach { println("  - $it") }
-
-    val keptColumns = mutableListOf<Column<*>>()   // actual column objects
-    val keptNames = mutableListOf<String>()        // column names (header)
-    val ignoredColumns = mutableListOf<String>()
-    val nonNaCounts = mutableMapOf<String, Int>()
+    println("Columns present ($cols)")
 
     // -----------------------------------------------------------------
     // Column-wise validation
     // -----------------------------------------------------------------
-    for (col in table.columns()) {
-        val name = col.name()
+    val keptIndices = mutableListOf<Int>()
+    val keptNames = mutableListOf<String>()
+    val ignoredColumns = mutableListOf<String>()
+    val nonNaCounts = mutableMapOf<String, Int>()
 
-        // 1) User-excluded columns (argument)
+    for (c in 0 until cols) {
+        val name = header[c]
+
         if (name in excludeColumns) {
             ignoredColumns.add("$name (explicitly excluded)")
             continue
         }
 
-        // 2) Non-numeric columns
-        if (!isNumericColumn(col)) {
-            ignoredColumns.add("$name (non-numeric type: ${col.type().name()})")
-            continue
-        }
-
-        // 3) Scan values: allow NaN, reject non-finite
         var nonNa = 0
         var valid = true
 
-        for (r in 0 until table.rowCount()) {
-            val v = getAsDouble(col, r)
+        for (r in 0 until rowsCount) {
+            val cell = rawData[r].getOrNull(c)
 
-            if (v.isNaN()) continue
-            if (!v.isFinite()) {
-                valid = false
-                break
+            val v = cell?.toDoubleOrNull()
+            if (v == null) {
+                if (!cell.isNullOrBlank()) {
+                    valid = false
+                    break
+                }
+            } else if (v.isFinite()) {
+                nonNa++
             }
-            nonNa++
         }
 
         if (valid && nonNa > 0) {
-            keptColumns.add(col)
+            keptIndices.add(c)
             keptNames.add(name)
             nonNaCounts[name] = nonNa
         } else if (valid && nonNa == 0) {
-            // covered by !isNumericColumn as TEXT col, but just in case
             ignoredColumns.add("$name (all values are NaN)")
         } else {
-            ignoredColumns.add("$name (contains invalid numeric values)")
+            ignoredColumns.add("$name (contains non-numeric values)")
         }
     }
 
     // -----------------------------------------------------------------
     // Logging
     // -----------------------------------------------------------------
-    println("\nIgnored columns:")
-    if (ignoredColumns.isEmpty()) {
-        println("  (none)")
-    } else {
-        ignoredColumns.forEach { println("  - $it") }
+    if (ignoredColumns.size < 100) {
+        println("\nIgnored columns:")
+        if (ignoredColumns.isEmpty()) println("  (none)")
+        else ignoredColumns.forEach { println("  - $it") }
     }
 
-    println("\nNumeric columns kept:")
-    keptNames.forEach {
-        println("  - $it (non-NA values: ${nonNaCounts[it]})")
+    if (keptNames.size < 100) {
+        println("\nNumeric columns kept:")
+        keptNames.forEach {
+            println("  - $it (non-NA values: ${nonNaCounts[it]})")
+        }
     }
 
-    require(keptColumns.isNotEmpty()) {
+    require(keptIndices.isNotEmpty()) {
         "No numeric columns left after filtering."
     }
 
     // -----------------------------------------------------------------
-    // Build GA-friendly matrix (rows × cols)
+    // Build GA-friendly matrix
     // -----------------------------------------------------------------
-    val data = List(table.rowCount()) { r ->
-        DoubleArray(keptColumns.size) { c ->
-            getAsDouble(keptColumns[c], r)
+    val data = List(rowsCount) { r ->
+        DoubleArray(keptIndices.size) { j ->
+            val cell = rawData[r].getOrNull(keptIndices[j])
+            cell?.toDoubleOrNull() ?: Double.NaN
         }
     }
 
-    println("\nFinal dataset shape: rows=${data.size}, cols=${keptColumns.size}")
+    println("\nFinal dataset shape: rows=${data.size}, cols=${keptIndices.size}")
     println("=======================\n")
 
     return DatasetWithHeader(
@@ -132,13 +150,11 @@ fun loadNumericDataset(
     )
 }
 
-fun printFirstRows(dataset: DatasetWithHeader, n: Int = 5) {
+fun printFirstRows(dataset: DatasetWithHeader, n: Int = 1) {
     val rows = dataset.data.take(n)
 
-    // Print header
     println(dataset.header.joinToString(prefix = "| ", postfix = " |", separator = " | "))
 
-    // Print rows
     for (row in rows) {
         println(
             row.joinToString(

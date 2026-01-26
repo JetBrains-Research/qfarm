@@ -1,5 +1,8 @@
 package org.jetbrains.bio.qfarm
 
+import kotlinx.serialization.Serializable
+
+@Serializable
 data class HyperParameters(
     // PARTICULAR EVOLUTIONS
     val popSizeAttrFirst: Int = 100,
@@ -9,7 +12,7 @@ data class HyperParameters(
     val popSizeRange: Int = 200,
     val maxGenRange: Int = 500,
     // UNIVERSAL EVOLUTION
-    val probabilityMutation: Double = 0.25,
+    val probabilityMutation: Double = 0.75,
     val stdMutation: Double = 0.15,
     // RULE TREE BUILDING
     val maxDepth: Int = 2,
@@ -22,12 +25,12 @@ data class HyperParameters(
     // DATASET CHARACTERISTICS
     val dataPath: String? = null,
     val excludedColumns: List<String> = emptyList(),
+    // RUN CHARACTERISTICS
+    val runName: String = "test_run",
     // RIGHT ATTRIBUTE
     val rightAttribute: String? = null,
-    val lowRight: Double = 0.9,  // as percentile
+    val lowRight: Double = 0.0,  // as percentile
     val upRight: Double = 1.0,   // as percentile
-    // RUN CHARACTERISTICS
-    val runName: String = "test_run"
 )
 
 // now mutable so CLI can override

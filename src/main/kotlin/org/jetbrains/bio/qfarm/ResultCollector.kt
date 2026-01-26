@@ -4,6 +4,19 @@ import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import java.time.Instant
+import java.util.PriorityQueue
+
+data class CachedFront(
+    val node: RuleTreeNode,
+    val totalArea: Double,
+    val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>
+)
+
+const val MAX_TOP_FRONTS = 1000
+
+val TOP_FRONTS: PriorityQueue<CachedFront> =
+    PriorityQueue(compareBy { it.totalArea }) // min-heap
+
 
 /* ------------------------- In-memory data model -------------------------- */
 
@@ -34,9 +47,7 @@ class RuleTreeNode(
 
 /** Root of the tree (empty path). */
 val RULE_TREE_ROOT = RuleTreeNode()
-
-/** Chronological log of all steps: (prefix, addition, front(prefix+addition)). */
-val STEP_LOG: MutableList<RuleStep> = mutableListOf()
+lateinit var RULE_JSON_WRITER: RuleTreeJsonWriter
 
 /* ----------------------------- Recording API ---------------------------- */
 
@@ -60,15 +71,6 @@ fun ensurePath(prefix: List<Int>): RuleTreeNode {
     return node
 }
 
-/**
- * Record one step of the search:
- *   (prefix, addition) -> front(prefix+addition)
- *
- * This builds/locates the prefix chain, ensures the child node for `addition`,
- * attaches the step there, and appends to the chronological STEP_LOG.
- *
- * @return the node representing `addition` under `prefix`.
- */
 fun recordStep(
     prefix: List<Int>,
     addition: Int,
@@ -78,59 +80,94 @@ fun recordStep(
 
     val prefixNode = ensurePath(prefix)
 
-    // find/create child using ONLY the attribute index
     val additionNode = prefixNode.children.firstOrNull {
         it.additionAttrIndex == addition
     } ?: RuleTreeNode(addition, prefixNode.depth + 1).also {
         prefixNode.children += it
     }
 
-    val step = RuleStep(prefix = prefix, addition = addition, front = front, meta = meta)
-    additionNode.steps += step
-    STEP_LOG += step
+    // ------------------------------------------------------------
+    // 1) Compute metrics
+    // ------------------------------------------------------------
+    val deltaArea = meta["improvement"]?.toString()?.toDoubleOrNull() ?: 0.0
 
-    val url = meta["frontUrl"]?.toString()
-    if (!url.isNullOrBlank()) additionNode.frontUrl = url
+    val parentTotal =
+        prefixNode.steps.lastOrNull()
+            ?.meta
+            ?.get("totalArea")
+            ?.toString()
+            ?.toDoubleOrNull()
+            ?: 0.0
+
+    val totalArea = parentTotal + deltaArea
+
+    val enrichedMeta = meta + mapOf(
+        "deltaArea" to deltaArea,
+        "totalArea" to totalArea
+    )
+
+    // ------------------------------------------------------------
+    // 2) Decide if this front qualifies for Top-k
+    // ------------------------------------------------------------
+    val qualifiesForTop =
+        deltaArea > 0.0 &&
+                (TOP_FRONTS.size < MAX_TOP_FRONTS ||
+                        totalArea > TOP_FRONTS.peek().totalArea)
+
+    // ------------------------------------------------------------
+    // 3) ONLY IF TOP-k → render + keep
+    // ------------------------------------------------------------
+    if (qualifiesForTop) {
+
+        val parentFront = EvolutionContext.frontStack
+            .dropLast(1)
+            .lastOrNull()
+
+        val title =
+            "Front shift: ${readLHS(prefix + addition)}\n" +
+                    "Δ area = ${"%.4f".format(deltaArea)}"
+
+        val url = renderFrontPlotUrl(
+            parentFront,
+            front,
+            title = title,
+            randomFront = false
+        )
+
+        if (!url.isNullOrBlank()) {
+            additionNode.frontUrl = url
+        }
+
+        if (TOP_FRONTS.size == MAX_TOP_FRONTS) {
+            val evicted = TOP_FRONTS.poll()
+
+            evicted.node.frontUrl = null
+        }
+
+        TOP_FRONTS.add(CachedFront(additionNode, totalArea, front))
+    }
+
+    // ------------------------------------------------------------
+    // 4) Store step WITHOUT front reference
+    // ------------------------------------------------------------
+    val step = RuleStep(
+        prefix = prefix,
+        addition = addition,
+        front = ISeq.empty(),
+        meta = enrichedMeta
+    )
+
+    additionNode.steps += step
+
+    RULE_JSON_WRITER.append(
+        prefix = prefix,
+        addition = addition,
+        depth = additionNode.depth,
+        deltaArea = deltaArea.takeIf { it > 0.0 },
+        totalArea = totalArea,
+        frontUrl = additionNode.frontUrl,
+        createdAt = step.createdAt
+    )
 
     return additionNode
 }
-
-
-/* --------------------------- JSON persistence --------------------------- */
-
-/* --------------------------- Serializable DTOs --------------------------- */
-
-//@Serializable
-//data class AttrRangeDTO(
-//    val index: Int,
-//    val lo: Double,
-//    val hi: Double
-//)
-
-//@Serializable
-//data class SerializableRuleStep(
-//    val prefix: List<AttrRangeDTO>,           // full path BEFORE addition
-//    val addition: AttrRangeDTO,               // the new node added
-//    val meta: Map<String, String?>,           // extra info
-//    val createdAt: String,                    // ISO-8601
-//    val fitness: List<List<Double>>           // front(prefix+addition): fitness vectors
-//)
-
-
-///** Save the whole STEP_LOG as JSON (portable, readable). */
-//fun saveStepLogToJson(path: String, stepLog: List<RuleStep> = STEP_LOG) {
-//    val serial = stepLog.map { step ->
-//        SerializableRuleStep(
-//            prefix = step.prefix.map { p -> AttrRangeDTO(p.index, p.range.start, p.range.endInclusive) },
-//            addition = AttrRangeDTO(step.addition.index, step.addition.range.start, step.addition.range.endInclusive),
-//            meta = step.meta.mapValues { it.value?.toString() },
-//            createdAt = step.createdAt.toString(),
-//            fitness = step.front.map { it.fitness().data().toList() }.toList()
-//        )
-//    }
-//
-//    val json = Json { prettyPrint = true; encodeDefaults = true }
-//        .encodeToString(ListSerializer(SerializableRuleStep.serializer()), serial)
-//
-//    File(path).writeText(json)
-//}

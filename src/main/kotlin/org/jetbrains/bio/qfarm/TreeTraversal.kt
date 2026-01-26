@@ -1,5 +1,8 @@
 package org.jetbrains.bio.qfarm
 
+var count = 0
+var parent = 0
+
 fun treeTraversal(prefix: List<Int>) {
     val locUsed = mutableSetOf<Int>()
     var maxLength = true
@@ -12,10 +15,14 @@ fun treeTraversal(prefix: List<Int>) {
             println("$YELLOW Reached child limit ($maxChildren) for this node. Stop branch.$RESET")
             break
         }
-
-        val newRule = nextBestFinder(USED, prefix)
+//        if (count == rightAttrIndex || count in prefix) {
+//            count++
+//        }
+        val newRule = nextBestFinder(USED, prefix, datasetWithHeader, count)
         if (newRule == null) {
             println("$RED Nothing to add anymore!!!$RESET")
+            parent++
+            count = parent
             maxLength = false
             break
         }
@@ -36,6 +43,7 @@ fun treeTraversal(prefix: List<Int>) {
     if (maxLength && childCount < maxChildren) {
         println("$YELLOW Max length of ${hp.maxDepth} reached or no more children $RESET")
     }
+    count++
 
     EvolutionContext.frontStack.removeLastOrNull()
     USED -= locUsed

@@ -39,7 +39,8 @@ fun initEnvironment(
         filePath = dataPath,
         excludeColumns = hp.excludedColumns.toSet()
     )
-    printFirstRows(datasetWithHeader, 5)
+
+    if (datasetWithHeader.header.size < 100) printFirstRows(datasetWithHeader)
 
     columnNames = datasetWithHeader.header
     dataset = datasetWithHeader.data
@@ -98,6 +99,15 @@ fun initEnvironment(
 fun runSearch() {
     val start = System.nanoTime()
 
+    RULE_JSON_WRITER = RuleTreeJsonWriter(
+        File("plots/log_${hp.runName}.jsonl")
+    )
+
+    RULE_JSON_WRITER.writeMetadata(
+        rhs = RHS(columnNames[rightAttrIndex], rightGene.lowerBound, rightGene.upperBound),
+        hp
+    )
+
     val emptyPrefix: MutableList<Int> = mutableListOf()
     treeTraversal(emptyPrefix)
 
@@ -113,7 +123,6 @@ fun runSearch() {
     val dot = toDOTFromTrie(RULE_TREE_ROOT, header = datasetWithHeader.header)
     val filename = "$PLOTS_DIR/tree_${hp.runName}"
     File("$filename.dot").writeText(dot)
-//    saveStepLogToJson("step_log.json")
 
     ProcessBuilder("dot", "-Tsvg", "$filename.dot", "-o", "$filename.svg")
         .redirectErrorStream(true)
@@ -122,4 +131,12 @@ fun runSearch() {
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
     println("\nTOTAL RUNTIME: $elapsed s")
+
+    RULE_JSON_WRITER.writeSummary(
+        runtimeSeconds = elapsed,
+        runName = hp.runName
+    )
+
+    RULE_JSON_WRITER.close()
+
 }

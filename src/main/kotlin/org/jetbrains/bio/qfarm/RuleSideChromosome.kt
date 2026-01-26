@@ -33,49 +33,38 @@ class RuleSideChromosome(
 
     companion object {
         fun of(cfg: RuleInitConfig, indexPool: IndexPool): RuleSideChromosome {
-            // Precompute fixed/search sets
+
             val fixedIndices = cfg.fixedAttributes.toSet()
 
-            // Only allow search among cfg.searchAttributes, excluding RHS & fixed
             val searchSet = cfg.searchAttributes
-                .asSequence()
                 .filter { it != cfg.rightAttrIndex }
                 .filter { it !in fixedIndices }
-                .toSet()
 
-            // Pick one additional attribute (or none if searchSet empty)
-            val selectedIndex = if (searchSet.isNotEmpty()) {
-                // IndexPool built from searchSet ensures takeRandom returns from the right universe
-                indexPool.takeRandom(1).firstOrNull() ?: searchSet.randomOrNull()
-            } else null
+            val genes = mutableListOf<AttributeGene>()
 
-            // Build genes for all non-RHS attributes
-            val genes = ArrayList<AttributeGene>(cfg.bounds.size)
-            for (index in cfg.bounds.indices) {
-                if (index == cfg.rightAttrIndex) continue
-
-                val min = cfg.bounds[index][0]
-                val max = cfg.bounds[index][1]
-
-                val gene = when {
-                    index in fixedIndices ->
-                        AttributeGene.of(index, min, max, cfg)
-
-                    selectedIndex != null && index == selectedIndex ->
-                        AttributeGene.of(index, min, max, cfg)
-
-                    else ->
-                        AttributeGene.default(index, min, max, cfg)
-                }
-                genes.add(gene)
+            // Always include fixed attributes
+            for (idx in fixedIndices) {
+                val min = cfg.bounds[idx][0]
+                val max = cfg.bounds[idx][1]
+                genes += AttributeGene.of(idx, min, max, cfg)
             }
 
-            require(genes.isNotEmpty()) { "Antecedent chromosome would be empty (no attributes left after exclusions)." }
+            // Pick ONE search attribute
+            if (searchSet.isNotEmpty()) {
+                val idx = indexPool.takeRandom(1).firstOrNull()
+                    ?: searchSet.random()
 
+                val min = cfg.bounds[idx][0]
+                val max = cfg.bounds[idx][1]
+                genes += AttributeGene.of(idx, min, max, cfg)
+            }
 
-            val chr = RuleSideChromosome(ISeq.of(genes), cfg, indexPool)
-            return if (chr.isValid()) chr else of(cfg, indexPool)
+            require(genes.isNotEmpty()) {
+                "Antecedent chromosome would be empty"
+            }
+
+            return RuleSideChromosome(ISeq.of(genes), cfg, indexPool)
         }
     }
-}
 
+}

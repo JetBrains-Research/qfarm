@@ -92,12 +92,6 @@ fun computeBoundsFromSorted(sortedColumns: List<DoubleArray>): Array<DoubleArray
         out[i][0] = col[0]                    // min
         out[i][1] = col[col.lastIndex]        // max
     }
-    println("Computed bounds (min, max) per column:")
-    for (i in out.indices) {
-        val min = out[i][0]
-        val max = out[i][1]
-        println("  ${columnNames[i]}: min=$min, max=$max")
-    }
 
     return out
 }
