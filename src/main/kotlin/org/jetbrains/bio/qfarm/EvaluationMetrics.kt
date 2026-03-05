@@ -41,15 +41,16 @@ fun evaluateRule(
     var supportX  = 0
     var supportXY = 0
 
-    // Main scan: single pass over rows, tight inner loop over active antecedents
     for (r in 0 until rows) {
         val row = data[r]
 
-        // Y first, independent of X
+        // --- RHS ---
         val yv = row[rIdx]
-        val yOk = !yv.isNaN() && (yv >= rLo && yv <= rUp)
+        if (yv.isNaN()) continue   // skip row entirely
 
-        // X check with early exit
+        val yOk = (yv >= rLo && yv <= rUp)
+
+        // --- LHS ---
         var xOk = true
         var j = 0
         while (j < k) {
@@ -60,10 +61,11 @@ fun evaluateRule(
             }
             j++
         }
-        if (xOk) {
-            supportX++
-            if (yOk) supportXY++
-        }
+        if (!xOk) continue   // rule does not apply to this row
+
+        // --- counts ---
+        supportX++
+        if (yOk) supportXY++
     }
 
     // --- metrics ---

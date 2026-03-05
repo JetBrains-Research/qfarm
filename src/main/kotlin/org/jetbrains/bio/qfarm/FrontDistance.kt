@@ -9,6 +9,9 @@ fun frontDistance(
     parent: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?,
     child: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?
 ): Double {
+    // TODO: see leftmost and rightmost support within minmax Support range ...
+    //  BUT in that case, how to compare with parent front?
+    //  Bcz both will have different normalization
     val supRange = hp.maxSupport - hp.minSupport
 
     // Extract sorted (x=SupportX, y=Conf) pairs; sorted by x asc

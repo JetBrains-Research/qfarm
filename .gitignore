@@ -12,6 +12,7 @@ data/
 # ignore plots
 plots/
 step_log.json
+lets-plot-images
 
 # IntelliJ IDEA
 .idea/

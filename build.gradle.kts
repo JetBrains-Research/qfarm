@@ -1,6 +1,5 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
-import org.jetbrains.kotlin.gradle.plugin.mpp.KotlinJvmCompilation
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
@@ -9,6 +8,7 @@ plugins {
     kotlin("jvm") version "1.9.24"
     kotlin("plugin.serialization") version "1.9.24"
     id("com.github.johnrengelman.shadow") version "8.1.1"
+    id("me.champeau.jmh") version "0.7.2"
 }
 
 // QFARM application version
@@ -30,7 +30,7 @@ kotlin {
 }
 
 dependencies {
-    testImplementation(kotlin("test"))
+    testImplementation(kotlin("test-junit5"))
 
     implementation("net.sf.jopt-simple:jopt-simple:5.0.4")
     implementation("io.jenetics:jenetics:7.2.0")
@@ -44,6 +44,9 @@ dependencies {
     implementation("org.jsoup:jsoup:1.17.2")
     implementation("org.apache.commons:commons-text:1.11.0")
     implementation("tech.tablesaw:tablesaw-core:0.43.1")
+    implementation("org.json:json:20240303")
+    jmh("org.openjdk.jmh:jmh-core:1.37")
+    jmh("org.openjdk.jmh:jmh-generator-annprocess:1.37")
 }
 
 tasks.jar {

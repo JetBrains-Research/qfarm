@@ -12,7 +12,7 @@ data class CachedFront(
     val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>
 )
 
-const val MAX_TOP_FRONTS = 1000
+const val MAX_TOP_FRONTS = 10000
 
 val TOP_FRONTS: PriorityQueue<CachedFront> =
     PriorityQueue(compareBy { it.totalArea }) // min-heap

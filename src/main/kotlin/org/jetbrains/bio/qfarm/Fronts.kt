@@ -64,15 +64,32 @@ fun toPFSeries(
         data class Bound(val idx: Int, val lo: Double, val hi: Double)
         val bounds = active.map { g -> Bound(g.attributeIndex, g.lowerBound, g.upperBound) }
 
-        var tp = 0; var fp = 0; var fn = 0; var tn = 0
+        var tp = 0
+        var fp = 0
+        var fn = 0
+        var tn = 0
+
         for (row in data) {
+
+            // RHS (label)
             val yv = row[rIdx]
-            if (yv.isNaN()) continue   // skip this row entirely
+            if (yv.isNaN()) continue   // skip row entirely
+
+            // LHS (antecedent) — skip if ANY bound attribute is NaN
+            var lhsMissing = false
+            for (b in bounds) {
+                if (row[b.idx].isNaN()) {
+                    lhsMissing = true
+                    break
+                }
+            }
+            if (lhsMissing) continue   // skip row entirely
+
             val yOk = (yv >= rLo && yv <= rUp)
 
             val xOk = bounds.all { b ->
                 val v = row[b.idx]
-                !v.isNaN() && v >= b.lo && v <= b.hi
+                v >= b.lo && v <= b.hi
             }
 
             if (xOk) {

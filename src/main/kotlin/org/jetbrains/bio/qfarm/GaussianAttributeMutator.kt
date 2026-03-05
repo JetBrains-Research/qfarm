@@ -14,6 +14,7 @@ class GaussianAttributeMutator(
         // is not default covers additions in random front, while fixed attr the ones in final front,
         // as parent front passes the rules with default additions
         // TODO: what about the search attributes in random front? Rn there should be no way for them to appear after parent front initialization of the initial population...
+        // TODO: make it percentile based again? Used to perform bad, but why?
         if (!gene.isDefault || gene.attributeIndex in fixedAttributeIndices) {
 
             val range = gene.max - gene.min
