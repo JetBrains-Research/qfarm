@@ -26,7 +26,7 @@ fun topRange(
         return ScoredFront(front, doubleArrayOf())
     }
 
-    val scores = doubleArrayOf()
+    val scores = computeFrontScores(front)
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
     println("Range finder: elapsed=%.2fs".format(elapsed))
