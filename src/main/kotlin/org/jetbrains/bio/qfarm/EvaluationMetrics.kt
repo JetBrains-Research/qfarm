@@ -6,51 +6,38 @@ fun evaluateRule(
     genotype: Genotype<AttributeGene>,
     currentDataset: DatasetWithHeader = datasetWithHeader
 ): DoubleArray {
-    val data: List<DoubleArray> = currentDataset.data
-    val rows = data.size
+
+    val data = currentDataset.data
+    val labels = currentDataset.labels
 
     val lhs = genotype[0] as RuleSideChromosome
     val nGenes = lhs.length()
 
     var k = 0
-    // 1st pass: count active
     for (i in 0 until nGenes) if (!lhs[i].isDefault) k++
 
     val idxs = IntArray(k)
     val lows = DoubleArray(k)
     val ups  = DoubleArray(k)
 
-    // 2nd pass: fill SoA arrays
-    run {
-        var j = 0
-        for (i in 0 until nGenes) {
-            val g = lhs[i]
-            if (!g.isDefault) {
-                idxs[j] = g.attributeIndex
-                lows[j] = g.lowerBound
-                ups[j]  = g.upperBound
-                j++
-            }
+    var jFill = 0
+    for (i in 0 until nGenes) {
+        val g = lhs[i]
+        if (!g.isDefault) {
+            idxs[jFill] = g.attributeIndex
+            lows[jFill] = g.lowerBound
+            ups[jFill]  = g.upperBound
+            jFill++
         }
     }
-
-    val rIdx = rightAttrIndex
-    val rLo  = rightGene.lowerBound
-    val rUp  = rightGene.upperBound
 
     var supportX  = 0
     var supportXY = 0
 
-    for (r in 0 until rows) {
+    for (r in data.indices) {
+
         val row = data[r]
 
-        // --- RHS ---
-        val yv = row[rIdx]
-        if (yv.isNaN()) continue   // skip row entirely
-
-        val yOk = (yv >= rLo && yv <= rUp)
-
-        // --- LHS ---
         var xOk = true
         var j = 0
         while (j < k) {
@@ -61,21 +48,18 @@ fun evaluateRule(
             }
             j++
         }
-        if (!xOk) continue   // rule does not apply to this row
 
-        // --- counts ---
+        if (!xOk) continue
+
         supportX++
-        if (yOk) supportXY++
+        if (labels[r] == 1) supportXY++
     }
 
-    // --- metrics ---
-    val sX  = supportX.toDouble()
-    val sXY = supportXY.toDouble()
+    val sX = supportX.toDouble()
 
-    var conf = 0.0
-    if (supportX != 0 && supportXY != 0) {
-        conf = sXY / sX
-    }
+    val conf = if (supportX != 0) {
+        supportXY.toDouble() / sX
+    } else 0.0
 
     return doubleArrayOf(sX, conf)
 }
