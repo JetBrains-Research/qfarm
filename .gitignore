@@ -43,3 +43,5 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+/src/test/resources/
+delong_reference.py

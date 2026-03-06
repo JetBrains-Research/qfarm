@@ -43,13 +43,15 @@ fun initEnvironment(
     if (datasetWithHeader.header.size < 100) printFirstRows(datasetWithHeader)
 
     columnNames = datasetWithHeader.header
+    rightAttrIndex = columnNames.indexOf(rhsName)
+    require(rightAttrIndex >= 0) { "Right-hand-side column '$rhsName' not found." }
+
+    datasetWithHeader = removeRowsWithNaNRHS(datasetWithHeader, rightAttrIndex)
     dataset = datasetWithHeader.data
+
     sortedColumns = computeSortedColumns(dataset)
     bounds = computeBoundsFromSorted(sortedColumns)
     percentileProvider = SortedColumnsPercentileProvider(sortedColumns)
-
-    rightAttrIndex = columnNames.indexOf(rhsName)
-    require(rightAttrIndex >= 0) { "Right-hand-side column '$rhsName' not found." }
 
     val minC = bounds[rightAttrIndex][0]
     val maxC = bounds[rightAttrIndex][1]
@@ -91,6 +93,9 @@ fun initEnvironment(
         max = maxC,
         cfg = init_cfg
     )
+
+    // TODO: calculate the labels for dataset...
+    datasetWithHeader.labels = listOf()
 
     println("RANGE: $rhsLo to $rhsHi")
 

@@ -1,5 +1,6 @@
 package org.jetbrains.bio.qfarm
 
+import jdk.jfr.Threshold
 import kotlinx.serialization.Serializable
 
 @Serializable
@@ -31,6 +32,8 @@ data class HyperParameters(
     val rightAttribute: String? = null,
     val lowRight: Double = 0.0,  // as percentile
     val upRight: Double = 1.0,   // as percentile
+    // ADDED TEMPORARY
+    val alphaThreshold: Double = 0.05
 )
 
 // now mutable so CLI can override

@@ -10,7 +10,8 @@ import java.util.zip.GZIPInputStream
 // ---------------------------------------------------------------------
 data class DatasetWithHeader(
     val header: List<String>,
-    val data: List<DoubleArray>
+    val data: List<DoubleArray>,
+    var labels: List<Int>
 )
 
 fun delimiterFor(filePath: String): Char =
@@ -146,7 +147,8 @@ fun loadNumericDataset(
 
     return DatasetWithHeader(
         header = keptNames,
-        data = data
+        data = data,
+        labels = listOf()  // add after preprocessing RHS
     )
 }
 
@@ -166,4 +168,18 @@ fun printFirstRows(dataset: DatasetWithHeader, n: Int = 1) {
             }
         )
     }
+}
+
+fun removeRowsWithNaNRHS(
+    dataset: DatasetWithHeader,
+    rhsIndex: Int
+): DatasetWithHeader {
+
+    val filteredData = dataset.data.filter { row ->
+        !row[rhsIndex].isNaN()
+    }
+
+    println("Removed ${dataset.data.size - filteredData.size} rows with RHS = NaN")
+
+    return dataset.copy(data = filteredData)
 }

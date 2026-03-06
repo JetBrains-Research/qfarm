@@ -5,7 +5,7 @@ import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 
 data class TopRangeResult(
-    val ranges: List<Int>,
+    val attributes: List<Int>,
     val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>
 )
 
@@ -27,7 +27,7 @@ fun topRange(
     if (front.isEmpty) {
         println("$YELLOW[⚠️ No solutions matched the requested attributes. Returning empty result.]$RESET")
         return TopRangeResult(
-            ranges = emptyList(),
+            attributes = emptyList(),
             front = front
         )
     }
@@ -36,7 +36,7 @@ fun topRange(
     println("Range finder: elapsed=%.2fs".format(elapsed))
 
     return TopRangeResult(
-        ranges = attributes,
+        attributes = attributes,
         front = front
     )
 }
