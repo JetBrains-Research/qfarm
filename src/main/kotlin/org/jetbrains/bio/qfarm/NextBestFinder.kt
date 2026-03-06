@@ -6,8 +6,7 @@ import org.jetbrains.bio.qfarm.statistics.delong.DeLong
 fun nextBestFinder(
     used: MutableSet<Int>,
     prefix: List<Int>,
-    dataset: DatasetWithHeader = datasetWithHeader,
-    count: Int
+    dataset: DatasetWithHeader = datasetWithHeader
 ): Int? {
     println("\n$CYAN\uD83C\uDF1F FINDING THE NEXT BEST ADDITION TO THE PREFIX ${readLHS(prefix)} ... $RESET")
 
@@ -47,7 +46,7 @@ fun nextBestFinder(
         val labels = dataset.labels
 
         val delongResult = DeLong.compare(
-            labels.toIntArray(),
+            labels,
             parentScores,
             candidateScores
         )

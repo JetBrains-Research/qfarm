@@ -10,6 +10,8 @@ import java.util.zip.GZIPInputStream
 // ---------------------------------------------------------------------
 data class DatasetWithHeader(
     val header: List<String>,
+    // TODO: see if changing to column-wise data is faster
+    //  also see if Array<DoubleArray> can be faster
     val data: List<DoubleArray>,
     var labels: IntArray
 )
@@ -148,7 +150,7 @@ fun loadNumericDataset(
     return DatasetWithHeader(
         header = keptNames,
         data = data,
-        labels = listOf()  // add after preprocessing RHS
+        labels = intArrayOf()  // add after preprocessing RHS
     )
 }
 
