@@ -128,7 +128,7 @@ fun recordStep(
                     "Δ area = ${"%.4f".format(deltaArea)}"
 
         val url = renderFrontPlotUrl(
-            parentFront,
+            parentFront?.front,
             front,
             title = title,
             randomFront = false

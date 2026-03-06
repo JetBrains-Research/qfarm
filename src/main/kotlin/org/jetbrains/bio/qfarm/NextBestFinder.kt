@@ -31,14 +31,13 @@ fun nextBestFinder(
         return null
     }
 
-    val best = topRange(prefix + listOf(bestAttribute))
-    val bestFront = best.front
+    val bestFront = topRange(prefix + listOf(bestAttribute))
 
     // ==============================
     // DeLong statistical test
     // ==============================
 
-    if (parentFront != null && !parentFront.isEmpty) {
+    if (parentFront != null && !parentFront.front.isEmpty) {
 
         // TODO: change structure of Front to include scores...
         val parentScores = parentFront.scores
@@ -60,7 +59,7 @@ fun nextBestFinder(
         }
     }
 
-    val improvement = frontDistance(parentFront, bestFront)
+    val improvement = frontDistance(parentFront?.front, bestFront.front)
     println("$CYAN ΔFront area improvement = ${"%.4f".format(improvement)}$RESET")
 
     EvolutionContext.frontStack.addLast(bestFront)
@@ -68,7 +67,7 @@ fun nextBestFinder(
     recordStep(
         prefix = prefix,
         addition = bestAttribute,
-        front = bestFront,
+        front = bestFront.front,
         meta = mapOf(
             "depth" to (prefix.size + 1),
             "improvement" to improvement

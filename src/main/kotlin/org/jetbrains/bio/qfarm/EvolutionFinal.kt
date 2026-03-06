@@ -4,20 +4,17 @@ import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 
-data class TopRangeResult(
-    val attributes: List<Int>,
-    val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>
-)
 
 fun topRange(
     attributes: List<Int>
-): TopRangeResult {
+): ScoredFront {
     val start = System.nanoTime()
     println("\n$PURPLE🏆SEARCHING FOR THE BEST RANGE OF ${attributes.map {idx -> columnNames[idx]}} ... $RESET")
     require(attributes.isNotEmpty()) { "attributes must not be empty." }
 
-    val parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? =
+    val parentScoredFront: ScoredFront? =
         EvolutionContext.frontStack.lastOrNull()
+    val parentFront = parentScoredFront?.front
 
     val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
         runEvolution(attributes, popSize = hp.popSizeRange, generationCount = hp.maxGenRange, parentFront = parentFront)
@@ -26,17 +23,13 @@ fun topRange(
 
     if (front.isEmpty) {
         println("$YELLOW[⚠️ No solutions matched the requested attributes. Returning empty result.]$RESET")
-        return TopRangeResult(
-            attributes = emptyList(),
-            front = front
-        )
+        return ScoredFront(front, doubleArrayOf())
     }
+
+    val scores = doubleArrayOf()
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
     println("Range finder: elapsed=%.2fs".format(elapsed))
 
-    return TopRangeResult(
-        attributes = attributes,
-        front = front
-    )
+    return ScoredFront(front, scores)
 }

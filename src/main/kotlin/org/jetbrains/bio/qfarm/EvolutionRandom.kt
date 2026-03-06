@@ -15,7 +15,7 @@ fun topAttribute(
     require(searchAttributes.isNotEmpty()) { "searchAttributes must not be empty." }
 
     val parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
-        EvolutionContext.frontStack.lastOrNull() ?: ISeq.empty()
+        EvolutionContext.frontStack.lastOrNull()?.front ?: ISeq.empty()
     val hasParent = !parentFront.isEmpty
 
     val (popSize, maxGen) =

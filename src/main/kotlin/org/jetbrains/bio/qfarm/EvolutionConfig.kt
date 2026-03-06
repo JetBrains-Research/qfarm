@@ -4,8 +4,13 @@ import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 
+data class ScoredFront(
+    val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
+    val scores: DoubleArray
+)
+
 object EvolutionContext {
-    val frontStack = ArrayDeque<ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>>()
+    val frontStack = ArrayDeque<ScoredFront>()
 }
 
 fun interface PercentileProvider {
