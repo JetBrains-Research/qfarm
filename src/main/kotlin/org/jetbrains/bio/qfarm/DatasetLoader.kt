@@ -11,7 +11,7 @@ import java.util.zip.GZIPInputStream
 data class DatasetWithHeader(
     val header: List<String>,
     val data: List<DoubleArray>,
-    var labels: List<Int>
+    var labels: IntArray
 )
 
 fun delimiterFor(filePath: String): Char =
@@ -182,4 +182,21 @@ fun removeRowsWithNaNRHS(
     println("Removed ${dataset.data.size - filteredData.size} rows with RHS = NaN")
 
     return dataset.copy(data = filteredData)
+}
+
+fun computeLabelsFast(
+    dataset: List<DoubleArray>,
+    rhsIndex: Int,
+    lower: Double,
+    upper: Double
+): IntArray {
+
+    val labels = IntArray(dataset.size)
+
+    for (i in dataset.indices) {
+        val v = dataset[i][rhsIndex]
+        labels[i] = if (v >= lower && v <= upper) 1 else 0
+    }
+
+    return labels
 }

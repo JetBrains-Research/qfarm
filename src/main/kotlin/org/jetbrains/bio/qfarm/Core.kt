@@ -79,6 +79,8 @@ fun initEnvironment(
         }
     }
 
+    println("RANGE: $rhsLo to $rhsHi")
+
     init_cfg = RuleInitConfig(
         rightAttrIndex = rightAttrIndex,
         bounds = bounds,
@@ -94,10 +96,15 @@ fun initEnvironment(
         cfg = init_cfg
     )
 
-    // TODO: calculate the labels for dataset...
-    datasetWithHeader.labels = listOf()
+    datasetWithHeader.labels = computeLabelsFast(
+        dataset = dataset,
+        rhsIndex = rightAttrIndex,
+        lower = rhsLo,
+        upper = rhsHi
+    )
 
-    println("RANGE: $rhsLo to $rhsHi")
+    val positives = datasetWithHeader.labels.sum()
+    println("Positive labels: $positives / ${datasetWithHeader.labels.size}")
 
 }
 
