@@ -1,7 +1,6 @@
 package org.jetbrains.bio.qfarm
 
 import org.jetbrains.bio.qfarm.statistics.delong.AUC
-import kotlinx.coroutines.*
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
 import java.util.concurrent.ThreadLocalRandom

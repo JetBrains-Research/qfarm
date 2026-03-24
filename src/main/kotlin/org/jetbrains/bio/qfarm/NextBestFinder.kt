@@ -24,7 +24,7 @@ fun nextBestFinder(
         return null
     }
 
-    val parentFront = EvolutionContext.frontStack.lastOrNull()
+    val parentScoredFront = EvolutionContext.frontStack.lastOrNull()
 
     val bestAttribute = topAttribute(prefix, searchAttributes)
     if (bestAttribute == null) {
@@ -33,32 +33,42 @@ fun nextBestFinder(
 
     val bestFront = topRange(prefix + listOf(bestAttribute))
 
-    // ==============================
-    // DeLong statistical test
-    // ==============================
+    // ========== DeLong statistical test ================
 
-    if (parentFront != null && !parentFront.front.isEmpty) {
-
-        val parentScores = parentFront.scores
-        val candidateScores = bestFront.scores
-        val labels = dataset.labels
-
-        val delongResult = DeLong.compare(
-            labels,
-            parentScores,
-            candidateScores
-        )
-
-        println("$CYAN DeLong z = ${"%.4f".format(delongResult.zScore)}" +
-                ", pOne = ${"%.6f".format(delongResult.pOneSided)}$RESET")
-
-        if (delongResult.pOneSided >= hp.alphaThreshold) {
-            println("$RED Addition rejected (not statistically significant at α=${hp.alphaThreshold})$RESET")
-            return null
-        }
+    require(MedianFront.initialized) {
+        "MedianFront must be initialized before search"
     }
 
-    val improvement = frontDistance(parentFront?.front, bestFront.front)
+    val effectiveParent: ScoredFront =
+        if (parentScoredFront != null && !parentScoredFront.front.isEmpty) {
+            parentScoredFront
+        } else {
+            println("$YELLOW Using median baseline front $RESET")
+            MedianFront.scoredFront
+        }
+
+    val parentScores = effectiveParent.scores
+    val candidateScores = bestFront.scores
+    val labels = dataset.labels
+
+    val delongResult = DeLong.compare(
+        labels,
+        parentScores,
+        candidateScores
+    )
+
+    println("$CYAN DeLong z = ${"%.4f".format(delongResult.zScore)}" +
+            ", pOne = ${"%.6f".format(delongResult.pOneSided)}$RESET")
+
+    if (delongResult.pOneSided >= hp.alphaThreshold) {
+        println("$RED Addition rejected (not statistically significant at α=${hp.alphaThreshold})$RESET")
+        return null
+    }
+
+    val improvement = frontDistance(
+        effectiveParent.front,
+        bestFront.front
+    )
     println("$CYAN ΔFront area improvement = ${"%.4f".format(improvement)}$RESET")
 
     EvolutionContext.frontStack.addLast(bestFront)
