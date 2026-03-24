@@ -6,10 +6,10 @@ import io.jenetics.util.ISeq
 
 fun computeFrontScores(
     front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
-    dataset: DatasetWithHeader = datasetWithHeader
+    env: EvolutionEnvironment = GLOBAL_ENV
 ): DoubleArray {
 
-    val data = dataset.data
+    val data = env.datasetWithHeader.data
     val rows = data.size
 
     val counts = IntArray(rows)

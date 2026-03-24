@@ -8,7 +8,7 @@ import io.jenetics.util.ISeq
 fun topAttribute(
     prefixAttributes: List<Int>,
     searchAttributes: List<Int>,
-    currentDataset: DatasetWithHeader = datasetWithHeader,
+    env: EvolutionEnvironment = GLOBAL_ENV
 ): Int? {
     val start = System.nanoTime()
     println("\n$BLUE\uD83E\uDD47 SEARCHING FOR THE BEST ATTRIBUTE ... $RESET")
@@ -23,12 +23,12 @@ fun topAttribute(
         else hp.popSizeAttrFirst to hp.maxGenAttrFirst   // case: NO parent
 
     val randomFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
-        runEvolution(prefixAttributes, searchAttributes, popSize, maxGen, parentFront)
+        runEvolution(prefixAttributes, searchAttributes, popSize, maxGen, parentFront, env)
 
     val result = if (!hasParent) {
-        topAttributeNoParent(prefixAttributes, randomFront, currentDataset)
+        topAttributeNoParent(prefixAttributes, randomFront, env.datasetWithHeader)
     } else {
-        topAttributeWithParent(prefixAttributes, randomFront, parentFront, currentDataset)
+        topAttributeWithParent(prefixAttributes, randomFront, parentFront, env.datasetWithHeader)
     }
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0

@@ -39,7 +39,6 @@ fun nextBestFinder(
 
     if (parentFront != null && !parentFront.front.isEmpty) {
 
-        // TODO: change structure of Front to include scores...
         val parentScores = parentFront.scores
         val candidateScores = bestFront.scores
         val labels = dataset.labels

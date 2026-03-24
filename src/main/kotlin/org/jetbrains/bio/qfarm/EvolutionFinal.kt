@@ -6,10 +6,11 @@ import io.jenetics.util.ISeq
 
 
 fun topRange(
-    attributes: List<Int>
+    attributes: List<Int>,
+    env: EvolutionEnvironment = GLOBAL_ENV
 ): ScoredFront {
     val start = System.nanoTime()
-    println("\n$PURPLE🏆SEARCHING FOR THE BEST RANGE OF ${attributes.map {idx -> columnNames[idx]}} ... $RESET")
+    println("\n$PURPLE🏆SEARCHING FOR THE BEST RANGE OF ${attributes.map {idx -> env.columnNames[idx]}} ... $RESET")
     require(attributes.isNotEmpty()) { "attributes must not be empty." }
 
     val parentScoredFront: ScoredFront? =
@@ -17,7 +18,7 @@ fun topRange(
     val parentFront = parentScoredFront?.front
 
     val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
-        runEvolution(attributes, popSize = hp.popSizeRange, generationCount = hp.maxGenRange, parentFront = parentFront)
+        runEvolution(attributes, popSize = hp.popSizeRange, generationCount = hp.maxGenRange, parentFront = parentFront, env = env)
 
     println("$PURPLE[🏁 Pareto front (all) has ${front.size()} solutions]$RESET")
 
@@ -26,7 +27,7 @@ fun topRange(
         return ScoredFront(front, doubleArrayOf())
     }
 
-    val scores = computeFrontScores(front)
+    val scores = computeFrontScores(front, env)
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
     println("Range finder: elapsed=%.2fs".format(elapsed))

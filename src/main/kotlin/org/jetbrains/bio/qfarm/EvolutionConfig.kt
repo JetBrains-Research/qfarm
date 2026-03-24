@@ -3,6 +3,14 @@ package org.jetbrains.bio.qfarm
 import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
+data class EvolutionEnvironment(
+    val datasetWithHeader: DatasetWithHeader,
+    val columnNames: List<String>,
+    val sortedColumns: List<DoubleArray>,
+    val bounds: Array<DoubleArray>,
+    val percentileProvider: SortedColumnsPercentileProvider,
+    val rightAttrIndex: Int
+)
 
 data class ScoredFront(
     val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,

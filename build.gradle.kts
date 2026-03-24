@@ -45,6 +45,7 @@ dependencies {
     implementation("org.apache.commons:commons-text:1.11.0")
     implementation("tech.tablesaw:tablesaw-core:0.43.1")
     implementation("org.json:json:20240303")
+    implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     jmh("org.openjdk.jmh:jmh-core:1.37")
     jmh("org.openjdk.jmh:jmh-generator-annprocess:1.37")
 }

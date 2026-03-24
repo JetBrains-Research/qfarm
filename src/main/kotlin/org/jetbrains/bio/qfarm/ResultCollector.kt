@@ -109,10 +109,8 @@ fun recordStep(
     // ------------------------------------------------------------
     // 2) Decide if this front qualifies for Top-k
     // ------------------------------------------------------------
-    val qualifiesForTop =
-        deltaArea > 0.0 &&
-                (TOP_FRONTS.size < MAX_TOP_FRONTS ||
-                        totalArea > TOP_FRONTS.peek().totalArea)
+    val qualifiesForTop = TOP_FRONTS.size < MAX_TOP_FRONTS ||
+                        totalArea > TOP_FRONTS.peek().totalArea
 
     // ------------------------------------------------------------
     // 3) ONLY IF TOP-k → render + keep

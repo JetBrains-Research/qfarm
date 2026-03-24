@@ -19,14 +19,15 @@ fun runEvolution(
     searchAttributes: List<Int> = listOf(),
     popSize: Int = hp.popSizeAttrParent,
     generationCount: Int = hp.maxGenAttrParent,
-    parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of()
+    parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of(),
+    env: EvolutionEnvironment = GLOBAL_ENV
 ): ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> {
 
 //  Build the config:
     val cfg = RuleInitConfig(
-        rightAttrIndex = rightAttrIndex,
-        bounds = bounds,
-        percentile = percentileProvider,
+        rightAttrIndex = env.rightAttrIndex,
+        bounds = env.bounds,
+        percentile = env.percentileProvider,
         fixedAttributes = fixedAttributes,
         searchAttributes = searchAttributes
     )
@@ -35,7 +36,7 @@ fun runEvolution(
     val genotypeFactory = createGenotypeFactory(cfg)
 
     val fitness: (Genotype<AttributeGene>) -> Vec<DoubleArray> = { gt ->
-        Vec.of(*evaluateRule(gt))
+        Vec.of(*evaluateRule(gt, env.datasetWithHeader))
     }
 
     val engine = Engine

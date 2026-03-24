@@ -9,9 +9,9 @@ const val PLOTS_DIR = "plots"
 val rand = RandomRegistry.random()
 
 // all these become lateinit / vars, initialized by initEnvironment()
+lateinit var GLOBAL_ENV: EvolutionEnvironment
 lateinit var datasetWithHeader: DatasetWithHeader
 lateinit var columnNames: List<String>
-lateinit var dataset: List<DoubleArray>
 lateinit var sortedColumns: List<DoubleArray>
 lateinit var bounds: Array<DoubleArray>
 lateinit var percentileProvider: SortedColumnsPercentileProvider
@@ -47,9 +47,8 @@ fun initEnvironment(
     require(rightAttrIndex >= 0) { "Right-hand-side column '$rhsName' not found." }
 
     datasetWithHeader = removeRowsWithNaNRHS(datasetWithHeader, rightAttrIndex)
-    dataset = datasetWithHeader.data
 
-    sortedColumns = computeSortedColumns(dataset)
+    sortedColumns = computeSortedColumns(datasetWithHeader.data)
     bounds = computeBoundsFromSorted(sortedColumns)
     percentileProvider = SortedColumnsPercentileProvider(sortedColumns)
 
@@ -97,7 +96,7 @@ fun initEnvironment(
     )
 
     datasetWithHeader.labels = computeLabelsFast(
-        dataset = dataset,
+        dataset = datasetWithHeader.data,
         rhsIndex = rightAttrIndex,
         lower = rhsLo,
         upper = rhsHi
@@ -105,6 +104,17 @@ fun initEnvironment(
 
     val positives = datasetWithHeader.labels.sum()
     println("Positive labels: $positives / ${datasetWithHeader.labels.size}")
+
+    GLOBAL_ENV = EvolutionEnvironment(
+        datasetWithHeader = datasetWithHeader,
+        columnNames = columnNames,
+        sortedColumns = sortedColumns,
+        bounds = bounds,
+        percentileProvider = percentileProvider,
+        rightAttrIndex = rightAttrIndex
+    )
+
+    generateMedianFront()
 
 }
 
