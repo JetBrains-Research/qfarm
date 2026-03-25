@@ -76,7 +76,7 @@ fun nextBestFinder(
     recordStep(
         prefix = prefix,
         addition = bestAttribute,
-        front = bestFront.front,
+        scoredFront = bestFront,
         meta = mapOf(
             "depth" to (prefix.size + 1),
             "improvement" to improvement

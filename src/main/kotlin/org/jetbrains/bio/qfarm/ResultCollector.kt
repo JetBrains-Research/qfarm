@@ -74,7 +74,7 @@ fun ensurePath(prefix: List<Int>): RuleTreeNode {
 fun recordStep(
     prefix: List<Int>,
     addition: Int,
-    front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
+    scoredFront: ScoredFront,
     meta: Map<String, Any?> = emptyMap()
 ): RuleTreeNode {
 
@@ -126,8 +126,9 @@ fun recordStep(
                     "Δ area = ${"%.4f".format(deltaArea)}"
 
         val url = renderFrontPlotUrl(
-            parentFront?.front,
-            front,
+            parentFront,
+            scoredFront,
+            attrs = prefix+addition,
             title = title,
             randomFront = false
         )
@@ -142,7 +143,7 @@ fun recordStep(
             evicted.node.frontUrl = null
         }
 
-        TOP_FRONTS.add(CachedFront(additionNode, totalArea, front))
+        TOP_FRONTS.add(CachedFront(additionNode, totalArea, scoredFront.front))
     }
 
     // ------------------------------------------------------------

@@ -13,19 +13,36 @@ import kotlin.math.max
 fun extractPlotSpecFromHtml(htmlFile: File): JsonObject {
     val outer = Jsoup.parse(htmlFile, "UTF-8")
 
-    val iframe = outer.selectFirst("iframe")
-        ?: error("No iframe found in HTML")
+    // 1. Get PF iframe
+    val iframe = outer.select("iframe")
+        .firstOrNull { it.attr("src").contains("_pf.html") }
+        ?: error("PF iframe not found")
 
-    val raw = iframe.attr("srcdoc")
-    if (raw.isBlank()) error("iframe srcdoc is empty")
+    val src = iframe.attr("src").removePrefix("file:")
+    val pfFile = File(src)
 
-    // Double unescape (same as Python)
+    if (!pfFile.exists()) {
+        error("PF file not found: $src")
+    }
+
+    // 2. Parse PF file
+    val pfDoc = Jsoup.parse(pfFile, "UTF-8")
+
+    // 3. Extract inner iframe srcdoc
+    val innerIframe = pfDoc.selectFirst("iframe")
+        ?: error("Inner iframe not found in PF file")
+
+    val raw = innerIframe.attr("srcdoc")
+    if (raw.isBlank()) error("Inner srcdoc is empty")
+
     val lvl1 = StringEscapeUtils.unescapeHtml4(raw)
     val lvl2 = StringEscapeUtils.unescapeHtml4(lvl1)
 
     val inner = Jsoup.parse(lvl2)
+
+    // 4. NOW find script
     val script = inner.selectFirst("script[data-lets-plot-script=plot]")
-        ?: error("Lets-Plot script not found")
+        ?: error("Lets-Plot script not found (inner)")
 
     val scriptText = script.data()
 
@@ -46,20 +63,20 @@ fun extractChildRulePct(plotSpec: JsonObject): List<String> {
 
     for (layer in layers) {
         val obj = layer.jsonObject
-        if (obj["geom"]?.jsonPrimitive?.content != "point") continue
-
         val data = obj["data"]?.jsonObject ?: continue
+
         if (!data.containsKey("rulePct")) continue
 
-        val series = data["series"]!!.jsonArray
+        val series = data["series"]?.jsonArray ?: continue
         val rulePct = data["rulePct"]!!.jsonArray
 
-        for (i in series.indices) {
-            if (series[i].jsonPrimitive.content != "Parent") {
+        for (i in rulePct.indices) {
+            if (series[i].jsonPrimitive.content == "Child") {
                 out += rulePct[i].jsonPrimitive.content
             }
         }
     }
+
     return out
 }
 
@@ -75,7 +92,9 @@ data class Interval(
 /** Parse rulePct strings that may contain MULTIPLE attributes */
 fun parseIntervals(rulePcts: List<String>): List<Interval> =
     rulePcts.flatMap { text ->
-        RULE_PCT_REGEX.findAll(text).map { m ->
+        val cleaned = text.trim()
+
+        RULE_PCT_REGEX.findAll(cleaned).map { m ->
             val attr = m.groupValues[1].trim()
             val lo = m.groupValues[2].toInt()
             val hi = m.groupValues[3].toInt()

@@ -1,6 +1,7 @@
 package org.jetbrains.bio.qfarm
 
 import java.io.File
+import java.net.URLDecoder
 
 /* ---------------------------- DOT Visualization ------------------------- */
 /**
@@ -35,22 +36,24 @@ fun toDOTFromTrie(
 
     val barsCache = mutableMapOf<RuleTreeNode, Map<String, String>>()
     fun resolveFrontHtml(n: RuleTreeNode): File? {
-        val raw = n.frontUrl ?: return null
-
-        // Normalize browser-style file:// URLs
-        val path = if (raw.startsWith("file://")) {
-            raw.removePrefix("file://")
-        } else {
-            raw
+        val raw = n.frontUrl ?: run {
+            println("❌ frontUrl is NULL")
+            return null
         }
 
-        val file = File(path)
+        val normalized = if (raw.startsWith("file://")) {
+            raw.removePrefix("file://")
+        } else raw
 
-        return when {
+        val decoded = URLDecoder.decode(normalized, "UTF-8")
+        val file = File(decoded)
+
+        val resolved = when {
             file.isAbsolute -> file
+            else -> File(PLOTS_DIR, decoded)
+        }
 
-            else -> File(PLOTS_DIR, path)
-        }.takeIf { it.exists() }
+        return resolved.takeIf { it.exists() }
     }
 
     fun barsForNode(n: RuleTreeNode): Map<String, String> {
