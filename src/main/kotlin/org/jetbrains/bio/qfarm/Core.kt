@@ -1,6 +1,26 @@
 package org.jetbrains.bio.qfarm
 
 import io.jenetics.util.RandomRegistry
+import org.jetbrains.bio.qfarm.core.AttributeGene
+import org.jetbrains.bio.qfarm.evaluation.generateMedianFront
+import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
+import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
+import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
+import org.jetbrains.bio.qfarm.evolution.treeTraversal
+import org.jetbrains.bio.qfarm.output.RHS
+import org.jetbrains.bio.qfarm.output.RULE_TREE_ROOT
+import org.jetbrains.bio.qfarm.output.RuleTreeJsonWriter
+import org.jetbrains.bio.qfarm.output.toDOTFromTrie
+import org.jetbrains.bio.qfarm.util.BLUE
+import org.jetbrains.bio.qfarm.util.DatasetWithHeader
+import org.jetbrains.bio.qfarm.util.RESET
+import org.jetbrains.bio.qfarm.util.computeBoundsFromSorted
+import org.jetbrains.bio.qfarm.util.computeLabelsFast
+import org.jetbrains.bio.qfarm.util.computeSortedColumns
+import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.util.loadNumericDataset
+import org.jetbrains.bio.qfarm.util.printFirstRows
+import org.jetbrains.bio.qfarm.util.removeRowsWithNaNRHS
 import java.io.File
 import kotlin.collections.MutableSet
 
@@ -21,6 +41,7 @@ var rightAttrIndex: Int = -1
 
 var USED: MutableSet<Int> = mutableSetOf()
 var TOPRULES: MutableList<List<Int>> = mutableListOf()
+lateinit var RULE_JSON_WRITER: RuleTreeJsonWriter
 
 
 fun initEnvironment(
@@ -137,7 +158,7 @@ fun runSearch() {
         println()
         rule.forEach { idx ->
             print(
-                " + $BLUE${columnNames[idx]}$RESET"
+                " + ${BLUE}${columnNames[idx]}${RESET}"
             )
         }
     }

@@ -2,6 +2,7 @@ package org.jetbrains.bio.qfarm
 
 import joptsimple.OptionParser
 import joptsimple.OptionSet
+import org.jetbrains.bio.qfarm.util.hp
 import kotlin.system.exitProcess
 
 class Main {
