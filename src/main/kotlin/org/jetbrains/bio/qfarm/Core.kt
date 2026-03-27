@@ -113,6 +113,8 @@ fun initEnvironment(
         upperBound = rhsHi,
         min = minC,
         max = maxC,
+        pLeft = hp.lowRight,  // fillers, do not matter
+        pRight = hp.upRight,  // fillers, do not matter
         cfg = init_cfg
     )
 

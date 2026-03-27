@@ -11,7 +11,7 @@ import io.jenetics.util.ISeq
 import io.jenetics.util.MSeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.GLOBAL_ENV
-import org.jetbrains.bio.qfarm.core.GaussianAttributeMutator
+import org.jetbrains.bio.qfarm.core.PercentileAttributeMutator
 import org.jetbrains.bio.qfarm.core.SupportThresholdConstraint
 import org.jetbrains.bio.qfarm.core.createGenotypeFactory
 import org.jetbrains.bio.qfarm.evaluation.evaluateRule
@@ -53,7 +53,7 @@ fun runEvolution(
         .constraint(SupportThresholdConstraint(genotypeFactory))
         .populationSize(popSize)
         .offspringFraction(0.75)
-        .alterers(GaussianAttributeMutator(hp.probabilityMutation, cfg.fixedAttributes))
+        .alterers(PercentileAttributeMutator(hp.probabilityMutation, cfg.fixedAttributes))
         .survivorsSelector(NSGA2Selector.ofVec())
         .offspringSelector(NSGA2Selector.ofVec())
         .build()

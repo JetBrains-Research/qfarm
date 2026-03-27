@@ -13,7 +13,7 @@ data class HyperParameters(
     val maxGenRange: Int = 500,
     // UNIVERSAL EVOLUTION
     val probabilityMutation: Double = 0.75,
-    val stdMutation: Double = 0.15,
+    val stdMutation: Double = 0.02,
     // RULE TREE BUILDING
     val maxDepth: Int = 2,
     val maxChildren: Int = 1,

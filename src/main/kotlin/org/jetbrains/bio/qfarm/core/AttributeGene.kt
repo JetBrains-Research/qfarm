@@ -3,7 +3,6 @@ package org.jetbrains.bio.qfarm.core
 import io.jenetics.Gene
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
-import org.jetbrains.bio.qfarm.init_cfg
 import org.jetbrains.bio.qfarm.rand
 import org.jetbrains.bio.qfarm.util.roundTo
 import kotlin.math.max
@@ -15,7 +14,9 @@ data class AttributeGene(
     val upperBound: Double,
     val min: Double,
     val max: Double,
-    private val cfg: RuleInitConfig = init_cfg
+    val pLeft: Double,
+    val pRight: Double,
+    val cfg: RuleInitConfig
 ) : Gene<Pair<Double, Double>, AttributeGene> {
 
     override fun allele(): Pair<Double, Double> = lowerBound to upperBound
@@ -29,6 +30,7 @@ data class AttributeGene(
     override fun newInstance(): AttributeGene {
         val p1 = rand.nextDouble()
         val p2 = rand.nextDouble()
+
         val loP = min(p1, p2)
         val hiP = max(p1, p2)
 
@@ -36,6 +38,8 @@ data class AttributeGene(
         val upper = cfg.percentile.value(attributeIndex, hiP)
 
         return copy(
+            pLeft = loP,
+            pRight = hiP,
             lowerBound = lower.coerceAtLeast(min),
             upperBound = upper.coerceAtMost(max)
         )
@@ -46,11 +50,29 @@ data class AttributeGene(
 
     companion object {
         fun of(attributeIndex: Int, min: Double, max: Double, cfg: RuleInitConfig): AttributeGene {
-            return AttributeGene(attributeIndex, min, max, min, max, cfg).newInstance()
+            return AttributeGene(
+                attributeIndex,
+                lowerBound = min,
+                upperBound = max,
+                min = min,
+                max = max,
+                pLeft = 0.0,
+                pRight = 1.0,
+                cfg = cfg
+            ).newInstance()
         }
 
         fun default(attributeIndex: Int, min: Double, max: Double, cfg: RuleInitConfig): AttributeGene {
-            return AttributeGene(attributeIndex, min, max, min, max, cfg)
+            return AttributeGene(
+                attributeIndex,
+                lowerBound = min,
+                upperBound = max,
+                min = min,
+                max = max,
+                pLeft = 0.0,
+                pRight = 1.0,
+                cfg = cfg
+            )
         }
     }
 
