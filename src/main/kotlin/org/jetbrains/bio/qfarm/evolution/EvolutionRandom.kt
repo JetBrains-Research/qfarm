@@ -5,12 +5,8 @@ import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.util.BLUE
-import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.GLOBAL_ENV
-import org.jetbrains.bio.qfarm.util.RED
 import org.jetbrains.bio.qfarm.util.RESET
-import org.jetbrains.bio.qfarm.core.RuleSideChromosome
-import org.jetbrains.bio.qfarm.evaluation.averageVerticalDistance
 import org.jetbrains.bio.qfarm.util.hp
 
 

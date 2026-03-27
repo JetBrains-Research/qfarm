@@ -5,8 +5,8 @@ import org.jetbrains.bio.qfarm.util.RESET
 import org.jetbrains.bio.qfarm.util.YELLOW
 import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
-import org.jetbrains.bio.qfarm.statistics.delong.AUC
 import org.jetbrains.bio.qfarm.evaluation.toPFSeries
+import org.jetbrains.bio.qfarm.statistics.delong.DeLong
 
 
 fun renderFrontPlotUrl(
@@ -62,12 +62,17 @@ fun renderFrontPlotUrl(
             add((if (randomFront) "Random" else "Child") to childScoredFront.scores)
         }
 
-        val aucParent = AUC.compute(labels, effectiveParentScores)
-        val aucChild = AUC.compute(labels, childScoredFront.scores)
+        val delong = DeLong.compare(labels, effectiveParentScores, childScoredFront.scores)
 
         val rocTitle = buildString {
-            append("$parentName AUC = %.3f".format(aucParent))
-            append("\nChild AUC = %.3f".format(aucChild))
+            appendLine("AUC: $parentName=%.3f | Child=%.3f".format(delong.auc1, delong.auc2))
+            appendLine("Var: %.5f | %.5f".format(delong.variance1, delong.variance2))
+            appendLine("Cov: %.5f".format(delong.covariance))
+            append("Δ=%.4f | z=%.2f | p=%.5f".format(
+                delong.auc2 - delong.auc1,
+                delong.zScore,
+                delong.pOneSided
+            ))
         }
 
         val rocPlot = buildROCPlot(rocSeries, labels, title = rocTitle)

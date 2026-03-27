@@ -91,7 +91,8 @@ fun nextBestFinder(
         scoredFront = bestFront,
         meta = mapOf(
             "depth" to (prefix.size + 1),
-            "improvement" to improvement
+            "improvement" to improvement,
+            "pValue" to delongResult.pOneSided
         )
     )
 

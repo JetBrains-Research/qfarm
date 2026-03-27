@@ -32,7 +32,7 @@ data class HyperParameters(
     val lowRight: Double = 0.0,  // as percentile
     val upRight: Double = 1.0,   // as percentile
     // ADDED TEMPORARY
-    val alphaThreshold: Double = 0.05
+    val alphaThreshold: Double = 1.1
 )
 
 // now mutable so CLI can override

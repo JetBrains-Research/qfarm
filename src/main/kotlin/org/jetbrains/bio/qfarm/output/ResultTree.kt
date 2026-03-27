@@ -100,6 +100,16 @@ fun toDOTFromTrie(
             name.take(maxLen - 1) + "."
     }
 
+    fun isSignificant(n: RuleTreeNode): Boolean? {
+        val pValue = n.steps.lastOrNull()
+            ?.meta
+            ?.get("pValue")
+            ?.toString()
+            ?.toDoubleOrNull()
+
+        return pValue?.let { it < 0.05 }
+    }
+
     fun nodeLabel(n: RuleTreeNode): String {
         // Root stays minimal
         if (n.additionAttrIndex == null) return "START"
@@ -167,6 +177,12 @@ fun toDOTFromTrie(
 
         val total = cumulativeImprovement[n]
 
+        val pValue = n.steps.lastOrNull()
+            ?.meta
+            ?.get("pValue")
+            ?.toString()
+            ?.toDoubleOrNull()
+
         return buildString {
             append("Addition: $name")
 
@@ -178,6 +194,19 @@ fun toDOTFromTrie(
             if (total != null && total > 0.0) {
                 append("\nTotal area = ")
                 append(String.format("%.4f", total))
+            }
+
+            val alpha = 0.05
+
+            if (pValue != null) {
+                append("\np-value = ")
+                append(String.format("%.6f", pValue))
+
+                if (pValue < alpha) {
+                    append("  (✓ significant)")
+                } else {
+                    append("  (✗ ns)")
+                }
             }
         }
     }
@@ -196,16 +225,25 @@ fun toDOTFromTrie(
 
 
     // Interpolate between *very pale* and *strong* orange, with 50% opacity
-    fun orangeFor(node: RuleTreeNode): String {
+    fun fillColorFor(node: RuleTreeNode): String {
+
+        // Root stays special
         if (node.additionAttrIndex == null) {
-            // root: light blue at 50% opacity
             return "#EEF6FF80"
         }
+
+        val significant = isSignificant(node)
+
+        // ❗ Not significant → light red
+        if (significant == false) {
+            return "#FFCCCC80"   // soft red with transparency
+        }
+
+        // Significant or unknown → use orange gradient
         val t = improvementIntensity(node)
 
-        // light -> strong orange
-        val r0 = 0xFF; val g0 = 0xFB; val b0 = 0xF2   // almost white warm
-        val r1 = 0xFF; val g1 = 0x8C; val b1 = 0x00   // strong orange
+        val r0 = 0xFF; val g0 = 0xFB; val b0 = 0xF2
+        val r1 = 0xFF; val g1 = 0x8C; val b1 = 0x00
 
         fun lerp(a: Int, b: Int) = (a + (t * (b - a)).toInt()).coerceIn(0, 255)
 
@@ -213,7 +251,6 @@ fun toDOTFromTrie(
         val g = lerp(g0, g1)
         val b = lerp(b0, b1)
 
-        // 80 = 50% alpha
         return String.format("#%02X%02X%02X80", r, g, b)
     }
 
@@ -221,7 +258,7 @@ fun toDOTFromTrie(
 
     fun walk(node: RuleTreeNode, id: String = newId()): String {
         val isRoot = node.additionAttrIndex == null
-        val fill  = if (isRoot) "#EEF6FF80" else orangeFor(node)
+        val fill = fillColorFor(node)
         val color = if (isRoot) "#4B8AE6" else "#cccccc"
         val tip = esc(tooltip(node))
 
