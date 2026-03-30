@@ -46,7 +46,6 @@ class SupportThresholdConstraint(
         var attempts = 0
 
         while (attempts < maxAttempts) {
-            println("Attempt $attempts")
             val candidate = genotypeFactory.newInstance()
             val sx = supportXOf(candidate, data)
 

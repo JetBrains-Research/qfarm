@@ -59,6 +59,8 @@ fun runEvolution(
         .build()
 
 //    val start = System.nanoTime()
+    // TODO: try to figure out, is this ok rn or not?
+    //  if not, how to fix
     lateinit var front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>
 
     val initGenotypes = parentFront?.map { it -> it.genotype() }

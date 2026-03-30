@@ -275,7 +275,26 @@ fun toDOTFromTrie(
         for (child in node.children) {
             val cid = newId()
             val childId = walk(child, cid)
-            sb.appendLine("  $id -> $childId;")
+
+            val pValue = child.steps.lastOrNull()
+                ?.meta?.get("pValue")
+                ?.toString()?.toDoubleOrNull()
+
+            val name = child.additionAttrIndex
+                ?.let { header.getOrNull(it) ?: "attr#$it" }
+
+            val edgeLabel = buildString {
+                if (name != null) append(abbrevAttr(name, 15))
+
+                if (pValue != null) {
+                    append("\np=")
+                    append(String.format("%.4f", pValue))
+                }
+            }
+
+            val escLabel = esc(edgeLabel)
+
+            sb.appendLine("""  $id -> $childId [label="$escLabel"];""")
         }
         return id
     }
