@@ -79,6 +79,15 @@ fun recordStep(
         "totalArea" to totalArea
     )
 
+    val pValue = meta["pValue"]?.toString()?.toDoubleOrNull()
+    val pValueTwoSided = meta["pValueTwoSided"]?.toString()?.toDoubleOrNull()
+    val zScore = meta["zScore"]?.toString()?.toDoubleOrNull()
+    val aucParent = meta["aucParent"]?.toString()?.toDoubleOrNull()
+    val aucChild = meta["aucChild"]?.toString()?.toDoubleOrNull()
+    val varParent = meta["varianceParent"]?.toString()?.toDoubleOrNull()
+    val varChild = meta["varianceChild"]?.toString()?.toDoubleOrNull()
+    val covariance = meta["covariance"]?.toString()?.toDoubleOrNull()
+
     // ------------------------------------------------------------
     // 2) ALWAYS render (no top-k filtering)
     // ------------------------------------------------------------
@@ -118,8 +127,18 @@ fun recordStep(
         prefix = prefix,
         addition = addition,
         depth = additionNode.depth,
-        deltaArea = deltaArea.takeIf { it > 0.0 },
+        deltaArea = deltaArea,
         totalArea = totalArea,
+
+        pValue = pValue,
+        pValueTwoSided = pValueTwoSided,
+        zScore = zScore,
+        aucParent = aucParent,
+        aucChild = aucChild,
+        varianceParent = varParent,
+        varianceChild = varChild,
+        covariance = covariance,
+
         frontUrl = additionNode.frontUrl,
         createdAt = step.createdAt
     )

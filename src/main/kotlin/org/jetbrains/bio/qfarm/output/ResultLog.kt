@@ -20,6 +20,16 @@ data class RuleTreeRow(
     val depth: Int,
     val deltaArea: Double?,
     val totalArea: Double,
+
+    val pValue: Double?,
+    val pValueTwoSided: Double?,
+    val zScore: Double?,
+    val aucParent: Double?,
+    val aucChild: Double?,
+    val varianceParent: Double?,
+    val varianceChild: Double?,
+    val covariance: Double?,
+
     val label: String?,
     val frontUrl: String?,
     val createdAt: String
@@ -61,6 +71,14 @@ class RuleTreeJsonWriter(
         depth: Int,
         deltaArea: Double?,
         totalArea: Double,
+        pValue: Double?,
+        pValueTwoSided: Double?,
+        zScore: Double?,
+        aucParent: Double?,
+        aucChild: Double?,
+        varianceParent: Double?,
+        varianceChild: Double?,
+        covariance: Double?,
         frontUrl: String?,
         createdAt: Instant
     ) {
@@ -75,7 +93,17 @@ class RuleTreeJsonWriter(
             depth = depth,
             deltaArea = deltaArea,
             totalArea = totalArea,
-            label = null,      // can be added later if you want
+
+            pValue = pValue,
+            pValueTwoSided = pValueTwoSided,
+            zScore = zScore,
+            aucParent = aucParent,
+            aucChild = aucChild,
+            varianceParent = varianceParent,
+            varianceChild = varianceChild,
+            covariance = covariance,
+
+            label = null,
             frontUrl = frontUrl,
             createdAt = createdAt.toString()
         )
