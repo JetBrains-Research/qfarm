@@ -111,6 +111,8 @@ fun recordStep(
         additionNode.frontUrl = url
     }
 
+    additionNode.label = NodeLabeler.buildLabel(additionNode)
+
     // ------------------------------------------------------------
     // 3) Store step WITHOUT front reference
     // ------------------------------------------------------------
@@ -139,6 +141,7 @@ fun recordStep(
         varianceChild = varChild,
         covariance = covariance,
 
+        label = additionNode.label,
         frontUrl = additionNode.frontUrl,
         createdAt = step.createdAt
     )

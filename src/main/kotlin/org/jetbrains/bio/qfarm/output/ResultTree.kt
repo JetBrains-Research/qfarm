@@ -4,39 +4,81 @@ import org.jetbrains.bio.qfarm.PLOTS_DIR
 import org.jetbrains.bio.qfarm.columnNames
 import java.io.File
 import java.net.URLDecoder
-import kotlin.collections.iterator
 
 /**
  * Tree node = exactly ONE addition (attribute + range). Root has nulls.
- * Identity uses (additionAttrIndex, additionRange), so different ranges become different nodes.
- * Labeling stays clean (attribute name only).
  */
 class RuleTreeNode(
-    val additionAttrIndex: Int? = null,                            // null for root
+    val additionAttrIndex: Int? = null,
     val depth: Int = 0,
-    var frontUrl: String? = null
+    var frontUrl: String? = null,
+    var label: String? = null
 ) {
-    /** All steps recorded at THIS node (usually 1, but we allow re-runs). */
     val steps: MutableList<RuleStep> = mutableListOf()
-    /** Children in insertion order (DFS order). */
     val children: MutableList<RuleTreeNode> = mutableListOf()
 }
 
-/** Root of the tree (empty path). */
+/** Root of the tree */
 val RULE_TREE_ROOT = RuleTreeNode()
 
+/* ---------------------------- LABEL LOGIC ---------------------------- */
+
+object NodeLabeler {
+
+    private val barsCache = mutableMapOf<RuleTreeNode, Map<String, String>>()
+
+    fun buildLabel(node: RuleTreeNode): String {
+        if (node.additionAttrIndex == null) return "START"
+
+        val bars = barsForNode(node)
+        if (bars.isEmpty()) return ""
+
+        return bars.toSortedMap().entries.joinToString("\n") { (attr, bar) ->
+            "${abbrevAttr(attr)}:\n$bar"
+        }
+    }
+
+    private fun barsForNode(n: RuleTreeNode): Map<String, String> {
+        return barsCache.getOrPut(n) {
+            val htmlFile = resolveFrontHtml(n) ?: return@getOrPut emptyMap()
+
+            try {
+                buildBarsFromHtml(htmlFile)
+            } catch (e: Exception) {
+                println("Failed to parse bars from $htmlFile: $e")
+                emptyMap()
+            }
+        }
+    }
+
+    private fun resolveFrontHtml(n: RuleTreeNode): File? {
+        val raw = n.frontUrl ?: return null
+
+        val normalized = if (raw.startsWith("file://")) {
+            raw.removePrefix("file://")
+        } else raw
+
+        val decoded = URLDecoder.decode(normalized, "UTF-8")
+        val file = File(decoded)
+
+        val resolved = if (file.isAbsolute) file else File(PLOTS_DIR, decoded)
+
+        return resolved.takeIf { it.exists() }
+    }
+
+    private fun abbrevAttr(name: String, maxLen: Int = 20): String {
+        return if (name.length <= maxLen) name else name.take(maxLen - 1) + "."
+    }
+}
 
 /* ---------------------------- DOT Visualization ------------------------- */
-/**
- * Export the rule tree to Graphviz DOT.
- * Each node = one addition (attribute label; tooltip shows range).
- * Edges connect prefix → addition, preserving DFS insertion order.
- */
+
 fun toDOTFromTrie(
     root: RuleTreeNode = RULE_TREE_ROOT,
     header: List<String> = columnNames,
     title: String = ""
 ): String {
+
     val sb = StringBuilder()
     sb.appendLine("digraph G {")
     sb.appendLine("""  label="$title"; labelloc="t"; fontsize=18;""")
@@ -57,216 +99,102 @@ fun toDOTFromTrie(
     fun newId() = "n${nextId++}"
     fun esc(s: String) = s.replace("\"", "\\\"")
 
-    val barsCache = mutableMapOf<RuleTreeNode, Map<String, String>>()
-    fun resolveFrontHtml(n: RuleTreeNode): File? {
-        val raw = n.frontUrl ?: run {
-            println("❌ frontUrl is NULL")
-            return null
-        }
-
-        val normalized = if (raw.startsWith("file://")) {
-            raw.removePrefix("file://")
-        } else raw
-
-        val decoded = URLDecoder.decode(normalized, "UTF-8")
-        val file = File(decoded)
-
-        val resolved = when {
-            file.isAbsolute -> file
-            else -> File(PLOTS_DIR, decoded)
-        }
-
-        return resolved.takeIf { it.exists() }
-    }
-
-    fun barsForNode(n: RuleTreeNode): Map<String, String> {
-        return barsCache.getOrPut(n) {
-            val htmlFile = resolveFrontHtml(n)
-                ?: return@getOrPut emptyMap()
-
-            try {
-                buildBarsFromHtml(htmlFile)
-            } catch (e: Exception) {
-                println("Failed to parse bars from ${htmlFile}: $e")
-                emptyMap()
-            }
-        }
-    }
-
-    fun abbrevAttr(name: String, maxLen: Int = 20): String {
-        return if (name.length <= maxLen)
-            name
-        else
-            name.take(maxLen - 1) + "."
-    }
-
     fun isSignificant(n: RuleTreeNode): Boolean? {
         val pValue = n.steps.lastOrNull()
-            ?.meta
-            ?.get("pValue")
-            ?.toString()
-            ?.toDoubleOrNull()
+            ?.meta?.get("pValue")
+            ?.toString()?.toDoubleOrNull()
 
         return pValue?.let { it < 0.05 }
     }
 
-    fun nodeLabel(n: RuleTreeNode): String {
-        // Root stays minimal
-        if (n.additionAttrIndex == null) return "START"
-
-        val bars = barsForNode(n)
-        if (bars.isEmpty()) {
-            return ""
-        }
-
-        // Stable order (alphabetical by attribute name)
-        val sortedBars = bars.toSortedMap()
-
-        return buildString {
-            for ((attr, bar) in sortedBars) {
-                val shortName = abbrevAttr(attr, 20)
-                append(shortName)
-                append(":\n")
-                append(bar)
-                append("\n")
-            }
-        }.trimEnd()
-    }
-
-    // Collect all nodes & raw improvements
+    // Collect nodes
     val allNodes = mutableListOf<RuleTreeNode>()
-    fun collectNodes(n: RuleTreeNode) {
+    fun collect(n: RuleTreeNode) {
         allNodes += n
-        n.children.forEach(::collectNodes)
+        n.children.forEach(::collect)
     }
-    collectNodes(root)
+    collect(root)
 
-    val nodeImprovement: Map<RuleTreeNode, Double> = allNodes.associateWith { n ->
+    val nodeImprovement = allNodes.associateWith { n ->
         n.steps.lastOrNull()
-            ?.meta
-            ?.get("improvement")
-            ?.toString()
-            ?.toDoubleOrNull()
+            ?.meta?.get("improvement")
+            ?.toString()?.toDoubleOrNull()
             ?.takeIf { it > 0.0 }
             ?: 0.0
     }
 
-    // compute cumulative improvement = sum(parent + self) along each path
     val cumulativeImprovement = mutableMapOf<RuleTreeNode, Double>()
-    fun computeCumulative(n: RuleTreeNode, parentCum: Double) {
-        val own = nodeImprovement[n] ?: 0.0
-        val cum = parentCum + own
-        cumulativeImprovement[n] = cum
-        n.children.forEach { child ->
-            computeCumulative(child, cum)
-        }
+    fun compute(n: RuleTreeNode, parent: Double) {
+        val total = parent + (nodeImprovement[n] ?: 0.0)
+        cumulativeImprovement[n] = total
+        n.children.forEach { compute(it, total) }
     }
-    computeCumulative(root, 0.0)
+    compute(root, 0.0)
 
     fun tooltip(n: RuleTreeNode): String {
-        val name =
-            n.additionAttrIndex?.let { idx ->
-                header.getOrNull(idx) ?: "attr#$idx"
-            } ?: "START"
+        val name = n.additionAttrIndex?.let {
+            header.getOrNull(it) ?: "attr#$it"
+        } ?: "START"
 
         val delta = n.steps.lastOrNull()
-            ?.meta
-            ?.get("improvement")
-            ?.toString()
-            ?.toDoubleOrNull()
+            ?.meta?.get("improvement")
+            ?.toString()?.toDoubleOrNull()
 
         val total = cumulativeImprovement[n]
 
         val pValue = n.steps.lastOrNull()
-            ?.meta
-            ?.get("pValue")
-            ?.toString()
-            ?.toDoubleOrNull()
+            ?.meta?.get("pValue")
+            ?.toString()?.toDoubleOrNull()
 
         return buildString {
             append("Addition: $name")
 
             if (delta != null) {
-                append("\nΔ area = ")
-                append(String.format("%.4f", delta))
+                append("\nΔ area = ${"%.4f".format(delta)}")
             }
 
             if (total != null && total > 0.0) {
-                append("\nTotal area = ")
-                append(String.format("%.4f", total))
+                append("\nTotal area = ${"%.4f".format(total)}")
             }
-
-            val alpha = 0.05
 
             if (pValue != null) {
-                append("\np-value = ")
-                append(String.format("%.6f", pValue))
-
-                if (pValue < alpha) {
-                    append("  (✓ significant)")
-                } else {
-                    append("  (✗ ns)")
-                }
+                append("\np-value = ${"%.6f".format(pValue)}")
+                append(if (pValue < 0.05) " (✓ significant)" else " (✗ ns)")
             }
         }
     }
 
-    // Linear normalization based on actual cumulative improvement
-    val positiveValues = cumulativeImprovement.values.filter { it > 0.0 }
-    val minImp = positiveValues.minOrNull() ?: 0.0
-    val maxImp = positiveValues.maxOrNull() ?: 0.0
-    val impRange = (maxImp - minImp).takeIf { it > 0.0 } ?: 1.0
+    fun fillColor(node: RuleTreeNode): String {
+        if (node.additionAttrIndex == null) return "#EEF6FF80"
 
-    fun improvementIntensity(n: RuleTreeNode): Double {
-        val v = cumulativeImprovement[n] ?: 0.0
-        if (v <= 0.0) return 0.0
-        return ((v - minImp) / impRange).coerceIn(0.0, 1.0)
-    }
+        if (isSignificant(node) == false) return "#FFCCCC80"
 
+        val values = cumulativeImprovement.values.filter { it > 0 }
+        val min = values.minOrNull() ?: 0.0
+        val max = values.maxOrNull() ?: 1.0
+        val range = (max - min).takeIf { it > 0 } ?: 1.0
 
-    // Interpolate between *very pale* and *strong* orange, with 50% opacity
-    fun fillColorFor(node: RuleTreeNode): String {
+        val t = ((cumulativeImprovement[node] ?: 0.0) - min) / range
 
-        // Root stays special
-        if (node.additionAttrIndex == null) {
-            return "#EEF6FF80"
-        }
+        fun lerp(a: Int, b: Int) = (a + (t * (b - a)).toInt())
 
-        val significant = isSignificant(node)
-
-        // ❗ Not significant → light red
-        if (significant == false) {
-            return "#FFCCCC80"   // soft red with transparency
-        }
-
-        // Significant or unknown → use orange gradient
-        val t = improvementIntensity(node)
-
-        val r0 = 0xFF; val g0 = 0xFB; val b0 = 0xF2
-        val r1 = 0xFF; val g1 = 0x8C; val b1 = 0x00
-
-        fun lerp(a: Int, b: Int) = (a + (t * (b - a)).toInt()).coerceIn(0, 255)
-
-        val r = lerp(r0, r1)
-        val g = lerp(g0, g1)
-        val b = lerp(b0, b1)
+        val r = lerp(0xFF, 0xFF)
+        val g = lerp(0xFB, 0x8C)
+        val b = lerp(0xF2, 0x00)
 
         return String.format("#%02X%02X%02X80", r, g, b)
     }
 
-    // ----------------------------------------------------
-
     fun walk(node: RuleTreeNode, id: String = newId()): String {
-        val isRoot = node.additionAttrIndex == null
-        val fill = fillColorFor(node)
-        val color = if (isRoot) "#4B8AE6" else "#cccccc"
+
+        val label = esc(node.label ?: "")
         val tip = esc(tooltip(node))
+        val fill = fillColor(node)
+        val color = if (node.additionAttrIndex == null) "#4B8AE6" else "#cccccc"
 
-        val url = node.frontUrl
-            ?.let(::esc)
-
-        val urlAttr = if (url != null) """ , URL="$url", target="_blank" """ else ""
-        val label = esc(nodeLabel(node))
+        val urlAttr = node.frontUrl?.let {
+            """ , URL="${esc(it)}", target="_blank" """
+        } ?: ""
 
         sb.appendLine(
             """  $id [label="$label", tooltip="$tip", fillcolor="$fill", color="$color"$urlAttr];"""
@@ -276,26 +204,22 @@ fun toDOTFromTrie(
             val cid = newId()
             val childId = walk(child, cid)
 
-            val pValue = child.steps.lastOrNull()
+            val name = child.additionAttrIndex?.let {
+                header.getOrNull(it) ?: "attr#$it"
+            }
+
+            val p = child.steps.lastOrNull()
                 ?.meta?.get("pValue")
                 ?.toString()?.toDoubleOrNull()
 
-            val name = child.additionAttrIndex
-                ?.let { header.getOrNull(it) ?: "attr#$it" }
-
             val edgeLabel = buildString {
-                if (name != null) append(abbrevAttr(name, 15))
-
-                if (pValue != null) {
-                    append("\np=")
-                    append(String.format("%.4f", pValue))
-                }
+                if (name != null) append(name)
+                if (p != null) append("\np=${"%.4f".format(p)}")
             }
 
-            val escLabel = esc(edgeLabel)
-
-            sb.appendLine("""  $id -> $childId [label="$escLabel"];""")
+            sb.appendLine("""  $id -> $childId [label="${esc(edgeLabel)}"];""")
         }
+
         return id
     }
 

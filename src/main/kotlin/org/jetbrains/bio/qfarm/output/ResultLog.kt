@@ -79,6 +79,7 @@ class RuleTreeJsonWriter(
         varianceParent: Double?,
         varianceChild: Double?,
         covariance: Double?,
+        label: String?,
         frontUrl: String?,
         createdAt: Instant
     ) {
@@ -103,7 +104,7 @@ class RuleTreeJsonWriter(
             varianceChild = varianceChild,
             covariance = covariance,
 
-            label = null,
+            label = label,
             frontUrl = frontUrl,
             createdAt = createdAt.toString()
         )
