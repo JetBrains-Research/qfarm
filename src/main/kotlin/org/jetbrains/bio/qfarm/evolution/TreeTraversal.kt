@@ -11,16 +11,17 @@ import org.jetbrains.bio.qfarm.util.hp
 import org.jetbrains.bio.qfarm.util.readLHS
 
 
-val VISITED_SETS: MutableSet<Set<Int>> = mutableSetOf()
+val USED: MutableSet<Int> = mutableSetOf()
 
 fun treeTraversal(prefix: List<Int>) {
 
+    val locUsed = mutableSetOf<Int>()   // 🔥 tracks what THIS node adds
     var maxLength = true
 
     while (prefix.size < hp.maxDepth) {
 
-        // STEP 1: cheap
-        val cheap = evaluateCheapAdditions(prefix)
+        // STEP 1: cheap (NOW WITH USED)
+        val cheap = evaluateCheapAdditions(prefix, USED)
 
         if (cheap.isEmpty()) {
             println("$RED Nothing to add anymore!!! $RESET")
@@ -30,12 +31,11 @@ fun treeTraversal(prefix: List<Int>) {
 
         // STEP 2: beam
         val selected = selectTopCandidates(cheap, prefix)
-        val selectedAttrs = selected
 
-        // STEP 3: full eval (reuse existing)
+        // STEP 3: full eval
         val evaluated = evaluateAllAdditions(
             prefix,
-            selectedAttrs,
+            selected,
             datasetWithHeader
         )
 
@@ -53,7 +53,6 @@ fun treeTraversal(prefix: List<Int>) {
         for (candidate in candidates) {
 
             val attr = candidate.attr
-
             val currentRule = prefix + attr
 
             println("\n $CYAN → Exploring child ${childCount + 1}: ${readLHS(currentRule)} $RESET")
@@ -73,7 +72,9 @@ fun treeTraversal(prefix: List<Int>) {
                 )
             )
 
-            VISITED_SETS += currentRule.toSet()
+            USED += attr
+            locUsed += attr
+
             TOPRULES += currentRule
 
             treeTraversal(currentRule)
@@ -86,9 +87,9 @@ fun treeTraversal(prefix: List<Int>) {
         break
     }
 
-    // TODO: separate cases
     if (maxLength) {
         println("$YELLOW Max depth or branch complete for ${readLHS(prefix)} $RESET")
     }
 
+    USED -= locUsed
 }

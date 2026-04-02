@@ -20,6 +20,7 @@ data class CheapCandidate(
 
 fun evaluateCheapAdditions(
     prefix: List<Int>,
+    used: Set<Int>,
     dataset: DatasetWithHeader = datasetWithHeader
 ): List<CheapCandidate> {
 
@@ -27,10 +28,7 @@ fun evaluateCheapAdditions(
         (0 until dataset.header.size)
             .filter { it != rightAttrIndex }
             .filter { it !in prefix }
-            .filter { attr ->
-                val newSet = (prefix + attr).toSet()
-                newSet !in VISITED_SETS
-            }
+            .filter { it !in used }
 
     if (searchAttributes.isEmpty()) {
         println("$RED No attributes left to explore $RESET")
