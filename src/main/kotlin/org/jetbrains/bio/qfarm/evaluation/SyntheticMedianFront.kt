@@ -7,7 +7,7 @@ import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
-import org.jetbrains.bio.qfarm.evolution.topRange
+import org.jetbrains.bio.qfarm.evolution.fullTopRange
 import org.jetbrains.bio.qfarm.rightAttrIndex
 import org.jetbrains.bio.qfarm.sortedColumns
 import org.jetbrains.bio.qfarm.statistics.delong.AUC
@@ -100,7 +100,7 @@ fun generateMedianFront(
             EvolutionContext.frontStack.clear()
 
             // --- 4. evolution ---
-            val scoredFront = topRange(listOf(0), env = syntheticEnv)
+            val scoredFront = fullTopRange(listOf(0), env = syntheticEnv)
 
             if (scoredFront.scores.isEmpty()) {
                 println("[Baseline] Column ${colIdx + 1} skipped (empty front)")
@@ -132,7 +132,7 @@ fun generateMedianFront(
     val median = sorted[sorted.size / 2]
 
     MedianFront.scoredFront = median.front
-    MedianFront.datasetWithHeader = median.dataset   // ✅ key
+    MedianFront.datasetWithHeader = median.dataset
     MedianFront.auc = median.auc
     MedianFront.initialized = true
 

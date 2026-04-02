@@ -39,7 +39,6 @@ lateinit var init_cfg: RuleInitConfig
 lateinit var rightGene: AttributeGene
 var rightAttrIndex: Int = -1
 
-var USED: MutableSet<Int> = mutableSetOf()
 var TOPRULES: MutableList<List<Int>> = mutableListOf()
 lateinit var RULE_JSON_WRITER: RuleTreeJsonWriter
 

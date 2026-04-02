@@ -14,10 +14,15 @@ import org.jetbrains.bio.qfarm.util.hp
 
 fun topRange(
     attributes: List<Int>,
-    env: EvolutionEnvironment = GLOBAL_ENV
+    env: EvolutionEnvironment = GLOBAL_ENV,
+    popSize: Int = hp.popSizeRange,
+    generationCount: Int = hp.maxGenRange,
+    label: String = "🏆"
 ): ScoredFront {
+
     val start = System.nanoTime()
-    println("\n${PURPLE}🏆SEARCHING FOR THE BEST RANGE OF ${attributes.map { idx -> env.columnNames[idx]}} ... $RESET")
+
+    println("\n${PURPLE}$label : SEARCHING FOR THE BEST RANGE OF ${attributes.map { idx -> env.columnNames[idx]}} ... $RESET")
     require(attributes.isNotEmpty()) { "attributes must not be empty." }
 
     val parentScoredFront: ScoredFront? =
@@ -27,16 +32,16 @@ fun topRange(
     val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
         runEvolution(
             attributes,
-            popSize = hp.popSizeRange,
-            generationCount = hp.maxGenRange,
+            popSize = popSize,
+            generationCount = generationCount,
             parentFront = parentFront,
             env = env
         )
 
-    println("${PURPLE}[🏁 Pareto front (all) has ${front.size()} solutions]${RESET}")
+    println("$PURPLE [🏁 Pareto front (all) has ${front.size()} solutions] $RESET")
 
     if (front.isEmpty) {
-        println("${YELLOW}[⚠️ No solutions matched the requested attributes. Returning empty result.]${RESET}")
+        println("$YELLOW [⚠️ No solutions matched the requested attributes. Returning empty result.] $RESET")
         return ScoredFront(front, doubleArrayOf())
     }
 
@@ -46,4 +51,32 @@ fun topRange(
     println("Range finder: elapsed=%.2fs".format(elapsed))
 
     return ScoredFront(front, scores)
+}
+
+fun cheapTopRange(
+    attributes: List<Int>,
+    env: EvolutionEnvironment = GLOBAL_ENV
+): ScoredFront {
+    // TODO: rename params for pop and gen
+    return topRange(
+        attributes = attributes,
+        env = env,
+        popSize = hp.popSizeAttrParent,
+        generationCount = hp.maxGenAttrParent,
+        label = "⚡ CHEAP RANGE SEARCH"
+    )
+}
+
+fun fullTopRange(
+    attributes: List<Int>,
+    env: EvolutionEnvironment = GLOBAL_ENV
+): ScoredFront {
+    // TODO: rename params for pop and gen
+    return topRange(
+        attributes = attributes,
+        env = env,
+        popSize = hp.popSizeRange,
+        generationCount = hp.maxGenRange,
+        label = "🏆 FULL SEARCH"
+    )
 }
