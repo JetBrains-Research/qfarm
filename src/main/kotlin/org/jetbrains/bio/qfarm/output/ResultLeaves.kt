@@ -33,6 +33,7 @@ fun exportLeafRules(
     for (leaf in leaves) {
 
         val step = leaf.steps.lastOrNull() ?: continue
+        val fullPath = step.prefix + step.addition
 
         val scoredFront = leaf.steps.last().scoredFront
 
@@ -41,7 +42,8 @@ fun exportLeafRules(
         val rows = extractFullRows(
             scoredFront,
             dataset,
-            step.meta
+            step.meta,
+            fullPath
         )
 
         allRows += rows
