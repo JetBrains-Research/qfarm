@@ -242,18 +242,13 @@ fun buildParetoFrontPlotCombined(
         val rulePcts = pts.map { it.rulePct }
         val ruleNums = pts.map { it.ruleNum }
 
-        val metrics = s.metrics
-        fun <T> getMetric(name: String, idx: Int): T? {
-            val list = metrics?.get(name)
-            @Suppress("UNCHECKED_CAST")
-            return list?.getOrNull(idx) as? T
-        }
+        val m = s.metrics
 
-        val tps    = pts.map { getMetric<Int>("TP",    it.idx) ?: 0 }
-        val fps    = pts.map { getMetric<Int>("FP",    it.idx) ?: 0 }
-        val tns    = pts.map { getMetric<Int>("TN",    it.idx) ?: 0 }
-        val fns    = pts.map { getMetric<Int>("FN",    it.idx) ?: 0 }
-        val ratios = pts.map { getMetric<Double>("ratio", it.idx) ?: Double.NaN }
+        val tps = pts.map { m?.tp?.getOrNull(it.idx) ?: 0 }
+        val fps = pts.map { m?.fp?.getOrNull(it.idx) ?: 0 }
+        val tns = pts.map { m?.tn?.getOrNull(it.idx) ?: 0 }
+        val fns = pts.map { m?.fn?.getOrNull(it.idx) ?: 0 }
+        val ratios = pts.map { m?.ratio?.getOrNull(it.idx) ?: Double.NaN }
 
         // Series polyline (color legend)
         val lineData = mapOf(

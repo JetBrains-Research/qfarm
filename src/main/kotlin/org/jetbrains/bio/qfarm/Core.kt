@@ -10,6 +10,7 @@ import org.jetbrains.bio.qfarm.evolution.treeTraversal
 import org.jetbrains.bio.qfarm.output.RHS
 import org.jetbrains.bio.qfarm.output.RULE_TREE_ROOT
 import org.jetbrains.bio.qfarm.output.RuleTreeJsonWriter
+import org.jetbrains.bio.qfarm.output.exportLeafRules
 import org.jetbrains.bio.qfarm.output.toDOTFromTrie
 import org.jetbrains.bio.qfarm.util.BLUE
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
@@ -22,7 +23,6 @@ import org.jetbrains.bio.qfarm.util.loadNumericDataset
 import org.jetbrains.bio.qfarm.util.printFirstRows
 import org.jetbrains.bio.qfarm.util.removeRowsWithNaNRHS
 import java.io.File
-import kotlin.collections.MutableSet
 
 const val PLOTS_DIR = "plots"
 
@@ -154,6 +154,11 @@ fun runSearch() {
 
     val emptyPrefix: MutableList<Int> = mutableListOf()
     treeTraversal(emptyPrefix)
+
+    exportLeafRules(
+        RULE_TREE_ROOT,
+        datasetWithHeader
+    )
 
     TOPRULES.forEach { rule ->
         println()

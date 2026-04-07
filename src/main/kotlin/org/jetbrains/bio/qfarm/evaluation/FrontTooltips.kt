@@ -12,10 +12,20 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
+data class PFMetrics(
+    val tp: List<Int>,
+    val fp: List<Int>,
+    val tn: List<Int>,
+    val fn: List<Int>,
+    val type1: List<Double>,
+    val type2: List<Double>,
+    val ratio: List<Double>
+)
+
 data class PFSeries(
     val name: String,
     val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
-    val metrics: Map<String, List<*>>? = null,
+    val metrics: PFMetrics? = null,
     val bestIndex: Int? = null          // optional "best" per series
 )
 
@@ -99,14 +109,14 @@ fun toPFSeries(
         if (score < bestScore) { bestScore = score; bestIdx = i }
     }
 
-    val metrics = mapOf(
-        "TP" to tpList,
-        "FP" to fpList,
-        "TN" to tnList,
-        "FN" to fnList,
-        "type1" to type1List,
-        "type2" to type2List,
-        "ratio" to ratioList
+    val metrics = PFMetrics(
+        tp = tpList,
+        fp = fpList,
+        tn = tnList,
+        fn = fnList,
+        type1 = type1List,
+        type2 = type2List,
+        ratio = ratioList
     )
 
     return PFSeries(seriesName, front, metrics, if (bestIdx >= 0) bestIdx else null)

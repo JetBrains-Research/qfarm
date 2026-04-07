@@ -15,7 +15,7 @@ val USED: MutableSet<Int> = mutableSetOf()
 
 fun treeTraversal(prefix: List<Int>) {
 
-    val locUsed = mutableSetOf<Int>()   // 🔥 tracks what THIS node adds
+    val locUsed = mutableSetOf<Int>()
     var maxLength = true
 
     while (prefix.size < hp.maxDepth) {
@@ -66,9 +66,22 @@ fun treeTraversal(prefix: List<Int>) {
                 meta = mapOf(
                     "depth" to (prefix.size + 1),
                     "improvement" to candidate.improvement,
+
+                    // p-values
                     "pValue" to candidate.pValue,
+                    "pValueTwoSided" to candidate.pValueTwoSided,
+
+                    // test statistics
+                    "zScore" to candidate.zScore,
+
+                    // AUCs
                     "aucParent" to candidate.aucParent,
-                    "aucChild" to candidate.aucChild
+                    "aucChild" to candidate.aucChild,
+
+                    // variances & covariance
+                    "varianceParent" to candidate.varianceParent,
+                    "varianceChild" to candidate.varianceChild,
+                    "covariance" to candidate.covariance
                 )
             )
 

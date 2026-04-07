@@ -1,10 +1,6 @@
 package org.jetbrains.bio.qfarm.output
 
-import io.jenetics.Phenotype
-import io.jenetics.ext.moea.Vec
-import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.RULE_JSON_WRITER
-import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.util.readLHS
@@ -17,7 +13,7 @@ import java.time.Instant
 data class RuleStep(
     val prefix: List<Int>,   // full path BEFORE addition
     val addition: Int,       // the node we add
-    val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
+    val scoredFront: ScoredFront,
     val meta: Map<String, Any?> = emptyMap(),
     val createdAt: Instant = Instant.now()
 )
@@ -115,11 +111,12 @@ fun recordStep(
 
     // ------------------------------------------------------------
     // 3) Store step WITHOUT front reference
+    // TODO: why not store front? Does it slow down / cause crash-down?
     // ------------------------------------------------------------
     val step = RuleStep(
         prefix = prefix,
         addition = addition,
-        front = ISeq.empty(),
+        scoredFront = scoredFront,
         meta = enrichedMeta
     )
 

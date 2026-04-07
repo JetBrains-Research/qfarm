@@ -82,10 +82,10 @@ private val ANSI_RE: Regex = Regex("\\u001B\\[[;\\d]*m")
 fun stripAnsi(s: String): String = ANSI_RE.replace(s, "")
 
 // ---------------------- Plot: SupportX–Confidence combined view ----------------------
-// Multi-line numeric LHS:
 fun numericRuleString(
     header: List<String>,
-    gt: Genotype<AttributeGene>
+    gt: Genotype<AttributeGene>,
+    multiLine: Boolean = true
 ): String {
     val lhs = gt[0] as RuleSideChromosome
     val active = lhs.asSequence()
@@ -95,12 +95,38 @@ fun numericRuleString(
 
     if (active.isEmpty()) return "(no antecedent)"
 
-    val body = active.joinToString("\n") { g ->
+    val separator = if (multiLine) "\n" else " AND "
+
+    val parts = active.mapNotNull { g ->
         val name = header.getOrNull(g.attributeIndex) ?: "attr_${g.attributeIndex}"
         val lb = String.format("%.3f", g.lowerBound)
         val ub = String.format("%.3f", g.upperBound)
-        "• $name ∈ \n [$lb, $ub]"
+
+        if (multiLine) {
+            // ORIGINAL (unchanged)
+            "• $name ∈ \n [$lb, $ub]"
+        } else {
+            // NEW: inequalities + omit defaults
+            when {
+                g.lowerBound > g.min && g.upperBound < g.max ->
+                    "$lb ≤ $name ≤ $ub"
+                g.lowerBound > g.min ->
+                    "$name ≥ $lb"
+                g.upperBound < g.max ->
+                    "$name ≤ $ub"
+                else ->
+                    null // skip full-range
+            }
+        }
     }
 
-    return "Numeric rule:\n$body"
+    if (parts.isEmpty()) return "(no antecedent)"
+
+    val body = parts.joinToString(separator)
+
+    return if (multiLine) {
+        "Numeric rule:\n$body"
+    } else {
+        body
+    }
 }
