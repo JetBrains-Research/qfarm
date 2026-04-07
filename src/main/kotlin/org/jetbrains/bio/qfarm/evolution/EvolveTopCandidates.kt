@@ -11,21 +11,13 @@ import org.jetbrains.bio.qfarm.evaluation.frontDistance
 import org.jetbrains.bio.qfarm.util.readLHS
 import org.jetbrains.bio.qfarm.statistics.delong.DeLong
 import kotlinx.coroutines.*
+import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 
 data class CandidateAddition(
     val attr: Int,
     val front: ScoredFront,
     val improvement: Double,
-
-    // stats
-    val pValue: Double,
-    val pValueTwoSided: Double,
-    val zScore: Double,
-    val aucParent: Double,
-    val aucChild: Double,
-    val varianceParent: Double,
-    val varianceChild: Double,
-    val covariance: Double
+    val deLong: DeLongResult
 )
 
 fun evaluateAllAdditions(
@@ -79,15 +71,7 @@ fun evaluateAllAdditions(
                     attr = attr,
                     front = candidateFront,
                     improvement = improvement,
-
-                    pValue = delong.pOneSided,
-                    pValueTwoSided = delong.pTwoSided,
-                    zScore = delong.zScore,
-                    aucParent = delong.auc1,
-                    aucChild = delong.auc2,
-                    varianceParent = delong.variance1,
-                    varianceChild = delong.variance2,
-                    covariance = delong.covariance
+                    deLong = delong
                 )
             }
 
@@ -95,5 +79,5 @@ fun evaluateAllAdditions(
     }
 
     // keep ordering for stable traversal
-    return results.sortedByDescending { it.aucChild }
+    return results.sortedByDescending { it.deLong.auc2 }
 }

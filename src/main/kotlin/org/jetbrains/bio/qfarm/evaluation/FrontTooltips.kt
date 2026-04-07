@@ -12,21 +12,22 @@ import kotlin.math.abs
 import kotlin.math.max
 import kotlin.math.min
 
-data class PFMetrics(
-    val tp: List<Int>,
-    val fp: List<Int>,
-    val tn: List<Int>,
-    val fn: List<Int>,
-    val type1: List<Double>,
-    val type2: List<Double>,
-    val ratio: List<Double>
+data class ConfusionMetrics(
+    val tp: Int,
+    val fp: Int,
+    val tn: Int,
+    val fn: Int,
+
+    val type1: Double,
+    val type2: Double,
+    val ratio: Double
 )
 
 data class PFSeries(
     val name: String,
     val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
-    val metrics: PFMetrics? = null,
-    val bestIndex: Int? = null          // optional "best" per series
+    val metrics: List<ConfusionMetrics>? = null,
+    val bestIndex: Int? = null
 )
 
 fun toPFSeries(
@@ -40,13 +41,7 @@ fun toPFSeries(
     var bestScore = Double.POSITIVE_INFINITY
     var bestIdx   = -1
 
-    val tpList = mutableListOf<Int>()
-    val fpList = mutableListOf<Int>()
-    val tnList = mutableListOf<Int>()
-    val fnList = mutableListOf<Int>()
-    val type1List = mutableListOf<Double>()
-    val type2List = mutableListOf<Double>()
-    val ratioList = mutableListOf<Double>()
+    val metricsList = mutableListOf<ConfusionMetrics>()
 
     for ((i, pt) in front!!.withIndex()) {
         val gt: Genotype<AttributeGene> = pt.genotype()
@@ -93,8 +88,12 @@ fun toPFSeries(
 
         val denom1 = fp + tn
         val denom2 = fn + tp
+
         val type1 = if (denom1 > 0) fp.toDouble() / denom1 else 0.0
         val type2 = if (denom2 > 0) fn.toDouble() / denom2 else 0.0
+
+        val ratio =
+            if (type2 > 0.0) type1 / type2 else Double.POSITIVE_INFINITY
 
         val score = when {
             type1 == 0.0 && type2 == 0.0 -> 0.0
@@ -102,22 +101,26 @@ fun toPFSeries(
             else -> abs((max(type1, type2) / min(type1, type2)) - 1.0)
         }
 
-        tpList += tp; fpList += fp; tnList += tn; fnList += fn
-        type1List += type1; type2List += type2
-        ratioList += if (type2 > 0.0) type1 / type2 else Double.POSITIVE_INFINITY
+        metricsList += ConfusionMetrics(
+            tp = tp,
+            fp = fp,
+            tn = tn,
+            fn = fn,
+            type1 = type1,
+            type2 = type2,
+            ratio = ratio
+        )
 
-        if (score < bestScore) { bestScore = score; bestIdx = i }
+        if (score < bestScore) {
+            bestScore = score
+            bestIdx = i
+        }
     }
 
-    val metrics = PFMetrics(
-        tp = tpList,
-        fp = fpList,
-        tn = tnList,
-        fn = fnList,
-        type1 = type1List,
-        type2 = type2List,
-        ratio = ratioList
+    return PFSeries(
+        name = seriesName,
+        front = front,
+        metrics = metricsList,
+        bestIndex = if (bestIdx >= 0) bestIdx else null
     )
-
-    return PFSeries(seriesName, front, metrics, if (bestIdx >= 0) bestIdx else null)
 }

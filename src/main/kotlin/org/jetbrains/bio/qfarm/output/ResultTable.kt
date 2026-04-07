@@ -4,8 +4,10 @@ import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.core.RuleSideChromosome
+import org.jetbrains.bio.qfarm.evaluation.ConfusionMetrics
 import org.jetbrains.bio.qfarm.evaluation.toPFSeries
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
+import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.util.numericRuleString
 import java.io.File
@@ -21,24 +23,12 @@ data class FullRuleRow(
     val confidence: Double,
     val lift: Double,
 
-    // confusion matrix
-    val tp: Int,
-    val fp: Int,
-    val tn: Int,
-    val fn: Int,
-    val ratio: Double,
+    val metrics: ConfusionMetrics,
 
     // node-level stats
     val deltaArea: Double?,
     val totalArea: Double?,
-    val pValue: Double?,
-    val pValueTwoSided: Double?,
-    val zScore: Double?,
-    val aucParent: Double?,
-    val aucChild: Double?,
-    val varianceParent: Double?,
-    val varianceChild: Double?,
-    val covariance: Double?
+    val deLong: DeLongResult?
 )
 
 fun countActiveAttributes(pt: Phenotype<AttributeGene, Vec<DoubleArray>>): Int {
@@ -61,22 +51,16 @@ fun extractFullRows(
         dataset.labels.count { it == 1 }.toDouble() / dataset.labels.size
 
     val series = toPFSeries(front.front, "Child", dataset)
-    val metrics = series.metrics ?: return emptyList()
-
-    val tpList = metrics.tp
-    val fpList = metrics.fp
-    val tnList = metrics.tn
-    val fnList = metrics.fn
-    val ratioList = metrics.ratio
+    val metricsList = series.metrics ?: return emptyList()
 
     // --------------------------------------------------
     // 1. Build candidates (index + ratio)
     // --------------------------------------------------
     data class Candidate(val idx: Int, val ratio: Double)
 
-    val candidates = ratioList.mapIndexedNotNull { idx, ratio ->
-        if (!ratio.isFinite()) return@mapIndexedNotNull null
-        Candidate(idx, ratio)
+    val candidates = metricsList.mapIndexedNotNull { idx, m ->
+        if (!m.ratio.isFinite()) return@mapIndexedNotNull null
+        Candidate(idx, m.ratio)
     }
 
     if (candidates.isEmpty()) return emptyList()
@@ -135,6 +119,15 @@ fun extractFullRows(
 
         val rule = numericRuleString(dataset.header, pt.genotype(), false)
 
+        val m = metricsList.getOrNull(idx) ?: ConfusionMetrics(
+            tp = 0, fp = 0, tn = 0, fn = 0,
+            type1 = Double.NaN,
+            type2 = Double.NaN,
+            ratio = Double.NaN
+        )
+
+        val deLong = nodeMeta["deLong"] as? DeLongResult
+
         FullRuleRow(
             rule = rule,
             numAttributes = numAttr,
@@ -143,22 +136,11 @@ fun extractFullRows(
             confidence = confidence,
             lift = lift,
 
-            tp = tpList[idx],
-            fp = fpList[idx],
-            tn = tnList[idx],
-            fn = fnList[idx],
-            ratio = ratioList[idx],
+            metrics = m,
 
             deltaArea = nodeMeta["deltaArea"]?.toString()?.toDoubleOrNull(),
             totalArea = nodeMeta["totalArea"]?.toString()?.toDoubleOrNull(),
-            pValue = nodeMeta["pValue"]?.toString()?.toDoubleOrNull(),
-            pValueTwoSided = nodeMeta["pValueTwoSided"]?.toString()?.toDoubleOrNull(),
-            zScore = nodeMeta["zScore"]?.toString()?.toDoubleOrNull(),
-            aucParent = nodeMeta["aucParent"]?.toString()?.toDoubleOrNull(),
-            aucChild = nodeMeta["aucChild"]?.toString()?.toDoubleOrNull(),
-            varianceParent = nodeMeta["varianceParent"]?.toString()?.toDoubleOrNull(),
-            varianceChild = nodeMeta["varianceChild"]?.toString()?.toDoubleOrNull(),
-            covariance = nodeMeta["covariance"]?.toString()?.toDoubleOrNull()
+            deLong = deLong
         )
     }
 }
@@ -171,7 +153,7 @@ fun writeFullTsv(rows: List<FullRuleRow>, file: File) {
             listOf(
                 "rule","numAttr",
                 "support","confidence","lift",
-                "TP","FP","TN","FN","ratio",
+                "TP","FP","TN","FN","type1","type2","ratio",
                 "deltaArea","totalArea",
                 "pValue","pValueTwoSided","zScore",
                 "aucParent","aucChild",
@@ -187,21 +169,23 @@ fun writeFullTsv(rows: List<FullRuleRow>, file: File) {
                     r.support,
                     r.confidence,
                     r.lift,
-                    r.tp,
-                    r.fp,
-                    r.tn,
-                    r.fn,
-                    r.ratio,
+                    r.metrics.tp,
+                    r.metrics.fp,
+                    r.metrics.tn,
+                    r.metrics.fn,
+                    r.metrics.type1,
+                    r.metrics.type2,
+                    r.metrics.ratio,
                     r.deltaArea,
                     r.totalArea,
-                    r.pValue,
-                    r.pValueTwoSided,
-                    r.zScore,
-                    r.aucParent,
-                    r.aucChild,
-                    r.varianceParent,
-                    r.varianceChild,
-                    r.covariance
+                    r.deLong?.pOneSided,
+                    r.deLong?.pTwoSided,
+                    r.deLong?.zScore,
+                    r.deLong?.auc1,
+                    r.deLong?.auc2,
+                    r.deLong?.variance1,
+                    r.deLong?.variance2,
+                    r.deLong?.covariance
                 ).joinToString("\t")
             )
         }

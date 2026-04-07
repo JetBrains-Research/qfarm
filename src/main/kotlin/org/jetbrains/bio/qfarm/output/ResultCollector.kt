@@ -3,6 +3,7 @@ package org.jetbrains.bio.qfarm.output
 import org.jetbrains.bio.qfarm.RULE_JSON_WRITER
 import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
+import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 import org.jetbrains.bio.qfarm.util.readLHS
 import org.jetbrains.bio.qfarm.visualization.renderFrontPlotUrl
 import java.time.Instant
@@ -75,14 +76,7 @@ fun recordStep(
         "totalArea" to totalArea
     )
 
-    val pValue = meta["pValue"]?.toString()?.toDoubleOrNull()
-    val pValueTwoSided = meta["pValueTwoSided"]?.toString()?.toDoubleOrNull()
-    val zScore = meta["zScore"]?.toString()?.toDoubleOrNull()
-    val aucParent = meta["aucParent"]?.toString()?.toDoubleOrNull()
-    val aucChild = meta["aucChild"]?.toString()?.toDoubleOrNull()
-    val varParent = meta["varianceParent"]?.toString()?.toDoubleOrNull()
-    val varChild = meta["varianceChild"]?.toString()?.toDoubleOrNull()
-    val covariance = meta["covariance"]?.toString()?.toDoubleOrNull()
+    val deLong = meta["deLong"] as? DeLongResult
 
     // ------------------------------------------------------------
     // 2) ALWAYS render (no top-k filtering)
@@ -129,14 +123,7 @@ fun recordStep(
         deltaArea = deltaArea,
         totalArea = totalArea,
 
-        pValue = pValue,
-        pValueTwoSided = pValueTwoSided,
-        zScore = zScore,
-        aucParent = aucParent,
-        aucChild = aucChild,
-        varianceParent = varParent,
-        varianceChild = varChild,
-        covariance = covariance,
+        deLong = deLong,
 
         label = additionNode.label,
         frontUrl = additionNode.frontUrl,

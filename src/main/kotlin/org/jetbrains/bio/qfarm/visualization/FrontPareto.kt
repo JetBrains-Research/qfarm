@@ -244,11 +244,11 @@ fun buildParetoFrontPlotCombined(
 
         val m = s.metrics
 
-        val tps = pts.map { m?.tp?.getOrNull(it.idx) ?: 0 }
-        val fps = pts.map { m?.fp?.getOrNull(it.idx) ?: 0 }
-        val tns = pts.map { m?.tn?.getOrNull(it.idx) ?: 0 }
-        val fns = pts.map { m?.fn?.getOrNull(it.idx) ?: 0 }
-        val ratios = pts.map { m?.ratio?.getOrNull(it.idx) ?: Double.NaN }
+        val tps = pts.map { m?.getOrNull(it.idx)?.tp ?: 0 }
+        val fps = pts.map { m?.getOrNull(it.idx)?.fp ?: 0 }
+        val tns = pts.map { m?.getOrNull(it.idx)?.tn ?: 0 }
+        val fns = pts.map { m?.getOrNull(it.idx)?.fn ?: 0 }
+        val ratios = pts.map { m?.getOrNull(it.idx)?.ratio ?: Double.NaN }
 
         // Series polyline (color legend)
         val lineData = mapOf(

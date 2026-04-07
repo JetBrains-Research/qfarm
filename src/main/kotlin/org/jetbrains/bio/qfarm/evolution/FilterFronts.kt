@@ -12,11 +12,11 @@ fun filterCandidates(
 ): List<CandidateAddition> {
 
     val filtered = candidates.filter { c ->
-        val significant = c.pValue < hp.alphaThreshold
+        val significant = c.deLong.pOneSided < hp.alphaThreshold
         val active = isActive(c.front, c.attr)
 
         if (!significant) {
-            println("$RED 🛑 FILTERED OUT ${columnNames[c.attr]}  |  p=${"%.4g".format(c.pValue)} $RESET")
+            println("$RED 🛑 FILTERED OUT ${columnNames[c.attr]}  |  p=${"%.4g".format(c.deLong.pOneSided)} $RESET")
         } else if (!active) {
             println("$RED ⚠️ FILTERED OUT ${columnNames[c.attr]}  |  INACTIVE $RESET")
         }

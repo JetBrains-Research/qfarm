@@ -1,5 +1,7 @@
 package org.jetbrains.bio.qfarm.statistics.delong
+import kotlinx.serialization.Serializable
 
+@Serializable
 data class DeLongResult(
     val auc1: Double,
     val auc2: Double,

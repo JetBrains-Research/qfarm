@@ -67,21 +67,8 @@ fun treeTraversal(prefix: List<Int>) {
                     "depth" to (prefix.size + 1),
                     "improvement" to candidate.improvement,
 
-                    // p-values
-                    "pValue" to candidate.pValue,
-                    "pValueTwoSided" to candidate.pValueTwoSided,
-
-                    // test statistics
-                    "zScore" to candidate.zScore,
-
-                    // AUCs
-                    "aucParent" to candidate.aucParent,
-                    "aucChild" to candidate.aucChild,
-
-                    // variances & covariance
-                    "varianceParent" to candidate.varianceParent,
-                    "varianceChild" to candidate.varianceChild,
-                    "covariance" to candidate.covariance
+                    // bundle DeLong cleanly
+                    "deLong" to candidate.deLong
                 )
             )
 

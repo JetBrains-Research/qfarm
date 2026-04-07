@@ -5,13 +5,13 @@ import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.jetbrains.bio.qfarm.util.HyperParameters
 import org.jetbrains.bio.qfarm.columnNames
+import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 import java.io.BufferedWriter
 import java.io.File
 import java.time.Instant
 
 
 /* --------------------------- JSON persistence --------------------------- */
-
 @Serializable
 data class RuleTreeRow(
     val type: String = "rule",
@@ -21,14 +21,7 @@ data class RuleTreeRow(
     val deltaArea: Double?,
     val totalArea: Double,
 
-    val pValue: Double?,
-    val pValueTwoSided: Double?,
-    val zScore: Double?,
-    val aucParent: Double?,
-    val aucChild: Double?,
-    val varianceParent: Double?,
-    val varianceChild: Double?,
-    val covariance: Double?,
+    val deLong: DeLongResult?,
 
     val label: String?,
     val frontUrl: String?,
@@ -71,14 +64,7 @@ class RuleTreeJsonWriter(
         depth: Int,
         deltaArea: Double?,
         totalArea: Double,
-        pValue: Double?,
-        pValueTwoSided: Double?,
-        zScore: Double?,
-        aucParent: Double?,
-        aucChild: Double?,
-        varianceParent: Double?,
-        varianceChild: Double?,
-        covariance: Double?,
+        deLong: DeLongResult?,
         label: String?,
         frontUrl: String?,
         createdAt: Instant
@@ -95,14 +81,7 @@ class RuleTreeJsonWriter(
             deltaArea = deltaArea,
             totalArea = totalArea,
 
-            pValue = pValue,
-            pValueTwoSided = pValueTwoSided,
-            zScore = zScore,
-            aucParent = aucParent,
-            aucChild = aucChild,
-            varianceParent = varianceParent,
-            varianceChild = varianceChild,
-            covariance = covariance,
+            deLong = deLong,
 
             label = label,
             frontUrl = frontUrl,
