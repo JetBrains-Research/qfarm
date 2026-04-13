@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.output
+package org.jetbrains.bio.qfarm.output.logs
 
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString

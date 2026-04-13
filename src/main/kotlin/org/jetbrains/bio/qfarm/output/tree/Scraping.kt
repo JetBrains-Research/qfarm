@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.output
+package org.jetbrains.bio.qfarm.output.tree
 
 import org.jsoup.Jsoup
 import org.apache.commons.text.StringEscapeUtils

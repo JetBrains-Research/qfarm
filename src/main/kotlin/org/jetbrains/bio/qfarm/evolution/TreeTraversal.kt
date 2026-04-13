@@ -5,7 +5,7 @@ import org.jetbrains.bio.qfarm.util.RESET
 import org.jetbrains.bio.qfarm.TOPRULES
 import org.jetbrains.bio.qfarm.util.YELLOW
 import org.jetbrains.bio.qfarm.datasetWithHeader
-import org.jetbrains.bio.qfarm.output.recordStep
+import org.jetbrains.bio.qfarm.output.logs.recordStep
 import org.jetbrains.bio.qfarm.util.CYAN
 import org.jetbrains.bio.qfarm.util.hp
 import org.jetbrains.bio.qfarm.util.readLHS

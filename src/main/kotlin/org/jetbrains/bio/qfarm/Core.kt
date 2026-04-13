@@ -7,11 +7,12 @@ import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
 import org.jetbrains.bio.qfarm.evolution.treeTraversal
-import org.jetbrains.bio.qfarm.output.RHS
-import org.jetbrains.bio.qfarm.output.RULE_TREE_ROOT
-import org.jetbrains.bio.qfarm.output.RuleTreeJsonWriter
-import org.jetbrains.bio.qfarm.output.exportLeafRules
-import org.jetbrains.bio.qfarm.output.toDOTFromTrie
+import org.jetbrains.bio.qfarm.output.logs.RHS
+import org.jetbrains.bio.qfarm.output.tree.RULE_TREE_ROOT
+import org.jetbrains.bio.qfarm.output.logs.RuleTreeJsonWriter
+import org.jetbrains.bio.qfarm.output.fronts.exportAllRuleFormats
+import org.jetbrains.bio.qfarm.output.tree.exportLeafRules
+import org.jetbrains.bio.qfarm.output.tree.toDOTFromTrie
 import org.jetbrains.bio.qfarm.util.BLUE
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.util.RESET
@@ -177,6 +178,8 @@ fun runSearch() {
         .redirectErrorStream(true)
         .start()
         .waitFor()
+
+    exportAllRuleFormats(RULE_TREE_ROOT)
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
     println("\nTOTAL RUNTIME: $elapsed s")

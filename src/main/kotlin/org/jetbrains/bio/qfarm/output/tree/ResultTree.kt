@@ -1,7 +1,8 @@
-package org.jetbrains.bio.qfarm.output
+package org.jetbrains.bio.qfarm.output.tree
 
 import org.jetbrains.bio.qfarm.PLOTS_DIR
 import org.jetbrains.bio.qfarm.columnNames
+import org.jetbrains.bio.qfarm.output.logs.RuleStep
 import java.io.File
 import java.net.URLDecoder
 
@@ -11,6 +12,7 @@ import java.net.URLDecoder
 class RuleTreeNode(
     val additionAttrIndex: Int? = null,
     val depth: Int = 0,
+    var parent: RuleTreeNode? = null,
     var frontUrl: String? = null,
     var label: String? = null
 ) {
@@ -33,7 +35,7 @@ object NodeLabeler {
         val bars = barsForNode(node)
         if (bars.isEmpty()) return ""
 
-        return bars.toSortedMap().entries.joinToString("\n") { (attr, bar) ->
+        return bars.entries.joinToString("\n") { (attr, bar) ->
             "${abbrevAttr(attr)}:\n$bar"
         }
     }

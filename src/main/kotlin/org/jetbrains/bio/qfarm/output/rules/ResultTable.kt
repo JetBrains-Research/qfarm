@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.output
+package org.jetbrains.bio.qfarm.output.rules
 
 import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec

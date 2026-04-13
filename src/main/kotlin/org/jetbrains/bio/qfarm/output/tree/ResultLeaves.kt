@@ -1,6 +1,9 @@
-package org.jetbrains.bio.qfarm.output
+package org.jetbrains.bio.qfarm.output.tree
 
 import org.jetbrains.bio.qfarm.PLOTS_DIR
+import org.jetbrains.bio.qfarm.output.rules.FullRuleRow
+import org.jetbrains.bio.qfarm.output.rules.extractFullRows
+import org.jetbrains.bio.qfarm.output.rules.writeFullTsv
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.util.hp
 import java.io.File

@@ -1,8 +1,11 @@
-package org.jetbrains.bio.qfarm.output
+package org.jetbrains.bio.qfarm.output.logs
 
 import org.jetbrains.bio.qfarm.RULE_JSON_WRITER
 import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
+import org.jetbrains.bio.qfarm.output.tree.NodeLabeler
+import org.jetbrains.bio.qfarm.output.tree.RULE_TREE_ROOT
+import org.jetbrains.bio.qfarm.output.tree.RuleTreeNode
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 import org.jetbrains.bio.qfarm.util.readLHS
 import org.jetbrains.bio.qfarm.visualization.renderFrontPlotUrl
@@ -25,19 +28,25 @@ data class RuleStep(
 fun ensurePath(prefix: List<Int>): RuleTreeNode {
     var node = RULE_TREE_ROOT
     var d = 0
+
     for (ar in prefix) {
         d += 1
-        // find existing child with SAME attribute index (ignore range)
+
         val found = node.children.firstOrNull {
             it.additionAttrIndex == ar
         }
-        node = if (found != null) found else {
-            // we can still store the first-seen range on the node; identity is by index only
-            val created = RuleTreeNode(ar, d)
+
+        node = if (found != null) {
+            found
+        } else {
+            val created = RuleTreeNode(ar, d).also {
+                it.parent = node
+            }
             node.children += created
             created
         }
     }
+
     return node
 }
 
@@ -53,6 +62,7 @@ fun recordStep(
     val additionNode = prefixNode.children.firstOrNull {
         it.additionAttrIndex == addition
     } ?: RuleTreeNode(addition, prefixNode.depth + 1).also {
+        it.parent = prefixNode
         prefixNode.children += it
     }
 
@@ -70,13 +80,14 @@ fun recordStep(
             ?: 0.0
 
     val totalArea = parentTotal + deltaArea
+    val deLong = meta["deLong"] as? DeLongResult
 
     val enrichedMeta = meta + mapOf(
         "deltaArea" to deltaArea,
-        "totalArea" to totalArea
+        "totalArea" to totalArea,
+        "pValue" to deLong?.pOneSided,
+        "auc" to deLong?.auc2
     )
-
-    val deLong = meta["deLong"] as? DeLongResult
 
     // ------------------------------------------------------------
     // 2) ALWAYS render (no top-k filtering)

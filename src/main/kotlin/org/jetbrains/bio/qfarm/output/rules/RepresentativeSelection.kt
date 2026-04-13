@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.output
+package org.jetbrains.bio.qfarm.output.rules
 
 import org.jetbrains.bio.qfarm.evaluation.ConfusionMetrics
 import org.jetbrains.bio.qfarm.evaluation.toPFSeries
@@ -6,26 +6,25 @@ import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.util.numericRuleString
+import kotlin.math.abs
 
 fun selectRepresentativeIndices(
     front: ScoredFront,
     metricsList: List<ConfusionMetrics>,
     k: Int = 5,
-    minConfidence: Double = 0.4
+    minConfidence: Double = 0.3
 ): List<Int> {
 
     data class Candidate(val idx: Int, val ratio: Double)
 
     // -------------------------------
-    // 1. Filter by confidence only
+    // 1. Filter by confidence
     // -------------------------------
     val candidates = metricsList.mapIndexedNotNull { idx, m ->
         val ratio = m.ratio
         if (!ratio.isFinite()) return@mapIndexedNotNull null
 
-        val pt = front.front[idx]
-        val confidence = pt.fitness().data()[1]
-
+        val confidence = front.front[idx].fitness().data()[1]
         if (confidence <= minConfidence) return@mapIndexedNotNull null
 
         Candidate(idx, ratio)
@@ -34,46 +33,61 @@ fun selectRepresentativeIndices(
     if (candidates.isEmpty()) return emptyList()
 
     val sorted = candidates.sortedBy { it.ratio }
-    val n = sorted.size
 
-    val selectedIdx = mutableSetOf<Int>()
+    val left = sorted.filter { it.ratio < 1.0 }
+    val right = sorted.filter { it.ratio > 1.0 }
 
-    // -------------------------------
-    // 2. Extremes
-    // -------------------------------
-    selectedIdx += sorted.first().idx
-    selectedIdx += sorted.last().idx
+    val selected = mutableListOf<Int>()
 
     // -------------------------------
-    // 3. Center (closest to 1)
+    // 2. Always include best center
     // -------------------------------
-    sorted.minByOrNull { kotlin.math.abs(it.ratio - 1.0) }
-        ?.let { selectedIdx += it.idx }
+    sorted.minByOrNull { abs(it.ratio - 1.0) }
+        ?.let { selected += it.idx }
 
     // -------------------------------
-    // 4. Quartiles
+    // 3. LEFT side (priority)
     // -------------------------------
-    val q1 = sorted[(n * 0.25).toInt().coerceIn(0, n - 1)]
-    val q3 = sorted[(n * 0.75).toInt().coerceIn(0, n - 1)]
+    if (left.isNotEmpty()) {
+        val nL = left.size
 
-    selectedIdx += q1.idx
-    selectedIdx += q3.idx
+        // left extreme (but not too extreme)
+        selected += left.first().idx
 
-    // -------------------------------
-    // 5. Fallback fill if needed
-    // -------------------------------
-    if (selectedIdx.size < k) {
-        for (c in sorted) {
-            selectedIdx += c.idx
-            if (selectedIdx.size == k) break
-        }
+        // left quartile (~0.25)
+        selected += left[(nL * 0.25).toInt().coerceIn(0, nL - 1)].idx
+
+        // left near center (~0.75)
+        selected += left[(nL * 0.75).toInt().coerceIn(0, nL - 1)].idx
     }
 
     // -------------------------------
-    // 6. Final trim
+    // 4. RIGHT side (only if needed)
     // -------------------------------
-    return selectedIdx.take(k)
+    if (selected.size < k && right.isNotEmpty()) {
+        val nR = right.size
+
+        // pick something close to center, not extreme
+        val r = right[(nR * 0.25).toInt().coerceIn(0, nR - 1)]
+        selected += r.idx
+    }
+
+    // -------------------------------
+    // 5. Deduplicate + fill
+    // -------------------------------
+    val final = linkedSetOf<Int>()
+    final.addAll(selected)
+
+    if (final.size < k) {
+        for (c in sorted) {
+            final += c.idx
+            if (final.size == k) break
+        }
+    }
+
+    return final.take(k)
 }
+
 
 fun extractFullRows(
     front: ScoredFront,
