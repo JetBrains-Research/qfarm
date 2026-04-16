@@ -1,6 +1,7 @@
 package org.jetbrains.bio.qfarm.output.fronts
 
 import org.jetbrains.bio.qfarm.output.tree.RuleTreeNode
+import org.jetbrains.bio.qfarm.rightGene
 import org.jetbrains.bio.qfarm.util.hp
 import kotlin.collections.component1
 import kotlin.collections.component2
@@ -41,7 +42,9 @@ fun buildExportRows(
             current = current.parent
         }
 
-        return path.reversed().joinToString(" ∧ ") + " -> ${hp.rightAttribute}"
+        val rhs = "${hp.rightAttribute} ∈ [${formatNumber(rightGene.lowerBound)}, ${formatNumber(rightGene.upperBound)}]"
+
+        return path.reversed().joinToString(" ∧ ") + " -> $rhs"
     }
 
     fun dfs(node: RuleTreeNode) {
@@ -64,9 +67,7 @@ fun buildExportRows(
             label = node.label
         )
 
-        if (node.additionAttrIndex != null) {
-            rows += row
-        }
+        rows += row
 
         node.children.forEach { dfs(it) }
     }

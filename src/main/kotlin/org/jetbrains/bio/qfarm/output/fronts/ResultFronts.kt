@@ -29,6 +29,7 @@ fun exportAllRuleFormats(root: RuleTreeNode) {
     writeCsv(rows, File("$PLOTS_DIR/rules_tree_${hp.runName}.csv"))
     writeTxtLight(rows, File("$PLOTS_DIR/rules_tree_light_${hp.runName}.txt"))
     writeTxtMedium(rows, File("$PLOTS_DIR/rules_tree_medium_${hp.runName}.txt"))
+    writeTxtMediumAligned(rows, File("$PLOTS_DIR/rules_tree_medium_new_${hp.runName}.txt"))
     writeTxtHeavy(root, columnNames, File("$PLOTS_DIR/rules_tree_heavy_${hp.runName}.txt"))
     writeTxtTreeInline(
         root,
@@ -40,5 +41,5 @@ fun exportAllRuleFormats(root: RuleTreeNode) {
     writeCsv(leafRows, File("$PLOTS_DIR/rules_leaves_${hp.runName}.csv"))
     writeTxtLight(leafRows, File("$PLOTS_DIR/rules_leaves_light_${hp.runName}.txt"))
     writeTxtMedium(leafRows, File("$PLOTS_DIR/rules_leaves_medium_${hp.runName}.txt"))
-//    writeTxtHeavy(root, columnNames, File("$PLOTS_DIR/rules_leaves_heavy_${hp.runName}.txt"))
+    writeTxtMediumAligned(leafRows, File("$PLOTS_DIR/rules_leaves_medium_new_${hp.runName}.txt"))
 }

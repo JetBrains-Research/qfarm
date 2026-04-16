@@ -36,7 +36,7 @@ object NodeLabeler {
         if (bars.isEmpty()) return ""
 
         return bars.entries.joinToString("\n") { (attr, bar) ->
-            "${abbrevAttr(attr)}:\n$bar"
+            "${attr}:\n$bar"
         }
     }
 
@@ -68,9 +68,9 @@ object NodeLabeler {
         return resolved.takeIf { it.exists() }
     }
 
-    private fun abbrevAttr(name: String, maxLen: Int = 20): String {
-        return if (name.length <= maxLen) name else name.take(maxLen - 1) + "."
-    }
+//    private fun abbrevAttr(name: String, maxLen: Int = 20): String {
+//        return if (name.length <= maxLen) name else name.take(maxLen - 1) + "."
+//    }
 }
 
 /* ---------------------------- DOT Visualization ------------------------- */

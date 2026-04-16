@@ -49,6 +49,7 @@ fun loadNumericDataset(
         format.delimiter = delimiterFor(filePath)
         isLineSeparatorDetectionEnabled = true
         maxColumns = 50_000
+        maxCharsPerColumn = 1_000_000
         nullValue = ""
         emptyValue = ""
     }

@@ -1,6 +1,8 @@
 package org.jetbrains.bio.qfarm.output.fronts
 
 import org.jetbrains.bio.qfarm.output.tree.RuleTreeNode
+import org.jetbrains.bio.qfarm.rightGene
+import org.jetbrains.bio.qfarm.util.hp
 import java.io.BufferedWriter
 import java.io.File
 
@@ -8,6 +10,7 @@ val SEPARATOR = "_".repeat(60)
 
 // VERSION LIGHT: all in one row, no rule, only plots
 fun writeTxtLight(rows: List<ExportRuleRow>, file: File) {
+    val rhs = "${hp.rightAttribute} ∈ [${formatNumber(rightGene.lowerBound)}, ${formatNumber(rightGene.upperBound)}]"
 
     file.bufferedWriter().use { w ->
 
@@ -17,7 +20,7 @@ fun writeTxtLight(rows: List<ExportRuleRow>, file: File) {
                     pad("p-value", 12) +
                     pad("AUC", 8) +
                     pad("area", 15) +
-                    "plots"
+                    "plots    (RHS: $rhs)"
         )
 
         w.appendLine("-".repeat(100))
@@ -80,6 +83,80 @@ fun writeTxtMedium(rows: List<ExportRuleRow>, file: File) {
     }
 }
 
+fun splitPlots(label: String?): List<Pair<String, String>> {
+    if (label.isNullOrBlank()) return emptyList()
+
+    val lines = label.lines().map { it.trim() }.filter { it.isNotEmpty() }
+
+    val result = mutableListOf<Pair<String, String>>()
+    var i = 0
+
+    while (i < lines.size) {
+        if (i + 1 < lines.size && lines[i].endsWith(":")) {
+            val attr = lines[i].removeSuffix(":")
+            val bar = lines[i + 1].trim()
+            result += attr to bar
+            i += 2
+        } else {
+            i++
+        }
+    }
+
+    return result
+}
+
+fun writeTxtMediumAligned(rows: List<ExportRuleRow>, file: File) {
+
+    file.bufferedWriter().use { w ->
+
+        // Header
+        w.appendLine(
+            pad("ID", 4) +
+                    pad("Pn", 4) +
+                    pad("p-value", 12) +
+                    pad("AUC", 8) +
+                    pad("area", 12)
+        )
+
+        w.appendLine("-".repeat(60))
+
+        for (r in rows) {
+
+            // ------------------------------
+            // Header line
+            // ------------------------------
+            val headerLine = buildString {
+                append(pad(r.id.toString(), 4))
+                append(pad(r.parentId?.toString() ?: "-", 4))
+                append(pad(formatP(r.pValue), 12))
+                append(pad(formatAuc(r.auc), 8))
+                append(pad(formatArea(r.area), 12))
+            }
+
+            w.appendLine(headerLine)
+
+            w.appendLine("    ${r.rule}")
+
+            // ------------------------------
+            // Split plots
+            // ------------------------------
+            val plots = splitPlots(r.label)
+
+            if (plots.isNotEmpty()) {
+
+                val maxLen = plots.maxOf { it.first.length }
+
+                for ((attr, bar) in plots) {
+                    val paddedAttr = attr.padEnd(maxLen)
+                    w.appendLine("    $paddedAttr: $bar")
+                }
+            }
+
+            w.appendLine(SEPARATOR)
+        }
+    }
+}
+
 // VERSION HEAVY: use tree dir structure
 fun writeTxtHeavy(
     root: RuleTreeNode,
@@ -96,7 +173,8 @@ fun writeTxtHeavy(
         val attrs = (step.prefix + step.addition)
             .map { getAttrName(it) }
 
-        return attrs.joinToString(" ∧ ") + " -> y"
+        val rhs = "${hp.rightAttribute} ∈ [${hp.lowRight}, ${hp.upRight}]"
+        return attrs.joinToString(" ∧ ") + " -> $rhs"
     }
 
     fun dfs(node: RuleTreeNode, depth: Int, w: BufferedWriter) {
@@ -200,7 +278,6 @@ fun writeTxtTreeInline(
             }
         }
 
-        // 🔥 NO sorting — preserve original tree order
         for (child in node.children) {
             dfs(child, w)
         }

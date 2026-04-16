@@ -31,3 +31,11 @@ fun flattenLabel(label: String?): String {
 
     return parts.joinToString("  AND  ")
 }
+
+fun formatNumber(x: Double): String {
+    return if (x % 1.0 == 0.0) {
+        x.toInt().toString()
+    } else {
+        "%.4f".format(x)
+    }
+}
