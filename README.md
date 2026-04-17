@@ -60,13 +60,13 @@ Exactly one of:
 Examples:
 
     java -jar qfarm.jar \
-      --data data/data_f.csv \
-      --rhs BC_LDL.direct \
+      --data data.csv \
+      --rhs y \
       --rhs-range-percentile 90,100
 
     java -jar qfarm.jar \
-      --data data/data_f.csv \
-      --rhs Glucose \
+      --data data.csv \
+      --rhs y \
       --rhs-range 4.0, MAX
 
 NOTE (zsh): Only quote bracket or no bracket expressions:
@@ -120,39 +120,39 @@ Anything not provided falls back to defaults in `HyperParameters`.
     Comma-separated list of column names to exclude from the dataset before rule mining.
 
     Example:
-        --excl-cols Sex,ID,Timestamp
+        --excl-cols ID,Timestamp
 
 --name (default: auto-generated)  
     Optional run name / experiment label.
     Used for logging, plots, output directories, and DOT URLs.
 
     Example:
-        --name glucose_support_90_100
+        --name experiment_1
 
 ---
 
 ## Full Example
 
-    java -jar qfarm.jar \
-      --data data/data_f.csv \
-      --rhs BC_LDL.direct \
-      --rhs-range 4.0, MAX \
-      --excl-cols Sex,ID \
-      --name ldl_range_search_v2 \
-      --max-depth 3 \
-      --max-children 2 \
-      --max-first-children 1 \
-      --evo-first-pop 120 \
-      --evo-first-gen 80 \
-      --evo-next-pop 300 \
-      --evo-next-gen 150 \
-      --evo-range-pop 200 \
-      --evo-range-gen 400 \
-      --prob-mutation 0.8 \
-      --std-mutation 0.2 \
-      --min-support 80 \
-      --max-support 6000 \
-      --improvement-threshold 12.0
+```bash
+java -jar qfarm.jar \
+  --data data/friedman1.csv \
+  --rhs y \
+  --rhs-range-percentile 80,100 \
+  --name experiment_1 \
+  --excl-cols id,timestamp \
+  --min-support 1 \
+  --max-support 500 \
+  --max-depth 5 \
+  --max-children 5 \
+  --max-first-children 5 \
+  --evo-cheap-pop 50 \
+  --evo-cheap-gen 50 \
+  --evo-full-pop 100 \
+  --evo-full-gen 100 \
+  --prob-mutation 0.8 \
+  --std-mutation 0.2 \
+  --alpha-threshold 0.01
+```
 
 ---
 
