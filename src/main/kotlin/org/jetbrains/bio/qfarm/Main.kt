@@ -95,35 +95,25 @@ class Main {
                     .ofType(Int::class.java)
                     .describedAs("max children per start node (default: ${hp.maxFirstChildren})")
 
-                accepts("evo-next-pop")
+                accepts("evo-cheap-pop")
                     .withRequiredArg()
                     .ofType(Int::class.java)
-                    .describedAs("population size for next-best evolution for inner node (default: ${hp.popSizeAttrParent})")
+                    .describedAs("population size for cheap evolution (default: ${hp.popSizeCheap})")
 
-                accepts("evo-next-gen")
+                accepts("evo-cheap-gen")
                     .withRequiredArg()
                     .ofType(Int::class.java)
-                    .describedAs("max gen for next-best evolution for inner node (default: ${hp.maxGenAttrParent})")
+                    .describedAs("max gen for cheap evolution (default: ${hp.maxGenCheap})")
 
-                accepts("evo-range-pop")
+                accepts("evo-full-pop")
                     .withRequiredArg()
                     .ofType(Int::class.java)
-                    .describedAs("population size for range-finder evolution (default: ${hp.popSizeRange})")
+                    .describedAs("population size for full evolution (default: ${hp.popSizeFull})")
 
-                accepts("evo-range-gen")
+                accepts("evo-full-gen")
                     .withRequiredArg()
                     .ofType(Int::class.java)
-                    .describedAs("max gen for range-finder evolution (default: ${hp.maxGenRange})")
-
-                accepts("evo-first-pop")
-                    .withRequiredArg()
-                    .ofType(Int::class.java)
-                    .describedAs("population size for next-best evolution for start node (default: ${hp.popSizeAttrFirst})")
-
-                accepts("evo-first-gen")
-                    .withRequiredArg()
-                    .ofType(Int::class.java)
-                    .describedAs("max gen for next-best evolution for start node (default: ${hp.maxGenAttrFirst})")
+                    .describedAs("max gen for full evolution (default: ${hp.maxGenFull})")
 
                 accepts("prob-mutation")
                     .withRequiredArg()
@@ -135,10 +125,10 @@ class Main {
                     .ofType(Double::class.java)
                     .describedAs("std derivation for mutation (default: ${hp.stdMutation})")
 
-                accepts("improvement-threshold")
+                accepts("alpha-threshold")
                     .withRequiredArg()
                     .ofType(Double::class.java)
-                    .describedAs("improvement threshold for area (default: ${hp.improvementThreshold})")
+                    .describedAs("alpha threshold for pvalue (default: ${hp.alphaThreshold})")
 
                 acceptsAll(listOf("h", "help"), "show this help")
             }
@@ -189,19 +179,16 @@ class Main {
             val maxChildrenOpt         = opts.valueOf("max-children") as Int?
             val maxFirstChildrenOpt    = opts.valueOf("max-first-children") as Int?
 
-            val evoNextPopOpt          = opts.valueOf("evo-next-pop") as Int?
-            val evoNextGenOpt          = opts.valueOf("evo-next-gen") as Int?
+            val evoCheapPopOpt          = opts.valueOf("evo-cheap-pop") as Int?
+            val evoCheapGenOpt          = opts.valueOf("evo-cheap-gen") as Int?
 
-            val evoRangePopOpt         = opts.valueOf("evo-range-pop") as Int?
-            val evoRangeGenOpt         = opts.valueOf("evo-range-gen") as Int?
-
-            val evoFirstPopOpt         = opts.valueOf("evo-first-pop") as Int?
-            val evoFirstGenOpt         = opts.valueOf("evo-first-gen") as Int?
+            val evoFullPopOpt         = opts.valueOf("evo-full-pop") as Int?
+            val evoFullGenOpt         = opts.valueOf("evo-full-gen") as Int?
 
             val probMutationOpt        = opts.valueOf("prob-mutation") as Double?
             val stdMutationOpt         = opts.valueOf("std-mutation") as Double?
 
-            val improvementThresholdOpt = opts.valueOf("improvement-threshold") as Double?
+            val alphaThresholdOpt = opts.valueOf("alpha-threshold") as Double?
 
 
             val excludedColumnsOpt: List<String>? =
@@ -223,19 +210,17 @@ class Main {
                 maxFirstChildren    = maxFirstChildrenOpt ?: hp.maxFirstChildren,
 
                 // particular evolutions
-                popSizeAttrFirst    = evoFirstPopOpt ?: hp.popSizeAttrFirst,
-                maxGenAttrFirst     = evoFirstGenOpt ?: hp.maxGenAttrFirst,
-                popSizeAttrParent   = evoNextPopOpt ?: hp.popSizeAttrParent,
-                maxGenAttrParent    = evoNextGenOpt ?: hp.maxGenAttrParent,
-                popSizeRange        = evoRangePopOpt ?: hp.popSizeRange,
-                maxGenRange         = evoRangeGenOpt ?: hp.maxGenRange,
+                popSizeCheap   = evoCheapPopOpt ?: hp.popSizeCheap,
+                maxGenCheap    = evoCheapGenOpt ?: hp.maxGenCheap,
+                popSizeFull    = evoFullPopOpt ?: hp.popSizeFull,
+                maxGenFull     = evoFullGenOpt ?: hp.maxGenFull,
 
                 // mutation
                 probabilityMutation = probMutationOpt ?: hp.probabilityMutation,
                 stdMutation         = stdMutationOpt ?: hp.stdMutation,
 
                 // improvement threshold
-                improvementThreshold = improvementThresholdOpt ?: hp.improvementThreshold,
+                alphaThreshold = alphaThresholdOpt ?: hp.alphaThreshold,
 
                 excludedColumns     = excludedColumnsOpt ?: hp.excludedColumns,
                 runName             = runNameOpt ?: hp.runName,

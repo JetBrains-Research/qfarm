@@ -15,8 +15,8 @@ import org.jetbrains.bio.qfarm.util.hp
 fun topRange(
     attributes: List<Int>,
     env: EvolutionEnvironment = GLOBAL_ENV,
-    popSize: Int = hp.popSizeRange,
-    generationCount: Int = hp.maxGenRange,
+    popSize: Int = hp.popSizeFull,
+    generationCount: Int = hp.maxGenFull,
     label: String = "🏆"
 ): ScoredFront {
 
@@ -57,12 +57,11 @@ fun cheapTopRange(
     attributes: List<Int>,
     env: EvolutionEnvironment = GLOBAL_ENV
 ): ScoredFront {
-    // TODO: rename params for pop and gen
     return topRange(
         attributes = attributes,
         env = env,
-        popSize = hp.popSizeAttrParent,
-        generationCount = hp.maxGenAttrParent,
+        popSize = hp.popSizeCheap,
+        generationCount = hp.maxGenCheap,
         label = "⚡ CHEAP RANGE SEARCH"
     )
 }
@@ -75,8 +74,8 @@ fun fullTopRange(
     return topRange(
         attributes = attributes,
         env = env,
-        popSize = hp.popSizeRange,
-        generationCount = hp.maxGenRange,
+        popSize = hp.popSizeFull,
+        generationCount = hp.maxGenFull,
         label = "🏆 FULL SEARCH"
     )
 }

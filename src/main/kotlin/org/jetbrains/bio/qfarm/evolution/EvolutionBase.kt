@@ -25,8 +25,8 @@ import org.jetbrains.bio.qfarm.util.paretoFrontOf
 fun runEvolution(
     fixedAttributes: List<Int>,
     searchAttributes: List<Int> = listOf(),
-    popSize: Int = hp.popSizeAttrParent,
-    generationCount: Int = hp.maxGenAttrParent,
+    popSize: Int = hp.popSizeCheap,
+    generationCount: Int = hp.maxGenCheap,
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of(),
     env: EvolutionEnvironment = GLOBAL_ENV
 ): ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> {

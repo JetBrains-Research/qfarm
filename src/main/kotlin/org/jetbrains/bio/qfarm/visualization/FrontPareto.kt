@@ -31,7 +31,7 @@ import kotlin.math.max
 fun buildParetoFrontPlotCombined(
     seriesList: List<PFSeries>,
     dataset: DatasetWithHeader = datasetWithHeader,
-    title: String = "Pareto Front (Gen ${hp.maxGenAttrFirst})",
+    title: String = "Pareto Front (Gen ${hp.maxGenFull})",
     randomFront: Boolean = false
 ): Plot {
     // Helper: extract sorted (x=SupportX, y=Confidence, rule) triples per series

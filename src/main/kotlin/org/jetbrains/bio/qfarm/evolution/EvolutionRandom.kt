@@ -23,9 +23,7 @@ fun topAttribute(
         EvolutionContext.frontStack.lastOrNull()?.front ?: ISeq.empty()
     val hasParent = !parentFront.isEmpty
 
-    val (popSize, maxGen) =
-        if (hasParent) hp.popSizeAttrParent to hp.maxGenAttrParent   // case: WITH parent
-        else hp.popSizeAttrFirst to hp.maxGenAttrFirst   // case: NO parent
+    val (popSize, maxGen) = hp.popSizeCheap to hp.maxGenCheap   // case: WITH parent
 
     val randomFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
         runEvolution(prefixAttributes, searchAttributes, popSize, maxGen, parentFront, env)
