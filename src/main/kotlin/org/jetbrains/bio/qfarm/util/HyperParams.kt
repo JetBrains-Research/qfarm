@@ -26,8 +26,8 @@ data class HyperParameters(
     val runName: String = "test_run",
     // RIGHT ATTRIBUTE
     val rightAttribute: String? = null,
-    val lowRight: Double = 0.0,  // as percentile
-    val upRight: Double = 1.0,   // as percentile
+    var lowRight: Double = 0.0,  // as percentile
+    var upRight: Double = 100.0,   // as percentile
     // ADDED TEMPORARY
     val alphaThreshold: Double = 0.05
 )

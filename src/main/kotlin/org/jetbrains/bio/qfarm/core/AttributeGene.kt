@@ -1,10 +1,8 @@
 package org.jetbrains.bio.qfarm.core
 
 import io.jenetics.Gene
-import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.rand
-import org.jetbrains.bio.qfarm.util.roundTo
 import kotlin.math.max
 import kotlin.math.min
 
@@ -61,22 +59,5 @@ data class AttributeGene(
                 cfg = cfg
             ).newInstance()
         }
-
-        fun default(attributeIndex: Int, min: Double, max: Double, cfg: RuleInitConfig): AttributeGene {
-            return AttributeGene(
-                attributeIndex,
-                lowerBound = min,
-                upperBound = max,
-                min = min,
-                max = max,
-                pLeft = 0.0,
-                pRight = 1.0,
-                cfg = cfg
-            )
-        }
-    }
-
-    fun descript(): String {
-        return "Gene of attribute ${columnNames[attributeIndex]} with index $attributeIndex in range ${lowerBound.roundTo(4)} to ${upperBound.roundTo(4)} with min=$min and max=$max"
     }
 }

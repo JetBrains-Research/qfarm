@@ -1,9 +1,6 @@
 package org.jetbrains.bio.qfarm.util
 
-import kotlin.math.pow
-import kotlin.math.round
 import java.util.stream.IntStream
-
 
 fun computeSortedColumns(dataset: List<DoubleArray>): List<DoubleArray> {
     require(dataset.isNotEmpty()) { "dataset is empty" }
@@ -58,7 +55,6 @@ fun computeSortedColumns(dataset: List<DoubleArray>): List<DoubleArray> {
     return sortedColumns
 }
 
-
 fun cumulativePercentage(sortedValues: DoubleArray, threshold: Double): Double {
     require(sortedValues.isNotEmpty()) { "Empty array" }
 
@@ -81,7 +77,6 @@ fun cumulativePercentage(sortedValues: DoubleArray, threshold: Double): Double {
     return (count.toDouble() / sortedValues.size) * 100.0
 }
 
-
 fun computeBoundsFromSorted(sortedColumns: List<DoubleArray>): Array<DoubleArray> {
     require(sortedColumns.isNotEmpty()) { "No columns to process" }
 
@@ -94,10 +89,4 @@ fun computeBoundsFromSorted(sortedColumns: List<DoubleArray>): Array<DoubleArray
     }
 
     return out
-}
-
-
-fun Double.roundTo(n: Int): Double {
-    val factor = 10.0.pow(n)
-    return round(this * factor) / factor
 }

@@ -12,12 +12,12 @@ data class OutputManager(
     val frontPlotsDir = File(runDir, "front_plots")
 
     val logFile = File(runDir, "log.jsonl")
-    val leafRulesFile = File(runDir, "leaf_rules.tsv")
-    val rulesTreeTxt = File(runDir, "rules_tree_light.txt")
-    val rulesTreeCsv = File(runDir, "rules_tree.csv")
+    val leafRulesFile = File(runDir, "representative_rules_table.tsv")
+    val rulesTreeTxt = File(runDir, "final_rules_summary.txt")
+    val rulesTreeCsv = File(runDir, "final_rules_table.csv")
 
-    val treeDot = File(runDir, "tree.dot")
-    val treeSvg = File(runDir, "tree.svg")
+    val treeDot = File(runDir, "full_tree.dot")
+    val treeSvg = File(runDir, "full_tree.svg")
 
     fun init() {
         require(baseDir.exists() || baseDir.mkdirs()) {

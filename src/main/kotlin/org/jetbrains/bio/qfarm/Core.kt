@@ -20,6 +20,7 @@ import org.jetbrains.bio.qfarm.util.RESET
 import org.jetbrains.bio.qfarm.util.computeBoundsFromSorted
 import org.jetbrains.bio.qfarm.util.computeLabelsFast
 import org.jetbrains.bio.qfarm.util.computeSortedColumns
+import org.jetbrains.bio.qfarm.util.cumulativePercentage
 import org.jetbrains.bio.qfarm.util.hp
 import org.jetbrains.bio.qfarm.util.loadNumericDataset
 import org.jetbrains.bio.qfarm.util.printFirstRows
@@ -100,6 +101,10 @@ fun initEnvironment(
     }
 
     println("RANGE: $rhsLo to $rhsHi")
+    val rhsPercLo = cumulativePercentage(sortedColumns[rightAttrIndex], rhsLo)
+    val rhsPercHi = cumulativePercentage(sortedColumns[rightAttrIndex], rhsHi)
+    hp.lowRight = rhsPercLo
+    hp.upRight = rhsPercHi
 
     init_cfg = RuleInitConfig(
         rightAttrIndex = rightAttrIndex,
@@ -113,8 +118,8 @@ fun initEnvironment(
         upperBound = rhsHi,
         min = minC,
         max = maxC,
-        pLeft = hp.lowRight,  // fillers, do not matter
-        pRight = hp.upRight,  // fillers, do not matter
+        pLeft = rhsPercLo,
+        pRight = rhsPercHi,
         cfg = init_cfg
     )
 
