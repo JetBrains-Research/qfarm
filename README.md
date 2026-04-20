@@ -14,125 +14,234 @@ The system evaluates rules using multiple fitness metrics, evolves Pareto fronts
 
 ## How to Run
 
-### 1. Build the shadow JAR
+### 1. Build the Shadow JAR
 
 From the project root:
 
-    ./gradlew shadowJar
+```bash
+./gradlew shadowJar
+```
 
 The runnable JAR is generated at:
 
-    build/libs/qfarm.jar
+```bash
+build/libs/qfarm-<version>.jar
+```
 
 Rebuild the JAR whenever you modify the source code.
 
 ---
 
-## 2. Running the Application
+## 2. Command-Line Interface
 
-Basic syntax:
+QFARM now uses a **multi-command CLI**. The general syntax is:
 
-    java -jar qfarm.jar \
-      --data <path/to.csv> \
-      --rhs <column_name> \
-      [--rhs-range <lo,hi>] \
-      [--rhs-range-percentile <pLo,pHi>] \
-      [optional hyperparameters...]
+```bash
+java -jar qfarm.jar <command> [options]
+```
 
-### Required arguments
+Available commands:
 
---data  
-    Path to CSV dataset.
+- `search` — run the rule mining algorithm
+- `validate` — run validation procedures on a dataset (initial implementation)
 
---rhs  
-    Column name of the right-hand-side attribute.
+---
 
-Exactly one of:  
-    --rhs-range  
-    --rhs-range-percentile
+# 🔍 Search Command
 
-Examples:
+Run the main rule-mining algorithm.
 
-    java -jar qfarm.jar \
-      --data data/data_f.csv \
-      --rhs BC_LDL.direct \
-      --rhs-range-percentile 90,100
+## Basic syntax
 
-    java -jar qfarm.jar \
-      --data data/data_f.csv \
-      --rhs Glucose \
-      --rhs-range 4.0, MAX
+```bash
+java -jar qfarm.jar search \
+  --data <path/to.csv> \
+  --rhs <column_name> \
+  [--rhs-range <lo,hi>] \
+  [--rhs-range-percentile <pLo,pHi>] \
+  [optional hyperparameters...]
+```
 
-NOTE (zsh): Only quote bracket or no bracket expressions:
+---
 
-    --rhs-range-percentile 90,100
-    --rhs-range-percentile "[90,100]"
+## Required arguments
 
-Both ranges accept these formats:
-    lo,hi
-    lo..hi
-    MIN,MAX
-    MIN,6.0
-    4.0,MAX
+`--data`  
+Path to CSV dataset.
+
+`--rhs`  
+Column name of the right-hand-side attribute.
+
+Exactly one of:
+
+- `--rhs-range`
+- `--rhs-range-percentile`
+
+---
+
+## Examples
+
+```bash
+java -jar qfarm.jar search \
+  --data data.csv \
+  --rhs y \
+  --rhs-range-percentile 90,100
+```
+
+```bash
+java -jar qfarm.jar search \
+  --data data.csv \
+  --rhs y \
+  --rhs-range 4.0,MAX
+```
+
+---
+
+## Range formats
+
+Both `--rhs-range` and `--rhs-range-percentile` accept:
+
+```
+lo,hi
+lo..hi
+MIN,MAX
+MIN,6.0
+4.0,MAX
+```
+
+⚠️ **zsh note**: quote bracket expressions if used:
+
+```bash
+--rhs-range-percentile "[90,100]"
+```
 
 ---
 
 ## Optional Hyperparameters
 
-All hyperparameters can be overridden through CLI flags.
-Anything not provided falls back to defaults in `HyperParameters`.
+All hyperparameters can be overridden through CLI flags.  
+Any parameter not provided falls back to defaults defined in `HyperParameters`.
+
+---
 
 ### Rule constraints
 
---min-support (default: 100)  
---max-support (default: 5000)  
---max-depth (default: 2)  
---max-children (default: 1)  
---max-first-children (default: 1)
+`--min-support` (default: 100)  
+Minimum number of records that must satisfy the rule. 
+
+`--max-support` (default: 5000)  
+Maximum number of records a rule can cover. 
+
+`--max-depth` (default: 2)  
+Maximum number of attributes in the antecedent (rule length). 
+
+`--max-children` (default: 1)  
+Maximum number of children per internal node in the rule tree.  
+
+`--max-first-children` (default: 1)  
+Maximum number of children for the root node.
+
+---
 
 ### Evolution parameters
 
---evo-first-pop (default: 100)  
---evo-first-gen (default: 100)  
---evo-next-pop (default: 500)  
---evo-next-gen (default: 200)  
---evo-range-pop (default: 200)  
---evo-range-gen (default: 500)
+`--evo-cheap-pop`  
+Population size used in the **cheap (initial) evolution phase**. 
+
+`--evo-cheap-gen`  
+Number of generations for the cheap evolution phase.  
+
+`--evo-full-pop`  
+Population size used in the **full evolution phase**.  
+
+`--evo-full-gen`  
+Number of generations for the full evolution phase. 
+
+---
 
 ### Mutation parameters
 
---prob-mutation (default: 1.0)  
---std-mutation (default: 0.15)
+`--prob-mutation` (default: 1.0)  
+Probability of applying mutation to a gene during evolution. 
+
+`--std-mutation` (default: 0.15)  
+Standard deviation controlling mutation magnitude. 
+
+---
 
 ### Thresholds
 
---improvement-threshold (default: 10.0)
+`--alpha-threshold`  
+Statistical significance threshold (e.g., for p-value filtering). 
 
 ---
 
 ## Full Example
 
-    java -jar qfarm.jar \
-      --data data/data_f.csv \
-      --rhs BC_LDL.direct \
-      --rhs-range 4.0, MAX \
-      --max-depth 3 \
-      --max-children 2 \
-      --max-first-children 1 \
-      --evo-first-pop 120 \
-      --evo-first-gen 80 \
-      --evo-next-pop 300 \
-      --evo-next-gen 150 \
-      --evo-range-pop 200 \
-      --evo-range-gen 400 \
-      --prob-mutation 0.8 \
-      --std-mutation 0.2 \
-      --min-support 80 \
-      --max-support 6000 \
-      --improvement-threshold 12.0
+```bash
+java -jar qfarm.jar search \
+  --data data.csv \
+  --rhs y \
+  --rhs-range 4.0,MAX \
+  --max-depth 3 \
+  --max-children 2 \
+  --max-first-children 10 \
+  --evo-cheap-pop 100 \
+  --evo-cheap-gen 100 \
+  --evo-full-pop 500 \
+  --evo-full-gen 500 \
+  --prob-mutation 0.75 \
+  --std-mutation 0.02 \
+  --min-support 5 \
+  --max-support 500 \
+  --alpha-threshold 0.05
+```
 
 ---
 
+# ✅ Validate Command
+
+Run validation procedures on a dataset.
+
+> ⚠️ Current implementation is a **placeholder** and will be extended.
+
+## Basic syntax
+
+```bash
+java -jar qfarm.jar validate \
+  --data <path/to.csv>
+```
+
+---
+
+## Arguments
+
+`--data` (required)  
+Path to dataset.
+
+### Optional (future extensions)
+
+- `--model` — path to rules/model file
+- `--output` — path to save validation results
+
+---
+
+## Example
+
+```bash
+java -jar qfarm.jar validate \
+  --data data.csv
+```
+
+---
+
+# 🧠 Notes
+
+- The CLI is built using **Clikt**, enabling structured subcommands.
+- Commands are independent and can evolve separately.
+- Future versions will expand `validate` to support rule evaluation and metrics.
+
+---
 ## Output Files
 
 After execution, QFARM produces:
