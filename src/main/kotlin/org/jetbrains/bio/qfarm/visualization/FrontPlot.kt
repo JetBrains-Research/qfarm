@@ -8,7 +8,6 @@ import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.evaluation.toPFSeries
 import org.jetbrains.bio.qfarm.statistics.delong.DeLong
 
-
 fun renderFrontPlotUrl(
     parentScoredFront: ScoredFront?,
     childScoredFront: ScoredFront,
@@ -82,7 +81,6 @@ fun renderFrontPlotUrl(
 
         // ---------- Combine ----------
         saveCombinedHtmlHorizontal(pfUrl, rocUrl, filename)
-            ?.let { it.substring(it.indexOf(plotDir)) }
 
     } catch (t: Throwable) {
         println("${YELLOW}[⚠️ Couldn’t render plot: ${t.message}]${RESET}")

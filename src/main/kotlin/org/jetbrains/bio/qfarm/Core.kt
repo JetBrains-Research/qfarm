@@ -7,6 +7,7 @@ import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
 import org.jetbrains.bio.qfarm.evolution.treeTraversal
+import org.jetbrains.bio.qfarm.output.OutputManager
 import org.jetbrains.bio.qfarm.output.logs.RHS
 import org.jetbrains.bio.qfarm.output.tree.RULE_TREE_ROOT
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeJsonWriter
@@ -25,11 +26,10 @@ import org.jetbrains.bio.qfarm.util.printFirstRows
 import org.jetbrains.bio.qfarm.util.removeRowsWithNaNRHS
 import java.io.File
 
-const val PLOTS_DIR = "plots"
-
 val rand = RandomRegistry.random()
 
 // all these become lateinit / vars, initialized by initEnvironment()
+lateinit var OUTPUT: OutputManager
 lateinit var GLOBAL_ENV: EvolutionEnvironment
 lateinit var datasetWithHeader: DatasetWithHeader
 lateinit var columnNames: List<String>
@@ -144,9 +144,16 @@ fun initEnvironment(
 fun runSearch() {
     val start = System.nanoTime()
 
-    RULE_JSON_WRITER = RuleTreeJsonWriter(
-        File("plots/log_${hp.runName}.jsonl")
+    val timestamp = java.time.LocalDateTime.now()
+        .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
+
+    OUTPUT = OutputManager(
+        baseDir = File("results"),
+        runName = "${hp.runName}_$timestamp"
     )
+    OUTPUT.init()
+
+    RULE_JSON_WRITER = RuleTreeJsonWriter(OUTPUT.logFile)
 
     RULE_JSON_WRITER.writeMetadata(
         rhs = RHS(columnNames[rightAttrIndex], rightGene.lowerBound, rightGene.upperBound),
@@ -171,10 +178,15 @@ fun runSearch() {
     }
 
     val dot = toDOTFromTrie(RULE_TREE_ROOT, header = datasetWithHeader.header)
-    val filename = "$PLOTS_DIR/tree_${hp.runName}"
-    File("$filename.dot").writeText(dot)
+    OUTPUT.treeDot.writeText(dot)
 
-    ProcessBuilder("dot", "-Tsvg", "$filename.dot", "-o", "$filename.svg")
+    ProcessBuilder(
+        "dot",
+        "-Tsvg",
+        OUTPUT.treeDot.absolutePath,
+        "-o",
+        OUTPUT.treeSvg.absolutePath
+    )
         .redirectErrorStream(true)
         .start()
         .waitFor()

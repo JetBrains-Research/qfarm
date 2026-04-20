@@ -11,37 +11,29 @@ class ValidateCommand : CliktCommand(name = "validate") {
         help = "path/to dataset.csv"
     ).required()
 
-    // ===== OPTIONAL (future-proof) =====
-    private val modelPath by option(
-        "--model",
-        help = "optional model or rules file to validate"
-    )
-
-    private val outputPath by option(
-        "--output",
-        help = "optional output file for validation results"
-    )
+    private val rulesPath by option(
+        "--rules",
+        help = "path to rules file (.txt)"
+    ).required()
 
     override fun run() {
 
-        echo("Running validation on dataset: $dataPath")
+        echo("Running validation")
+        echo("Dataset: $dataPath")
+        echo("Rules: $rulesPath")
 
-        // Placeholder for now
         runValidation(
             dataPath = dataPath,
-            modelPath = modelPath,
-            outputPath = outputPath
+            rulesPath = rulesPath
         )
     }
 
     private fun runValidation(
         dataPath: String,
-        modelPath: String?,
-        outputPath: String?
+        rulesPath: String
     ) {
-        // TODO: plug your real validation logic here
+        // TODO: implement real validation logic
 
-        echo("Validation logic not implemented yet.")
-        echo("data=$dataPath, model=$modelPath, output=$outputPath")
+        echo("Validation not implemented yet for $dataPath and $rulesPath")
     }
 }

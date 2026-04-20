@@ -1,10 +1,8 @@
 package org.jetbrains.bio.qfarm.output.tree
 
-import org.jetbrains.bio.qfarm.PLOTS_DIR
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.output.logs.RuleStep
 import java.io.File
-import java.net.URLDecoder
 
 /**
  * Tree node = exactly ONE addition (attribute + range). Root has nulls.
@@ -21,7 +19,9 @@ class RuleTreeNode(
 }
 
 /** Root of the tree */
-val RULE_TREE_ROOT = RuleTreeNode()
+val RULE_TREE_ROOT = RuleTreeNode().apply {
+    label = "START"
+}
 
 /* ---------------------------- LABEL LOGIC ---------------------------- */
 
@@ -54,23 +54,17 @@ object NodeLabeler {
     }
 
     private fun resolveFrontHtml(n: RuleTreeNode): File? {
-        val raw = n.frontUrl ?: return null
+        val url = n.frontUrl ?: return null
 
-        val normalized = if (raw.startsWith("file://")) {
-            raw.removePrefix("file://")
-        } else raw
-
-        val decoded = URLDecoder.decode(normalized, "UTF-8")
-        val file = File(decoded)
-
-        val resolved = if (file.isAbsolute) file else File(PLOTS_DIR, decoded)
-
-        return resolved.takeIf { it.exists() }
+        return try {
+            val file = File(java.net.URI(url))
+            file.takeIf { it.exists() }
+        } catch (_: Exception) {
+            println("Failed to resolve URI: $url")
+            null
+        }
     }
 
-//    private fun abbrevAttr(name: String, maxLen: Int = 20): String {
-//        return if (name.length <= maxLen) name else name.take(maxLen - 1) + "."
-//    }
 }
 
 /* ---------------------------- DOT Visualization ------------------------- */
@@ -99,7 +93,9 @@ fun toDOTFromTrie(
 
     var nextId = 0
     fun newId() = "n${nextId++}"
-    fun esc(s: String) = s.replace("\"", "\\\"")
+    fun esc(s: String) = s
+        .replace("\\", "\\\\")
+        .replace("\"", "\\\"")
 
     fun isSignificant(n: RuleTreeNode): Boolean? {
         val pValue = n.steps.lastOrNull()

@@ -1,33 +1,33 @@
 package org.jetbrains.bio.qfarm.visualization
 
-import org.jetbrains.bio.qfarm.PLOTS_DIR
+import org.jetbrains.bio.qfarm.OUTPUT
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.util.RESET
 import org.jetbrains.bio.qfarm.util.YELLOW
-import org.jetbrains.bio.qfarm.util.hp
 import org.jetbrains.letsPlot.export.ggsave
 import org.jetbrains.letsPlot.intern.Plot
 import java.io.File
-
-val plotDir = "front_plots_${hp.runName}"
-val plots_file_path = "${PLOTS_DIR}/$plotDir"
 
 const val PLOT_WIDTH = 800
 const val PLOT_HEIGHT = 650
 
 object FrontStore {
-    private val dir = File(plots_file_path).apply { mkdirs() }
+    private fun dir(): File = OUTPUT.frontPlotsDir
 
-    private fun safeName(s: String) = s.replace(Regex("""[^\w\-.]+"""), "_").take(120)
+    private fun safeName(s: String) =
+        s.replace(Regex("""[^\w\-.]+"""), "_").take(120)
 
-    /** Saves plot as HTML and returns file:// URL, or null on failure. */
     fun saveAndUrl(plot: Plot, titleHint: String): String? = try {
         val base = safeName(titleHint)
-        val out = File(dir, "$base.html")
+        val out = File(dir(), "$base.html").canonicalFile
+
         ggsave(plot, path = out.parent, filename = out.name)
-        out.toURI().toString()
+
+        out.canonicalFile.toURI().toString()
+
     } catch (t: Throwable) {
-        println("${YELLOW}[⚠️ Failed to save front plot: ${t.message}]${RESET}"); null
+        println("${YELLOW}[⚠️ Failed to save front plot: ${t.message}]${RESET}")
+        null
     }
 }
 
@@ -61,7 +61,7 @@ fun saveCombinedHtmlHorizontal(
     filename: String
 ): String? {
     return try {
-        val out = File("${plots_file_path}/$filename.html")
+        val out = File(OUTPUT.frontPlotsDir, "$filename.html")
 
         val html = """
             <html>
@@ -89,7 +89,7 @@ fun saveCombinedHtmlHorizontal(
         """.trimIndent()
 
         out.writeText(html)
-        out.toURI().toString()
+        return out.canonicalFile.toURI().toString()
 
     } catch (t: Throwable) {
         println("${YELLOW}[⚠️ Failed to save combined HTML: ${t.message}]${RESET}")

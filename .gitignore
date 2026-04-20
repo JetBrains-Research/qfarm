@@ -10,6 +10,7 @@ out/
 data/
 
 # ignore plots
+results/
 plots/
 step_log.json
 lets-plot-images
