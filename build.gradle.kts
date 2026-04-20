@@ -32,15 +32,14 @@ kotlin {
 dependencies {
     testImplementation(kotlin("test-junit5"))
 
-    implementation("net.sf.jopt-simple:jopt-simple:5.0.4")
     implementation("io.jenetics:jenetics:7.2.0")
-    implementation("io.jenetics:jenetics.ext:6.3.0")
+    implementation("io.jenetics:jenetics.ext:7.2.0")
+    implementation("com.github.ajalt.clikt:clikt:4.2.0")
     implementation("org.knowm.xchart:xchart:3.8.8")
     implementation("org.jetbrains.lets-plot:lets-plot-kotlin-jvm:4.11.1")
     runtimeOnly("org.jetbrains.lets-plot:lets-plot-image-export:4.7.2")
     implementation("org.slf4j:slf4j-nop:2.0.13")
     implementation("org.jetbrains.kotlinx:kotlinx-serialization-json:1.6.3")
-    implementation("org.jetbrains.lets-plot:lets-plot-kotlin:4.9.0")
     implementation("org.jsoup:jsoup:1.17.2")
     implementation("org.apache.commons:commons-text:1.11.0")
     implementation("tech.tablesaw:tablesaw-core:0.43.1")
@@ -48,22 +47,21 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     jmh("org.openjdk.jmh:jmh-core:1.37")
     jmh("org.openjdk.jmh:jmh-generator-annprocess:1.37")
-}
 
-tasks.jar {
-    manifest {
-        attributes(
-            "Main-Class" to "org.jetbrains.bio.qfarm.Main"
-            // To use a package, adjust with: "org.example.MainKt"
-        )
-    }
 }
 
 tasks.shadowJar {
     archiveBaseName.set("qfarm")
-    archiveClassifier.set("") // no "-all"
-    archiveVersion.set("$version.${project.findProperty("buildCounter") ?: "0"}") // no version in filename
-    mergeServiceFiles() // good for Lets-Plot, Jenetics
+    archiveClassifier.set("")
+    archiveVersion.set("$version.${project.findProperty("buildCounter") ?: "0"}")
+
+    mergeServiceFiles()
+
+    manifest {
+        attributes(
+            "Main-Class" to "org.jetbrains.bio.qfarm.MainKt"
+        )
+    }
 }
 
 // Process build properties task
