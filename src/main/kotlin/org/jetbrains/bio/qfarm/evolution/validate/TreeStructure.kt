@@ -15,9 +15,7 @@ import org.jetbrains.bio.qfarm.util.readLHS
 data class DecodedRule(
     val attrs: List<Int>,
     val prefix: List<Int>,
-    val addition: Int,
-    val key: String,
-    val parentKey: String
+    val addition: Int
 )
 
 fun decodeRule(row: RuleTreeRow): DecodedRule {
@@ -33,9 +31,7 @@ fun decodeRule(row: RuleTreeRow): DecodedRule {
     return DecodedRule(
         attrs = attrs,
         prefix = prefix,
-        addition = addition,
-        key = attrs.joinToString(","),
-        parentKey = prefix.joinToString(",")
+        addition = addition
     )
 }
 
@@ -46,14 +42,13 @@ data class ParentContext(
 
 fun resolveParent(
     prefix: List<Int>,
-    parentKey: String,
-    frontMap: Map<String, ScoredFront>
+    frontMap: Map<List<Int>, ScoredFront>
 ): ParentContext {
 
     val parentScored = if (prefix.isEmpty()) {
         MedianFront.scoredFront
     } else {
-        frontMap[parentKey]
+        frontMap[prefix]
             ?: error("Parent not found for ${readLHS(prefix)}")
     }
 
