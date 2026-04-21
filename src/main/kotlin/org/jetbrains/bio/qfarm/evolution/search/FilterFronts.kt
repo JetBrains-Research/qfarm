@@ -1,7 +1,8 @@
-package org.jetbrains.bio.qfarm.evolution
+package org.jetbrains.bio.qfarm.evolution.search
 
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.core.RuleSideChromosome
+import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.util.GREEN
 import org.jetbrains.bio.qfarm.util.RED
 import org.jetbrains.bio.qfarm.util.RESET

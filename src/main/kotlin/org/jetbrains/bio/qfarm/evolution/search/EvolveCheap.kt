@@ -1,10 +1,11 @@
-package org.jetbrains.bio.qfarm.evolution
+package org.jetbrains.bio.qfarm.evolution.search
 
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import org.jetbrains.bio.qfarm.datasetWithHeader
+import org.jetbrains.bio.qfarm.evolution.cheapTopRange
 import org.jetbrains.bio.qfarm.rightAttrIndex
 import org.jetbrains.bio.qfarm.statistics.delong.AUC
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader

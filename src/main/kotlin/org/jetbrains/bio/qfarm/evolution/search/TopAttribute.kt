@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.evolution
+package org.jetbrains.bio.qfarm.evolution.search
 
 import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec

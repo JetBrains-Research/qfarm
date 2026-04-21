@@ -12,7 +12,7 @@ data class OutputManager(
     val frontPlotsDir = File(runDir, "front_plots")
 
     val logFile = File(runDir, "log.jsonl")
-    val leafRulesFile = File(runDir, "representative_rules_table.tsv")
+    val reprRulesFile = File(runDir, "representative_rules_table.tsv")
     val rulesTreeTxt = File(runDir, "final_rules_summary.txt")
     val rulesTreeCsv = File(runDir, "final_rules_table.csv")
 

@@ -6,7 +6,7 @@ import org.jetbrains.bio.qfarm.evaluation.generateMedianFront
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
-import org.jetbrains.bio.qfarm.evolution.treeTraversal
+import org.jetbrains.bio.qfarm.evolution.search.treeTraversal
 import org.jetbrains.bio.qfarm.output.OutputManager
 import org.jetbrains.bio.qfarm.output.logs.RHS
 import org.jetbrains.bio.qfarm.output.tree.RULE_TREE_ROOT

@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.evolution
+package org.jetbrains.bio.qfarm.evolution.search
 
 import org.jetbrains.bio.qfarm.util.CYAN
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
@@ -11,6 +11,9 @@ import org.jetbrains.bio.qfarm.evaluation.frontDistance
 import org.jetbrains.bio.qfarm.util.readLHS
 import org.jetbrains.bio.qfarm.statistics.delong.DeLong
 import kotlinx.coroutines.*
+import org.jetbrains.bio.qfarm.evolution.EvolutionContext
+import org.jetbrains.bio.qfarm.evolution.ScoredFront
+import org.jetbrains.bio.qfarm.evolution.fullTopRange
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 
 data class CandidateAddition(

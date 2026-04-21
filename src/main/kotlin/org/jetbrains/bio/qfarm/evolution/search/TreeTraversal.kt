@@ -1,10 +1,11 @@
-package org.jetbrains.bio.qfarm.evolution
+package org.jetbrains.bio.qfarm.evolution.search
 
 import org.jetbrains.bio.qfarm.util.RED
 import org.jetbrains.bio.qfarm.util.RESET
 import org.jetbrains.bio.qfarm.TOPRULES
 import org.jetbrains.bio.qfarm.util.YELLOW
 import org.jetbrains.bio.qfarm.datasetWithHeader
+import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.output.logs.recordStep
 import org.jetbrains.bio.qfarm.util.CYAN
 import org.jetbrains.bio.qfarm.util.hp
@@ -48,9 +49,7 @@ fun treeTraversal(prefix: List<Int>) {
             break
         }
 
-        var childCount = 0
-
-        for (candidate in candidates) {
+        for ((childCount, candidate) in candidates.withIndex()) {
 
             val attr = candidate.attr
             val currentRule = prefix + attr
@@ -66,8 +65,6 @@ fun treeTraversal(prefix: List<Int>) {
                 meta = mapOf(
                     "depth" to (prefix.size + 1),
                     "improvement" to candidate.improvement,
-
-                    // bundle DeLong cleanly
                     "deLong" to candidate.deLong
                 )
             )
@@ -81,7 +78,6 @@ fun treeTraversal(prefix: List<Int>) {
 
             EvolutionContext.frontStack.removeLastOrNull()
 
-            childCount++
         }
 
         break

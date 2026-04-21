@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.evolution
+package org.jetbrains.bio.qfarm.evolution.search
 
 import org.jetbrains.bio.qfarm.util.GREEN
 import org.jetbrains.bio.qfarm.util.RESET

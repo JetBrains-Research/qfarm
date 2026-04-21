@@ -25,7 +25,7 @@ fun exportLeafRules(
     root: RuleTreeNode,
     dataset: DatasetWithHeader
 ) {
-    val file = OUTPUT.leafRulesFile
+    val file = OUTPUT.reprRulesFile
 
     val leaves = collectLeaves(root)
     val allRows = mutableListOf<FullRuleRow>()
