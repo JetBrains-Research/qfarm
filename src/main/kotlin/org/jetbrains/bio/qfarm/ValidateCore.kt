@@ -1,6 +1,5 @@
 package org.jetbrains.bio.qfarm
 
-import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.evolution.validate.reevaluateTree
 import org.jetbrains.bio.qfarm.output.OutputManager
 import org.jetbrains.bio.qfarm.output.fronts.exportAllRuleFormats
@@ -16,7 +15,7 @@ fun runValidation(loaded: LoadedRulesFile) {
 
     val start = System.nanoTime()
 
-    // Output setup (same as search)
+    // Output setup
     val timestamp = java.time.LocalDateTime.now()
         .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
 
@@ -33,23 +32,14 @@ fun runValidation(loaded: LoadedRulesFile) {
         hp = loaded.metadata.hyperparameters
     )
 
-    // ----------------------------------------
-    // Reset runtime state (CRITICAL)
-    // ----------------------------------------
+    // Reset runtime state
     RULE_TREE_ROOT.children.clear()
     RULE_TREE_ROOT.steps.clear()
 
-    EvolutionContext.frontStack.clear()
-    TOPRULES.clear()
-
-    // ----------------------------------------
-    // Replay rules (core logic)
-    // ----------------------------------------
+    // Reevaluate rules on the new dataset
     reevaluateTree(loaded.rules)
 
-    // ----------------------------------------
     // Export (IDENTICAL to search)
-    // ----------------------------------------
     exportLeafRules(
         RULE_TREE_ROOT,
         datasetWithHeader

@@ -11,9 +11,9 @@ import org.jetbrains.bio.qfarm.util.YELLOW
 import org.jetbrains.bio.qfarm.evaluation.computeFrontScores
 import org.jetbrains.bio.qfarm.util.hp
 
-
 fun topRange(
     attributes: List<Int>,
+    parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?,
     env: EvolutionEnvironment = GLOBAL_ENV,
     popSize: Int = hp.popSizeFull,
     generationCount: Int = hp.maxGenFull,
@@ -24,10 +24,6 @@ fun topRange(
 
     println("\n${PURPLE}$label : SEARCHING FOR THE BEST RANGE OF ${attributes.map { idx -> env.columnNames[idx]}} ... $RESET")
     require(attributes.isNotEmpty()) { "attributes must not be empty." }
-
-    val parentScoredFront: ScoredFront? =
-        EvolutionContext.frontStack.lastOrNull()
-    val parentFront = parentScoredFront?.front
 
     val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
         runEvolution(
@@ -55,10 +51,13 @@ fun topRange(
 
 fun cheapTopRange(
     attributes: List<Int>,
-    env: EvolutionEnvironment = GLOBAL_ENV
+    env: EvolutionEnvironment = GLOBAL_ENV,
 ): ScoredFront {
+    val parentFront = EvolutionContext.frontStack.lastOrNull()?.front
+
     return topRange(
         attributes = attributes,
+        parentFront = parentFront,
         env = env,
         popSize = hp.popSizeCheap,
         generationCount = hp.maxGenCheap,
@@ -68,11 +67,18 @@ fun cheapTopRange(
 
 fun fullTopRange(
     attributes: List<Int>,
-    env: EvolutionEnvironment = GLOBAL_ENV
+    env: EvolutionEnvironment = GLOBAL_ENV,
+    parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = null
 ): ScoredFront {
-    // TODO: rename params for pop and gen
+
+    val effectiveParent = when {
+        parentFront != null -> parentFront
+        else                -> EvolutionContext.frontStack.lastOrNull()?.front
+    }
+
     return topRange(
         attributes = attributes,
+        parentFront = effectiveParent,
         env = env,
         popSize = hp.popSizeFull,
         generationCount = hp.maxGenFull,

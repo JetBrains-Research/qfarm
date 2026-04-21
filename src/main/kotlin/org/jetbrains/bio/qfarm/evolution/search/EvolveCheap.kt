@@ -15,8 +15,7 @@ import org.jetbrains.bio.qfarm.util.RESET
 
 data class CheapCandidate(
     val attr: Int,
-    val auc: Double,
-//    val pval: Double  TODO: decide if you want to sort and filter by AUC or pval
+    val auc: Double
 )
 
 fun evaluateCheapAdditions(

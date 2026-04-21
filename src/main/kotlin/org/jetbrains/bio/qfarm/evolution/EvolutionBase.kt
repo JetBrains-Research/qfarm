@@ -58,12 +58,9 @@ fun runEvolution(
         .offspringSelector(NSGA2Selector.ofVec())
         .build()
 
-//    val start = System.nanoTime()
-    // TODO: try to figure out, is this ok rn or not?
-    //  if not, how to fix
     lateinit var front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>
 
-    val initGenotypes = parentFront?.map { it -> it.genotype() }
+    val initGenotypes = parentFront?.map { it.genotype() }
 
     val padded = if (initGenotypes == null) {
         // No seed: let the engine create the whole population (regular path)

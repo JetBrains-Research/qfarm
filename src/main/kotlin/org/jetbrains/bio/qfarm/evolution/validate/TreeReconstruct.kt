@@ -1,38 +1,59 @@
 package org.jetbrains.bio.qfarm.evolution.validate
 
-import org.jetbrains.bio.qfarm.columnNames
-import org.jetbrains.bio.qfarm.evolution.EvolutionContext
+import org.jetbrains.bio.qfarm.datasetWithHeader
+import org.jetbrains.bio.qfarm.evaluation.frontDistance
+import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.evolution.fullTopRange
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeRow
 import org.jetbrains.bio.qfarm.output.logs.recordStep
+import org.jetbrains.bio.qfarm.statistics.delong.DeLong
 import org.jetbrains.bio.qfarm.util.CYAN
 import org.jetbrains.bio.qfarm.util.RESET
 import org.jetbrains.bio.qfarm.util.readLHS
 
 fun reevaluateTree(rows: List<RuleTreeRow>) {
 
+    val frontMap = mutableMapOf<String, ScoredFront>()
+
     for (row in rows) {
 
-        val attrs = row.rule.map { name ->
-            columnNames.indexOf(name).also {
-                require(it >= 0) { "Unknown attribute $name" }
-            }
-        }
+        val decoded = decodeRule(row)
 
-        val prefix = attrs.dropLast(1)
-        val addition = attrs.last()
+        println("\n$CYAN 🔬 Re-evaluating: ${readLHS(decoded.attrs)} $RESET")
 
-        println("\n$CYAN 🔬 Re-evaluating: ${readLHS(attrs)} $RESET")
+        val parent = resolveParent(
+            decoded.prefix,
+            decoded.parentKey,
+            frontMap
+        )
 
-        val front = fullTopRange(attrs)
+        val front = fullTopRange(
+            attributes = decoded.attrs,
+            parentFront = parent.frontForEvolution
+        )
 
-        EvolutionContext.frontStack.addLast(front)
+        val delong = DeLong.compare(
+            datasetWithHeader.labels,
+            parent.scored.scores,
+            front.scores
+        )
+
+        val improvement = frontDistance(
+            parent.scored.front,
+            front.front
+        )
 
         recordStep(
-            prefix = prefix,
-            addition = addition,
+            prefix = decoded.prefix,
+            addition = decoded.addition,
             scoredFront = front,
-            meta = emptyMap() // later: validation stats
+            meta = mapOf(
+                "depth" to (decoded.prefix.size + 1),
+                "improvement" to improvement,
+                "deLong" to delong
+            )
         )
+
+        frontMap[decoded.key] = front
     }
 }
