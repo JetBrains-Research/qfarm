@@ -2,6 +2,8 @@ package org.jetbrains.bio.qfarm
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
+import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.util.validate.loadRulesJson
 
 class ValidateCommand : CliktCommand(name = "validate") {
 
@@ -13,7 +15,7 @@ class ValidateCommand : CliktCommand(name = "validate") {
 
     private val rulesPath by option(
         "--rules",
-        help = "path to rules file (.txt)"
+        help = "path to rules file (.jsonl)"
     ).required()
 
     override fun run() {
@@ -22,18 +24,30 @@ class ValidateCommand : CliktCommand(name = "validate") {
         echo("Dataset: $dataPath")
         echo("Rules: $rulesPath")
 
-        runValidation(
+        // 1. Load JSON rules
+        val loaded = loadRulesJson(rulesPath)
+
+        val metadata = loaded.metadata
+
+        val rhsName = metadata.rhs.rhs
+        val rhsRange = metadata.rhs.low to metadata.rhs.high
+
+        // 2. Restore hyperparameters from json
+        val hpFromJson = metadata.hyperparameters
+
+        hp = hpFromJson.copy(
             dataPath = dataPath,
-            rulesPath = rulesPath
+            rightAttribute = rhsName
         )
-    }
 
-    private fun runValidation(
-        dataPath: String,
-        rulesPath: String
-    ) {
-        // TODO: implement real validation logic
+        // 3. Init environment (NEW dataset, SAME RHS)
+        initEnvironment(
+            dataPath = dataPath,
+            rhsName = rhsName,
+            rhsRange = rhsRange
+        )
 
-        echo("Validation not implemented yet for $dataPath and $rulesPath")
+        // 4. Execute validation
+        runValidation(loaded)
     }
 }
