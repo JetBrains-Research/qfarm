@@ -1,5 +1,6 @@
 package org.jetbrains.bio.qfarm.evolution.validate
 
+import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.compare.extractBarsFromLabel
 import org.jetbrains.bio.qfarm.compare.ksPerNode
 import org.jetbrains.bio.qfarm.datasetWithHeader
@@ -17,7 +18,7 @@ import org.jetbrains.bio.qfarm.util.readLHS
 fun reevaluateTree(rows: List<RuleTreeRow>) {
 
     val frontMap = mutableMapOf<List<Int>, ScoredFront>()
-    val validationMap = mutableMapOf<List<Int>, Boolean>()
+    val failureMap = mutableMapOf<List<Int>, String>()
 
     for (row in rows) {
 
@@ -25,10 +26,10 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
 
         println("\n$CYAN 🔬 Re-evaluating: ${readLHS(decoded.attrs)} $RESET")
 
-        val parent = resolveParent(
-            decoded.prefix,
-            frontMap
-        )
+        // -----------------------------
+        // Resolve parent (for evolution + ROC)
+        // -----------------------------
+        val parent = resolveParent(decoded.prefix, frontMap)
 
         val front = fullTopRange(
             attributes = decoded.attrs,
@@ -37,7 +38,9 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
 
         frontMap[decoded.attrs] = front
 
-        // ROC
+        // -----------------------------
+        // ROC (DeLong)
+        // -----------------------------
         val delong = DeLong.compare(
             datasetWithHeader.labels,
             parent.scored.scores,
@@ -62,38 +65,76 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
             )
         )
 
-        println(row.label)
-        println(node.label)
-
+        // -----------------------------
         // ATTRIBUTE MATCH CHECK
-        val attrsA = extractBarsFromLabel(row.label).keys
+        // -----------------------------
+        val attrsA = decoded.attrs.map { columnNames[it] }.toSet()
         val attrsB = extractBarsFromLabel(node.label).keys
 
         val missing = attrsA - attrsB
+        val hasMissing = missing.isNotEmpty()
 
-        if (missing.isNotEmpty()) {
-            println("⚠️ Missing attributes: $missing → FAIL")
+        // -----------------------------
+        // KS CHECK
+        // -----------------------------
+        val ksFinal = if (!hasMissing) {
+            ksPerNode(row.label, node.label)
+        } else null
 
-            validationMap[decoded.attrs] = false
-            continue
+        val ksPValue = ksFinal?.pValue
+
+        val ksPass = ksFinal?.pass ?: false
+
+        // -----------------------------
+        // BASE FAILURE (local)
+        // -----------------------------
+        val baseFailure = when {
+            hasMissing -> "MISSING:${missing.joinToString(",")}"
+            !rocPass -> "ROC_FAIL"
+            !ksPass -> "KS_FAIL"
+            else -> "OK"
         }
 
-        // KS CHECK
-        val ksFinal = ksPerNode(
-            labelA = row.label,
-            labelB = node.label
+        // -----------------------------
+        // PARENT FAILURE PROPAGATION (transitive)
+        // -----------------------------
+        val parentFailure = failureMap[decoded.prefix]
+
+        val finalFailure = when {
+            parentFailure != null && parentFailure != "OK" -> "PARENT_FAIL"
+            else -> baseFailure
+        }
+
+        val validated = finalFailure == "OK"
+
+        failureMap[decoded.attrs] = finalFailure
+
+        // -----------------------------
+        // UPDATE META (immutable-safe)
+        // -----------------------------
+        val last = node.steps.last()
+
+        val enrichedStep = last.copy(
+            meta = last.meta + mapOf(
+                "validation" to validated,
+                "failure" to finalFailure,
+                "ksPValue" to ksPValue
+            )
         )
 
-        val ksPass = ksFinal.pValue >= 0.01
+        node.steps[node.steps.lastIndex] = enrichedStep
 
         // -----------------------------
-        // Validation decision
+        // DEBUG OUTPUT
         // -----------------------------
-        val validated = rocPass && ksPass
-
-        validationMap[decoded.attrs] = validated
-
         println("ROC p=${delong.pOneSided} → ${if (rocPass) "PASS" else "FAIL"}")
-        println("KS p=${ksFinal.pValue} → ${if (ksPass) "PASS" else "FAIL"}")
+
+        if (ksFinal != null) {
+            println("KS p=${ksFinal.pValue} → ${if (ksPass) "PASS" else "FAIL"}")
+        }
+
+        if (finalFailure == "PARENT_FAIL") {
+            println("⚠️ Inherited failure from parent")
+        }
     }
 }

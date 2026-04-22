@@ -19,6 +19,8 @@ data class OutputManager(
     val treeDot = File(runDir, "full_tree.dot")
     val treeSvg = File(runDir, "full_tree.svg")
 
+    val rulesTreeValidatedTxt = File(runDir, "validation_summary.txt")
+
     fun init() {
         require(baseDir.exists() || baseDir.mkdirs()) {
             "Failed to create base directory: $baseDir"

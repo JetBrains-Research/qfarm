@@ -1,8 +1,11 @@
 package org.jetbrains.bio.qfarm.compare
 
+import org.jetbrains.bio.qfarm.util.hp
+
 data class KsResult(
     val d: Double,
-    val pValue: Double
+    val pValue: Double,
+    val pass: Boolean
 )
 
 fun normalize(h: IntArray): DoubleArray {
@@ -30,11 +33,25 @@ fun ksStatistic(cdfA: DoubleArray, cdfB: DoubleArray): Double {
     return maxDiff
 }
 
-fun ksPValue(d: Double, n: Int): Double {
-    if (n <= 0) return 1.0
-    val en = kotlin.math.sqrt(n.toDouble())
+fun ksPValue(d: Double, n: Double): Double {
+    if (n <= 0.0) return 1.0
+
+    val en = kotlin.math.sqrt(n)
     val lambda = (en + 0.12 + 0.11 / en) * d
-    return 2 * kotlin.math.exp(-2 * lambda * lambda)
+
+    if (lambda < 1e-8) return 1.0
+
+    var sum = 0.0
+    val maxK = 5  // 3–5 is enough
+
+    for (k in 1..maxK) {
+        val term = kotlin.math.exp(-2.0 * k * k * lambda * lambda)
+        sum += if (k % 2 == 1) term else -term
+    }
+
+    val p = 2.0 * sum
+
+    return p.coerceIn(0.0, 1.0)
 }
 
 fun ksTest(hA: IntArray, hB: IntArray): KsResult {
@@ -50,9 +67,29 @@ fun ksTest(hA: IntArray, hB: IntArray): KsResult {
     val n2 = hB.sum()
     val neff = if (n1 + n2 == 0) 1.0 else (n1 * n2) / (n1 + n2).toDouble()
 
-    val p = ksPValue(d, neff.toInt())
+    val p = ksPValue(d, neff)
 
-    return KsResult(d, p)
+    return KsResult(
+        d = d,
+        pValue = p,
+        pass = false // not used at this level
+    )
+}
+
+fun holmPass(pValues: List<Double>, alpha: Double): Boolean {
+
+    if (pValues.isEmpty()) return true
+
+    val sorted = pValues.sorted()
+
+    for (i in sorted.indices) {
+        val threshold = alpha / (sorted.size - i)
+        if (sorted[i] < threshold) {
+            return false // reject null → KS FAIL
+        }
+    }
+
+    return true // all passed → KS PASS
 }
 
 fun ksPerNode(
@@ -65,14 +102,29 @@ fun ksPerNode(
 
     val attrs = hA.keys.intersect(hB.keys)
 
-    if (attrs.isEmpty()) return KsResult(0.0, 1.0)
+    if (attrs.isEmpty()) {
+        return KsResult(
+            d = 0.0,
+            pValue = 1.0,
+            pass = true
+        )
+    }
 
     val results = attrs.map { attr ->
         ksTest(hA[attr]!!, hB[attr]!!)
     }
 
-    val pNode = results.minOf { it.pValue }
+    val pValues = results.map { it.pValue }
+
+    val ksPass = holmPass(pValues, hp.alphaThreshold)
+
     val dNode = results.maxOf { it.d }
 
-    return KsResult(dNode, pNode)
+    val pNode = pValues.minOrNull() ?: 1.0 // informational only
+
+    return KsResult(
+        d = dNode,
+        pValue = pNode,
+        pass = ksPass
+    )
 }

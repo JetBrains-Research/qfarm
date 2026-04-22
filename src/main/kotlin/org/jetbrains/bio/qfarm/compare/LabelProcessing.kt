@@ -1,6 +1,6 @@
 package org.jetbrains.bio.qfarm.compare
 
-private const val RAMP = " ▁▂▃▄▅▆▇█"
+const val RAMP = " ▁▂▃▄▅▆▇█"
 
 fun decodeBar(bar: String): IntArray {
     return bar

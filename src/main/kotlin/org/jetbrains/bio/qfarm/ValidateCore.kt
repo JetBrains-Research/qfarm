@@ -2,11 +2,13 @@ package org.jetbrains.bio.qfarm
 
 import org.jetbrains.bio.qfarm.evolution.validate.reevaluateTree
 import org.jetbrains.bio.qfarm.output.OutputManager
+import org.jetbrains.bio.qfarm.output.fronts.buildExportRows
 import org.jetbrains.bio.qfarm.output.fronts.exportAllRuleFormats
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeJsonWriter
 import org.jetbrains.bio.qfarm.output.tree.RULE_TREE_ROOT
 import org.jetbrains.bio.qfarm.output.tree.exportLeafRules
 import org.jetbrains.bio.qfarm.output.tree.toDOTFromTrie
+import org.jetbrains.bio.qfarm.output.validate.writeTxtValidated
 import org.jetbrains.bio.qfarm.util.hp
 import org.jetbrains.bio.qfarm.util.validate.LoadedRulesFile
 import java.io.File
@@ -64,6 +66,20 @@ fun runValidation(loaded: LoadedRulesFile) {
         .waitFor()
 
     exportAllRuleFormats(RULE_TREE_ROOT)
+
+    val (rows, idToNode) = buildExportRows(
+        RULE_TREE_ROOT,
+        columnNames
+    )
+
+    writeTxtValidated(
+        rows = rows,
+        idToNode = idToNode,
+        originalRows = loaded.rules,
+        datasetName = File(hp.dataPath ?: "").name,
+        previousRunName = loaded.metadata.hyperparameters.runName,
+        file = OUTPUT.rulesTreeValidatedTxt
+    )
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
     println("\nVALIDATION RUNTIME: $elapsed s")
