@@ -203,13 +203,12 @@ java -jar qfarm.jar search \
 
 Run validation procedures on a dataset.
 
-> ⚠️ Current implementation is a **placeholder** and will be extended.
-
 ## Basic syntax
 
 ```bash
 java -jar qfarm.jar validate \
   --data <path/to.csv>
+  --rules <path/to.jsonl>
 ```
 
 ---
