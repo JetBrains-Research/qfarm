@@ -228,7 +228,8 @@ Path to the JSONL file containing rules generated from a previous run.
 ```bash
 java -jar build/libs/qfarm-0.1.build.jar validate \
   --data data.csv \
-  --rules /path/to/previous_run/log.jsonl```
+  --rules /path/to/previous_run/log.jsonl
+```
 
 # 🧠 Notes
 
@@ -241,46 +242,47 @@ java -jar build/libs/qfarm-0.1.build.jar validate \
 
 Both `search` and `validate` commands produce a full set of result files inside a run-specific directory:
 
-results/<run_name>/
-├── validation_summary.txt      (only for validate)
-├── final_rules_summary.txt
-├── final_rules_table.csv
-├── representative_rules.txt
-├── log.jsonl
-├── full_tree.dot
-├── full_tree.svg
-└── front_plots/
+    results/<run_name>/
+    ├── validation_summary.txt      (only for validate)
+    ├── final_rules_summary.txt
+    ├── final_rules_table.csv
+    ├── representative_rules.txt
+    ├── log.jsonl
+    ├── full_tree.dot
+    ├── full_tree.svg
+    └── front_plots/
+
 
 ### Description
 
-- validation_summary.txt  
+- `validation_summary.txt`  
   **Produced only by the `validate` command.**  
   Main validation report. Includes:
   - ROC p-values  
   - KS p-values  
-  - Failure reasons (MISSING, KS_FAIL, ROC_FAIL, PARENT_FAIL)  
+  - Failure reasons (`MISSING`, `KS_FAIL`, `ROC_FAIL`, `PARENT_FAIL`)  
   - Visual rule plots  
   - Comparison with previous run (for KS failures)
 
-- final_rules_summary.txt  
+- `final_rules_summary.txt`  
   Summary of discovered fronts (attribute combinations).
 
-- final_rules_table.csv  
+- `final_rules_table.csv`  
   Tabular export of fronts (attribute combinations) and their metrics.
 
-- representative_rules.txt  
+- `representative_rules.txt`  
   Selected subset of representative rules from final fronts.
 
-- log.jsonl  
+- `log.jsonl`  
   NDJSON log with detailed step-by-step execution (serves as input for validation procedure).
 
-- full_tree.dot  
+- `full_tree.dot`  
   GraphViz representation of the rule tree.
 
-- full_tree.svg  
+- `full_tree.svg`  
   Rendered tree visualization (generated automatically if GraphViz is available).
 
-- front_plots/  
+- `front_plots/`  
   HTML files with Pareto front visualizations for each rule.
 
 ---
