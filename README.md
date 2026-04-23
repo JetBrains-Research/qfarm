@@ -228,7 +228,7 @@ Path to the JSONL file containing rules generated from a previous run.
 ```bash
 java -jar build/libs/qfarm-0.1.build.jar validate \
   --data data.csv \
-  --rules /path/to/previous_run/log.jsonl
+  --rules /path/to/previous_run/log.jsonl```
 
 # 🧠 Notes
 
