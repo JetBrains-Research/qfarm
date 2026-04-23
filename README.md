@@ -217,23 +217,19 @@ java -jar qfarm.jar validate \
 ## Arguments
 
 `--data` (required)  
-Path to dataset.
+Path to dataset used for validation.
 
-### Optional (future extensions)
-
-- `--model` — path to rules/model file
-- `--output` — path to save validation results
+`--rules` (required)  
+Path to the JSONL file containing rules generated from a previous run.
 
 ---
 
 ## Example
 
 ```bash
-java -jar qfarm.jar validate \
-  --data data.csv
-```
-
----
+java -jar build/libs/qfarm-0.1.build.jar validate \
+  --data data.csv \
+  --rules /path/to/previous_run/log.jsonl
 
 # 🧠 Notes
 
@@ -244,20 +240,49 @@ java -jar qfarm.jar validate \
 ---
 ## Output Files
 
-After execution, QFARM produces:
+Both `search` and `validate` commands produce a full set of result files inside a run-specific directory:
 
-tree.dot  
-    GraphViz DOT file describing the discovered rule tree.
+results/<run_name>/
+├── validation_summary.txt      (only for validate)
+├── final_rules_summary.txt
+├── final_rules_table.csv
+├── representative_rules.txt
+├── log.jsonl
+├── full_tree.dot
+├── full_tree.svg
+└── front_plots/
 
-step_log.json  
-    NDJSON step-by-step evolution log.
+### Description
 
-stdout  
-    Contains printed rules, evolutionary progress, and runtime information.
+- validation_summary.txt  
+  **Produced only by the `validate` command.**  
+  Main validation report. Includes:
+  - ROC p-values  
+  - KS p-values  
+  - Failure reasons (MISSING, KS_FAIL, ROC_FAIL, PARENT_FAIL)  
+  - Visual rule plots  
+  - Comparison with previous run (for KS failures)
 
-You can render `tree.dot` using GraphViz:
+- final_rules_summary.txt  
+  Summary of discovered fronts (attribute combinations).
 
-    dot -Tsvg tree.dot -o tree.svg
+- final_rules_table.csv  
+  Tabular export of fronts (attribute combinations) and their metrics.
+
+- representative_rules.txt  
+  Selected subset of representative rules from final fronts.
+
+- log.jsonl  
+  NDJSON log with detailed step-by-step execution (serves as input for validation procedure).
+
+- full_tree.dot  
+  GraphViz representation of the rule tree.
+
+- full_tree.svg  
+  Rendered tree visualization (generated automatically if GraphViz is available).
+
+- front_plots/  
+  HTML files with Pareto front visualizations for each rule.
 
 ---
 
