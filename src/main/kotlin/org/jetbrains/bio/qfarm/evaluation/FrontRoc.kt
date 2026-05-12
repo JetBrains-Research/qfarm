@@ -3,14 +3,19 @@ package org.jetbrains.bio.qfarm.evaluation
 data class ROCPoint(val fpr: Double, val tpr: Double)
 
 fun computeROC(labels: IntArray, scores: DoubleArray): List<ROCPoint> {
-    require(labels.size == scores.size)
+    require(labels.size == scores.size) {
+        "labels and scores must have same size"
+    }
 
-    val pairs = labels.indices
-        .map { i -> scores[i] to labels[i] }
-        .sortedByDescending { it.first }
+    val positives = labels.count { it == 1 }.toDouble()
+    val negatives = labels.count { it == 0 }.toDouble()
 
-    val P = labels.count { it == 1 }.toDouble()
-    val N = labels.count { it == 0 }.toDouble()
+    require(positives > 0.0) { "ROC requires at least one positive label." }
+    require(negatives > 0.0) { "ROC requires at least one negative label." }
+
+    val groups = labels.indices
+        .groupBy { scores[it] }
+        .toSortedMap(compareByDescending { it })
 
     var tp = 0.0
     var fp = 0.0
@@ -18,15 +23,16 @@ fun computeROC(labels: IntArray, scores: DoubleArray): List<ROCPoint> {
     val roc = mutableListOf<ROCPoint>()
     roc += ROCPoint(0.0, 0.0)
 
-    for ((_, label) in pairs) {
-        if (label == 1) tp++ else fp++
+    for ((_, idxs) in groups) {
+        for (i in idxs) {
+            if (labels[i] == 1) tp++ else fp++
+        }
 
-        val tpr = if (P > 0) tp / P else 0.0
-        val fpr = if (N > 0) fp / N else 0.0
-
-        roc += ROCPoint(fpr, tpr)
+        roc += ROCPoint(
+            fpr = fp / negatives,
+            tpr = tp / positives
+        )
     }
 
-    roc += ROCPoint(1.0, 1.0)
     return roc
 }
