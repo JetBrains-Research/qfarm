@@ -8,7 +8,7 @@ import org.jetbrains.bio.qfarm.output.tree.RULE_TREE_ROOT
 import org.jetbrains.bio.qfarm.output.tree.RuleTreeNode
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 import org.jetbrains.bio.qfarm.util.readLHS
-import org.jetbrains.bio.qfarm.visualization.renderFrontPlotUrl
+import org.jetbrains.bio.qfarm.visualization.renderFrontPlots
 import java.time.Instant
 
 /* ------------------------- In-memory data model -------------------------- */
@@ -100,19 +100,17 @@ fun recordStep(
         "Front shift: ${readLHS(prefix + addition)}\n" +
                 "Δ area = ${"%.4f".format(deltaArea)}"
 
-    val url = renderFrontPlotUrl(
-        parentFront,
-        scoredFront,
+    val rendered = renderFrontPlots(
+        parentScoredFront = parentFront,
+        childScoredFront = scoredFront,
         attrs = prefix + addition,
-        title = title,
-        randomFront = false
+        deLong = deLong,
+        title = title
     )
 
-    if (!url.isNullOrBlank()) {
-        additionNode.frontUrl = url
+    if (rendered != null) {
+        additionNode.plots = rendered
     }
-
-    additionNode.label = NodeLabeler.buildLabel(additionNode)
 
     // ------------------------------------------------------------
     // 3) Store step WITHOUT front reference
@@ -126,6 +124,7 @@ fun recordStep(
     )
 
     additionNode.steps += step
+    additionNode.label = NodeLabeler.buildLabel(additionNode)
 
     RULE_JSON_WRITER.append(
         prefix = prefix,
@@ -137,7 +136,7 @@ fun recordStep(
         deLong = deLong,
 
         label = additionNode.label,
-        frontUrl = additionNode.frontUrl,
+        frontUrl = additionNode.plots?.combinedUrl,
         createdAt = step.createdAt
     )
 

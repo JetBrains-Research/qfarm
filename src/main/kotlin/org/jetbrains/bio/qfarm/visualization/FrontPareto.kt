@@ -1,12 +1,8 @@
 package org.jetbrains.bio.qfarm.visualization
 
-import io.jenetics.Phenotype
-import io.jenetics.ext.moea.Vec
-import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.evaluation.MedianFront
 import org.jetbrains.bio.qfarm.evaluation.PFSeries
-import org.jetbrains.bio.qfarm.core.RuleSideChromosome
 import org.jetbrains.bio.qfarm.util.compactRuleString
 import org.jetbrains.bio.qfarm.util.computeSortedColumns
 import org.jetbrains.bio.qfarm.datasetWithHeader
@@ -31,8 +27,7 @@ import kotlin.math.max
 fun buildParetoFrontPlotCombined(
     seriesList: List<PFSeries>,
     dataset: DatasetWithHeader = datasetWithHeader,
-    title: String = "Pareto Front (Gen ${hp.maxGenFull})",
-    randomFront: Boolean = false
+    title: String = "Pareto Front (Gen ${hp.maxGenFull})"
 ): Plot {
     // Helper: extract sorted (x=SupportX, y=Confidence, rule) triples per series
     data class SeriesPoint(
@@ -74,18 +69,6 @@ fun buildParetoFrontPlotCombined(
         }.sortedBy { it.x }
     }
 
-    // Representative non-fixed attribute index for a phenotype's LHS (or null if none)
-    fun representativeAttributeIndex(
-        pt: Phenotype<AttributeGene, Vec<DoubleArray>>,
-        fixedIndices: Set<Int>
-    ): Int? {
-        val lhs = pt.genotype()[0] as RuleSideChromosome
-        return lhs.asSequence()
-            .filter { !it.isDefault && it.attributeIndex !in fixedIndices }
-            .map { it.attributeIndex }
-            .minOrNull()
-    }
-
     fun datasetForSeries(
         s: PFSeries,
         defaultDataset: DatasetWithHeader
@@ -113,22 +96,6 @@ fun buildParetoFrontPlotCombined(
             scaleColorManual(breaks = breaks, values = palette) +
             guides(color = "none") +
             ggsize(PLOT_WIDTH, PLOT_HEIGHT)
-
-    // Parent front for fixed attribute detection (intersection across rules)
-    val parentFront = seriesList.find { it.name.equals("Parent", ignoreCase = true) }?.front
-    val fixedIndices: Set<Int> = run {
-        val pf = parentFront
-        if (pf == null || pf.isEmpty) emptySet()
-        else {
-            pf.flatMap { pt ->
-                val lhs = pt.genotype()[0] as RuleSideChromosome
-                lhs.asSequence()
-                    .filter { it != null && !it.isDefault }
-                    .map { it!!.attributeIndex }
-                    .toList()
-            }.toSet()   // union of all indices across all rules
-        }
-    }
 
     // ---------------- Between-front fill clipped to [xL, xR] with vertical edges ----------------
 
@@ -263,53 +230,24 @@ fun buildParetoFrontPlotCombined(
         ) { x = "SupportX"; y = "Confidence"; color = "series" }
 
         // Points
-        val isRandomFront = randomFront && s.name.contains("random", ignoreCase = true)
-        if (isRandomFront) {
-            val sortedPts = s.front.sortedBy { it.fitness().data()[0] }
-            val attrLabels: List<String> = (0 until n).map { k ->
-                val idxAttr = representativeAttributeIndex(sortedPts[k], fixedIndices)
-                idxAttr?.let { sDataset.header.getOrNull(it) ?: "attr#$it" } ?: "None"
-            }
-            val pointData = mapOf(
-                "SupportX"   to xs,
-                "Confidence" to ys,
-                "rulePct"    to rulePcts,   // for title
-                "ruleNum"    to ruleNums,   // for body
-                "attr"       to attrLabels,
-                "TP"         to tps,
-                "FP"         to fps,
-                "TN"         to tns,
-                "FN"         to fns,
-                "ratio"      to ratios
-            )
-            plot += geomPoint(
-                data = pointData,
-                size = 3.0,
-                alpha = 0.95,
-                shape = 21,
-                stroke = 0.3,
-                tooltips = tt
-            ) { x = "SupportX"; y = "Confidence"; fill = "attr" }
-        } else {
-            val pointData = mapOf(
-                "SupportX"   to xs,
-                "Confidence" to ys,
-                "rulePct"    to rulePcts,
-                "ruleNum"    to ruleNums,
-                "series"     to List(n) { s.name },
-                "TP"         to tps,
-                "FP"         to fps,
-                "TN"         to tns,
-                "FN"         to fns,
-                "ratio"      to ratios
-            )
-            plot += geomPoint(
-                data = pointData,
-                size = 2.8,
-                alpha = 0.95,
-                tooltips = tt
-            ) { x = "SupportX"; y = "Confidence"; color = "series" }
-        }
+        val pointData = mapOf(
+            "SupportX"   to xs,
+            "Confidence" to ys,
+            "rulePct"    to rulePcts,
+            "ruleNum"    to ruleNums,
+            "series"     to List(n) { s.name },
+            "TP"         to tps,
+            "FP"         to fps,
+            "TN"         to tns,
+            "FN"         to fns,
+            "ratio"      to ratios
+        )
+        plot += geomPoint(
+            data = pointData,
+            size = 2.8,
+            alpha = 0.95,
+            tooltips = tt
+        ) { x = "SupportX"; y = "Confidence"; color = "series" }
     }
 
 

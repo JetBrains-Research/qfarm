@@ -12,46 +12,37 @@ import kotlin.math.max
  * Reads a Lets-Plot HTML file and extracts plotSpec JSON.
  */
 fun extractPlotSpecFromHtml(htmlFile: File): JsonObject {
-    val outer = Jsoup.parse(htmlFile, "UTF-8")
+    val pfDoc = Jsoup.parse(htmlFile, "UTF-8")
 
-    // 1. Get PF iframe
-    val iframe = outer.select("iframe")
-        .firstOrNull { it.attr("src").contains("_pf.html") }
-        ?: error("PF iframe not found")
-
-    val src = iframe.attr("src").removePrefix("file:")
-    val pfFile = File(src)
-
-    if (!pfFile.exists()) {
-        error("PF file not found: $src")
-    }
-
-    // 2. Parse PF file
-    val pfDoc = Jsoup.parse(pfFile, "UTF-8")
-
-    // 3. Extract inner iframe srcdoc
     val innerIframe = pfDoc.selectFirst("iframe")
-        ?: error("Inner iframe not found in PF file")
+        ?: error("Inner iframe not found in PF file: ${htmlFile.absolutePath}")
 
     val raw = innerIframe.attr("srcdoc")
-    if (raw.isBlank()) error("Inner srcdoc is empty")
+    if (raw.isBlank()) {
+        error("Inner srcdoc is empty in PF file: ${htmlFile.absolutePath}")
+    }
 
     val lvl1 = StringEscapeUtils.unescapeHtml4(raw)
     val lvl2 = StringEscapeUtils.unescapeHtml4(lvl1)
 
     val inner = Jsoup.parse(lvl2)
 
-    // 4. NOW find script
     val script = inner.selectFirst("script[data-lets-plot-script=plot]")
-        ?: error("Lets-Plot script not found (inner)")
+        ?: error("Lets-Plot script not found in PF file: ${htmlFile.absolutePath}")
 
     val scriptText = script.data()
 
-    val regex = Regex("const plotSpec = (\\{.*});", RegexOption.DOT_MATCHES_ALL)
-    val match = regex.find(scriptText)
-        ?: error("plotSpec JSON not found")
+    val regex = Regex(
+        """const plotSpec = (\{.*});""",
+        RegexOption.DOT_MATCHES_ALL
+    )
 
-    val jsonText = match.groupValues[1].replace("undefined", "null")
+    val match = regex.find(scriptText)
+        ?: error("plotSpec JSON not found in PF file: ${htmlFile.absolutePath}")
+
+    val jsonText = match.groupValues[1]
+        .replace("undefined", "null")
+
     return Json.parseToJsonElement(jsonText).jsonObject
 }
 

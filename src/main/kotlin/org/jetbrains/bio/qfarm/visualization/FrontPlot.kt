@@ -7,14 +7,21 @@ import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.evaluation.toPFSeries
 import org.jetbrains.bio.qfarm.statistics.delong.DeLong
+import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 
-fun renderFrontPlotUrl(
+data class RenderedFrontPlots(
+    val pfUrl: String,
+    val rocUrl: String,
+    val combinedUrl: String
+)
+
+fun renderFrontPlots(
     parentScoredFront: ScoredFront?,
     childScoredFront: ScoredFront,
     attrs: List<Int>,
-    title: String,
-    randomFront: Boolean
-): String? {
+    deLong: DeLongResult?,
+    title: String
+): RenderedFrontPlots? {
     return try {
         val hasRealParent = parentScoredFront?.front != null && !parentScoredFront.front.isEmpty
 
@@ -40,13 +47,12 @@ fun renderFrontPlotUrl(
         // ---------- PF plot ----------
         val pfSeries = buildList {
             add(toPFSeries(effectiveParentFront, parentName, parentDataset))
-            add(toPFSeries(childScoredFront.front, if (randomFront) "Random" else "Child"))
+            add(toPFSeries(childScoredFront.front, "Child"))
         }
 
         val pfPlot = buildParetoFrontPlotCombined(
             pfSeries,
-            title = title,
-            randomFront = randomFront
+            title = title
         )
 
         val filename = attrsToFileName(attrs)
@@ -58,20 +64,23 @@ fun renderFrontPlotUrl(
 
         val rocSeries: List<Pair<String, DoubleArray>> = buildList {
             add(parentName to effectiveParentScores)
-            add((if (randomFront) "Random" else "Child") to childScoredFront.scores)
+            add("Child" to childScoredFront.scores)
         }
 
-        val delong = DeLong.compare(labels, effectiveParentScores, childScoredFront.scores)
+        val effectiveDeLong = deLong
+            ?: DeLong.compare(labels, effectiveParentScores, childScoredFront.scores)
 
         val rocTitle = buildString {
-            appendLine("AUC: $parentName=%.3f | Child=%.3f".format(delong.auc1, delong.auc2))
-            appendLine("Var: %.5f | %.5f".format(delong.variance1, delong.variance2))
-            appendLine("Cov: %.5f".format(delong.covariance))
-            append("Δ=%.4f | z=%.2f | p=%.5f".format(
-                delong.auc2 - delong.auc1,
-                delong.zScore,
-                delong.pOneSided
-            ))
+            appendLine("AUC: $parentName=%.3f | Child=%.3f".format(effectiveDeLong.auc1, effectiveDeLong.auc2))
+            appendLine("Var: %.5f | %.5f".format(effectiveDeLong.variance1, effectiveDeLong.variance2))
+            appendLine("Cov: %.5f".format(effectiveDeLong.covariance))
+            append(
+                "Δ=%.4f | z=%.2f | p=%.5f".format(
+                    effectiveDeLong.auc2 - effectiveDeLong.auc1,
+                    effectiveDeLong.zScore,
+                    effectiveDeLong.pOneSided
+                )
+            )
         }
 
         val rocPlot = buildROCPlot(rocSeries, labels, title = rocTitle)
@@ -80,7 +89,18 @@ fun renderFrontPlotUrl(
             ?: return null
 
         // ---------- Combine ----------
-        saveCombinedHtmlHorizontal(pfUrl, rocUrl, filename)
+        // ---------- Combined wrapper ----------
+        val combinedUrl = saveCombinedHtmlHorizontal(
+            pfUrl = pfUrl,
+            rocUrl = rocUrl,
+            filename = filename
+        ) ?: return null
+
+        RenderedFrontPlots(
+            pfUrl = pfUrl,
+            rocUrl = rocUrl,
+            combinedUrl = combinedUrl
+        )
 
     } catch (t: Throwable) {
         println("${YELLOW}[⚠️ Couldn’t render plot: ${t.message}]${RESET}")

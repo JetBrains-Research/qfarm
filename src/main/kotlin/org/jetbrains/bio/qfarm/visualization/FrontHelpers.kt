@@ -60,6 +60,14 @@ fun saveCombinedHtmlHorizontal(
     rocUrl: String,
     filename: String
 ): String? {
+    // currently brute-force solution: change File().name to relativizing the path if structure changes!!!
+    fun iframeSrc(url: String): String {
+        return try {
+            File(java.net.URI(url)).name
+        } catch (_: Exception) {
+            File(url).name
+        }
+    }
     return try {
         val out = File(OUTPUT.frontPlotsDir, "$filename.html")
 
@@ -74,12 +82,12 @@ fun saveCombinedHtmlHorizontal(
                     
                     <div style="flex:1; padding:10px;">
                         <h3 style="text-align:center;">Pareto Front</h3>
-                        <iframe src="$pfUrl" width="100%" height="90%" style="border:none;"></iframe>
+                        <iframe src="${iframeSrc(pfUrl)}" width="100%" height="90%" style="border:none;"></iframe>
                     </div>
                     
                     <div style="flex:1; padding:10px;">
                         <h3 style="text-align:center;">ROC Curves</h3>
-                        <iframe src="$rocUrl" width="100%" height="90%" style="border:none;"></iframe>
+                        <iframe src="${iframeSrc(rocUrl)}" width="100%" height="90%" style="border:none;"></iframe>
                     </div>
                 
                 </div>
