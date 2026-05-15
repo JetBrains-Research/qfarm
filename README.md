@@ -174,6 +174,21 @@ Standard deviation controlling mutation magnitude.
 `--alpha-threshold`  
 Statistical significance threshold (e.g., for p-value filtering). 
 
+### Dataset & run metadata
+
+--excl-cols (default: [])  
+    Comma-separated list of column names to exclude from the dataset before rule mining.
+
+    Example:
+        --excl-cols ID,Timestamp
+
+--name (default: auto-generated)  
+    Optional run name / experiment label.
+    Used for logging, plots, output directories, and DOT URLs.
+
+    Example:
+        --name experiment_1
+
 ---
 
 ## Full Example
