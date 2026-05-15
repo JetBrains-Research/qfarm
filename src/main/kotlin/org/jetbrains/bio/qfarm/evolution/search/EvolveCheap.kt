@@ -1,0 +1,53 @@
+package org.jetbrains.bio.qfarm.evolution.search
+
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
+import org.jetbrains.bio.qfarm.datasetWithHeader
+import org.jetbrains.bio.qfarm.evolution.cheapTopRange
+import org.jetbrains.bio.qfarm.rightAttrIndex
+import org.jetbrains.bio.qfarm.statistics.delong.AUC
+import org.jetbrains.bio.qfarm.util.DatasetWithHeader
+import org.jetbrains.bio.qfarm.util.RED
+import org.jetbrains.bio.qfarm.util.RESET
+
+
+data class CheapCandidate(
+    val attr: Int,
+    val auc: Double
+)
+
+fun evaluateCheapAdditions(
+    prefix: List<Int>,
+    used: Set<Int>,
+    dataset: DatasetWithHeader = datasetWithHeader
+): List<CheapCandidate> {
+
+    val searchAttributes =
+        (0 until dataset.header.size)
+            .filter { it != rightAttrIndex }
+            .filter { it !in prefix }
+            .filter { it !in used }
+
+    if (searchAttributes.isEmpty()) {
+        println("$RED No attributes left to explore $RESET")
+        return emptyList()
+    }
+
+    return runBlocking {
+        searchAttributes.map { attr ->
+            async(Dispatchers.Default) {
+
+                val front = cheapTopRange(prefix + attr)
+
+                val auc = AUC.compute(
+                    dataset.labels,
+                    front.scores,
+                )
+
+                CheapCandidate(attr, auc)
+            }
+        }.awaitAll()
+    }
+}

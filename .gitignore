@@ -10,8 +10,10 @@ out/
 data/
 
 # ignore plots
+results/
 plots/
 step_log.json
+lets-plot-images
 
 # IntelliJ IDEA
 .idea/
@@ -42,3 +44,5 @@ nbbuild/
 dist/
 nbdist/
 .nb-gradle/
+/src/test/resources/
+delong_reference.py
