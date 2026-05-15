@@ -11,13 +11,10 @@ fun frontDistance(
     parent: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?,
     child: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?
 ): Double {
-    // TODO: see leftmost and rightmost support within minmax Support range ...
-    //  BUT in that case, how to compare with parent front?
-    //  Bcz both will have different normalization
-    val supRange = hp.maxSupport - hp.minSupport
-
     // Extract sorted (x=SupportX, y=Conf) pairs; sorted by x asc
-    fun toPoints(front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?): List<Pair<Double, Double>> {
+    fun toRawPoints(
+        front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?
+    ): List<Pair<Double, Double>> {
         if (front == null || front.isEmpty) return emptyList()
 
         return front.mapNotNull {
@@ -28,14 +25,42 @@ fun frontDistance(
             if (support < hp.minSupport || support > hp.maxSupport) {
                 null
             } else {
-                val xNorm = (support - hp.minSupport) / supRange
-                xNorm to conf
+                support to conf
             }
         }.sortedBy { it.first }
     }
 
-    val pPts = toPoints(parent)
-    val cPts = toPoints(child)
+    val parentRaw = toRawPoints(parent)
+    val childRaw = toRawPoints(child)
+
+    if (parentRaw.size < 2 || childRaw.size < 2) return 0.0
+
+    val left = maxOf(
+        hp.minSupport.toDouble(),
+        parentRaw.minOf { it.first },
+        childRaw.minOf { it.first }
+    )
+
+    val right = minOf(
+        hp.maxSupport.toDouble(),
+        parentRaw.maxOf { it.first },
+        childRaw.maxOf { it.first }
+    )
+
+    val supRange = right - left
+    if (supRange <= 0.0) return 0.0
+
+    fun normalize(points: List<Pair<Double, Double>>): List<Pair<Double, Double>> =
+        points
+            .filter { (support, _) -> support in left..right }
+            .map { (support, conf) ->
+                val xNorm = (support - left) / supRange
+                xNorm to conf
+            }
+            .sortedBy { it.first }
+
+    val pPts = normalize(parentRaw)
+    val cPts = normalize(childRaw)
 
     if (cPts.size < 2) return 0.0
 
@@ -93,7 +118,7 @@ fun frontDistance(
         while (j < b.size) { addIfNew(b[j++]) }
         addIfNew(xR)
         // ensure strictly increasing & within [xL,xR]
-        out.filter { it >= xL && it <= xR }
+        out.filter { it in xL..xR }
     }
     if (xsMerged.size < 2) return 0.0
 
