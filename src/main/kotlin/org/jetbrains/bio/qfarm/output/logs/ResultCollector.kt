@@ -54,6 +54,7 @@ fun recordStep(
     prefix: List<Int>,
     addition: Int,
     scoredFront: ScoredFront,
+    parentScoredFront: ScoredFront? = null,
     meta: Map<String, Any?> = emptyMap()
 ): RuleTreeNode {
 
@@ -90,11 +91,14 @@ fun recordStep(
     )
 
     // ------------------------------------------------------------
-    // 2) ALWAYS render (no top-k filtering)
+    // 2) Render using explicit parent if provided,
+    //    otherwise fall back to EvolutionContext as before
     // ------------------------------------------------------------
-    val parentFront = EvolutionContext.frontStack
-        .dropLast(1)
-        .lastOrNull()
+    val parentFront =
+        parentScoredFront
+            ?: EvolutionContext.frontStack
+                .dropLast(1)
+                .lastOrNull()
 
     val title =
         "Front shift: ${readLHS(prefix + addition)}\n" +
@@ -113,8 +117,7 @@ fun recordStep(
     }
 
     // ------------------------------------------------------------
-    // 3) Store step WITHOUT front reference
-    // TODO: why not store front? Does it slow down / cause crash-down?
+    // 3) Store step
     // ------------------------------------------------------------
     val step = RuleStep(
         prefix = prefix,
@@ -132,9 +135,7 @@ fun recordStep(
         depth = additionNode.depth,
         deltaArea = deltaArea,
         totalArea = totalArea,
-
         deLong = deLong,
-
         label = additionNode.label,
         frontUrl = additionNode.plots?.combinedUrl,
         createdAt = step.createdAt

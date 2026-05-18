@@ -4,6 +4,7 @@ import org.jetbrains.bio.qfarm.output.fronts.ExportRuleRow
 import org.jetbrains.bio.qfarm.output.fronts.flattenLabel
 import org.jetbrains.bio.qfarm.output.fronts.formatArea
 import org.jetbrains.bio.qfarm.output.fronts.formatAuc
+import org.jetbrains.bio.qfarm.output.fronts.formatDistance
 import org.jetbrains.bio.qfarm.output.fronts.formatNumber
 import org.jetbrains.bio.qfarm.output.fronts.formatP
 import org.jetbrains.bio.qfarm.output.fronts.pad
@@ -22,7 +23,7 @@ val COLUMNS = listOf(
     Column("ROC p", 12),
     Column("AUC", 10),
     Column("area", 10),
-    Column("KS p", 12),
+    Column("dist", 12),
     Column("status", 20)
 )
 
@@ -60,7 +61,7 @@ fun writeTxtValidated(
             val node = idToNode[r.id] ?: continue
             val meta = node.steps.lastOrNull()?.meta
 
-            val ksP = meta?.get("ksPValue") as? Double
+            val dist = meta?.get("distributionDistance") as? Double
             val failure = meta?.get("failure") as? String ?: "OK"
             val validated = meta?.get("validation") as? Boolean ?: true
 
@@ -73,7 +74,7 @@ fun writeTxtValidated(
             val rowColor = if (validated) Ansi.GREEN else Ansi.RED
 
             val plots = when {
-                failure.startsWith("KS_FAIL") -> flattenLabel(r.label)
+                failure.startsWith("DIST_FAIL") -> flattenLabel(r.label)
 
                 failure.startsWith("MISSING") -> {
                     val expectedAttrs = collectAttrs(node)
@@ -89,7 +90,7 @@ fun writeTxtValidated(
                 formatP(r.pValue),   // ROC p
                 formatAuc(r.auc),
                 formatArea(r.area),
-                formatP(ksP),        // KS p
+                formatDistance(dist), // smooth Spearman distance
                 status
             )
 
@@ -97,13 +98,13 @@ fun writeTxtValidated(
                 pad(v, col.width)
             }.toMutableList()
 
-// Apply highlighting
+            // Apply highlighting
             when {
                 failure.startsWith("ROC_FAIL") -> {
                     padded[2] = highlight(padded[2], rowColor)
                 }
 
-                failure.startsWith("KS_FAIL") -> {
+                failure.startsWith("DIST_FAIL") -> {
                     padded[5] = highlight(padded[5], rowColor)
                 }
             }
@@ -114,8 +115,8 @@ fun writeTxtValidated(
 
             w.appendLine(finalRow)
 
-            // ---------------- EXTRA LINE (KS FAIL) ----------------
-            if (failure.startsWith("KS_FAIL")) {
+            // ---------------- EXTRA LINE (DIST FAIL) ----------------
+            if (failure.startsWith("DIST_FAIL")) {
                 val txt = "     └── PREVIOUS RUN FRONT: "
                 val prefixWidth =
                     PREFIX_WIDTH - txt.length

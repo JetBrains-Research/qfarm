@@ -2,7 +2,7 @@ package org.jetbrains.bio.qfarm.evolution.validate
 
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.compare.extractBarsFromLabel
-import org.jetbrains.bio.qfarm.compare.ksPerNode
+import org.jetbrains.bio.qfarm.compare.smoothedSpearmanPerNode
 import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.evaluation.frontDistance
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
@@ -58,6 +58,7 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
             prefix = decoded.prefix,
             addition = decoded.addition,
             scoredFront = front,
+            parentScoredFront = parent.scored,
             meta = mapOf(
                 "depth" to (decoded.prefix.size + 1),
                 "improvement" to improvement,
@@ -75,15 +76,21 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
         val hasMissing = missing.isNotEmpty()
 
         // -----------------------------
-        // KS CHECK
+        // DISTRIBUTION DISTANCE CHECK
         // -----------------------------
-        val ksFinal = if (!hasMissing) {
-            ksPerNode(row.label, node.label)
+        val distFinal = if (!hasMissing) {
+            smoothedSpearmanPerNode(
+                oldLabel = row.label,
+                newLabel = node.label,
+                threshold = 0.20,
+                sigma = 1.0,
+                radius = 2
+            )
         } else null
 
-        val ksPValue = ksFinal?.pValue
-
-        val ksPass = ksFinal?.pass ?: false
+        val distDistance = distFinal?.distance
+        val distThreshold = distFinal?.threshold
+        val distPass = distFinal?.pass ?: false
 
         // -----------------------------
         // BASE FAILURE (local)
@@ -91,7 +98,7 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
         val baseFailure = when {
             hasMissing -> "MISSING:${missing.joinToString(",")}"
             !rocPass -> "ROC_FAIL"
-            !ksPass -> "KS_FAIL"
+            !distPass -> "DIST_FAIL"
             else -> "OK"
         }
 
@@ -118,7 +125,9 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
             meta = last.meta + mapOf(
                 "validation" to validated,
                 "failure" to finalFailure,
-                "ksPValue" to ksPValue
+                "distributionMetric" to "smooth+spearman",
+                "distributionDistance" to distDistance,
+                "distributionThreshold" to distThreshold
             )
         )
 
@@ -129,8 +138,12 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
         // -----------------------------
         println("ROC p=${delong.pOneSided} → ${if (rocPass) "PASS" else "FAIL"}")
 
-        if (ksFinal != null) {
-            println("KS p=${ksFinal.pValue} → ${if (ksPass) "PASS" else "FAIL"}")
+        if (distFinal != null) {
+            println(
+                "SmoothSpearman distance=${distFinal.distance}, " +
+                        "threshold=${distFinal.threshold} → " +
+                        if (distPass) "PASS" else "FAIL"
+            )
         }
 
         if (finalFailure == "PARENT_FAIL") {

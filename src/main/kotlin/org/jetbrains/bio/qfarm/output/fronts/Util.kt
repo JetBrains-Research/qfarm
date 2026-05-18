@@ -3,6 +3,9 @@ package org.jetbrains.bio.qfarm.output.fronts
 fun formatP(v: Double?) = v?.let { "%.2e".format(it) } ?: ""
 fun formatAuc(v: Double?) = v?.let { "%.4f".format(it) } ?: ""
 fun formatArea(v: Double?) = v?.let { "%.4f".format(it) } ?: ""
+fun formatDistance(x: Double?): String {
+    return if (x == null) "-" else "%.4f".format(x)
+}
 
 fun pad(value: String, width: Int) = value.padEnd(width)
 
