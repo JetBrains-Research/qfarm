@@ -14,6 +14,8 @@ import org.jetbrains.bio.qfarm.GLOBAL_ENV
 import org.jetbrains.bio.qfarm.core.PercentileAttributeMutator
 import org.jetbrains.bio.qfarm.core.SupportThresholdConstraint
 import org.jetbrains.bio.qfarm.core.createGenotypeFactory
+import org.jetbrains.bio.qfarm.core.createIndexPool
+import org.jetbrains.bio.qfarm.core.normalizeSeedGenotype
 import org.jetbrains.bio.qfarm.evaluation.evaluateRule
 import org.jetbrains.bio.qfarm.util.hp
 import org.jetbrains.bio.qfarm.util.paretoFrontOf
@@ -41,7 +43,8 @@ fun runEvolution(
     )
 
     // --- build engine using existing genotype factory ---
-    val genotypeFactory = createGenotypeFactory(cfg)
+    val indexPool = createIndexPool(cfg)
+    val genotypeFactory = createGenotypeFactory(cfg, indexPool)
 
     val fitness: (Genotype<AttributeGene>) -> Vec<DoubleArray> = { gt ->
         Vec.of(*evaluateRule(gt, env.datasetWithHeader))
@@ -50,7 +53,7 @@ fun runEvolution(
     val engine = Engine
         .builder(fitness, genotypeFactory)
         .optimize(Optimize.MAXIMUM)
-        .constraint(SupportThresholdConstraint(genotypeFactory))
+        .constraint(SupportThresholdConstraint(genotypeFactory, env.datasetWithHeader.data))
         .populationSize(popSize)
         .offspringFraction(0.75)
         .alterers(PercentileAttributeMutator(hp.probabilityMutation, cfg.fixedAttributes))
@@ -60,7 +63,14 @@ fun runEvolution(
 
     lateinit var front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>
 
-    val initGenotypes = parentFront?.map { it.genotype() }
+
+    val initGenotypes = parentFront?.map {
+        normalizeSeedGenotype(
+            genotype = it.genotype(),
+            cfg = cfg,
+            indexPool = indexPool
+        )
+    }
 
     val padded = if (initGenotypes == null) {
         // No seed: let the engine create the whole population (regular path)
@@ -77,7 +87,7 @@ fun runEvolution(
 
     // If provided a non-empty padded list, start from it; else use the normal stream()
     val stream = if (padded != null) {
-        val init = EvolutionInit.of(initGenotypes, 1)
+        val init = EvolutionInit.of(padded, 1)
         engine.stream(init) // starts from parent front genotypes
     } else {
         engine.stream() // default random init from genotypeFactory

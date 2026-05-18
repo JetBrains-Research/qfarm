@@ -13,7 +13,7 @@ object NodeLabeler {
             return ""
         }
 
-        println("[NodeLabeler] Parsing label from: ${htmlFile.absolutePath}")
+//        println("[NodeLabeler] Parsing label from: ${htmlFile.absolutePath}")
 
         val bars = try {
             buildBarsFromHtml(htmlFile)

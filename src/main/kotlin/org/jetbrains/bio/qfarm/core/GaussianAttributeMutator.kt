@@ -19,14 +19,14 @@ class PercentileAttributeMutator(
             val center = (gene.pLeft + gene.pRight) / 2.0
             val width = (gene.pRight - gene.pLeft)
 
-            val newCenter = (center + random.nextGaussian() * stddev)
-                .coerceIn(0.0, 1.0)
-
             val newWidth = (width * (1 + random.nextGaussian() * 0.2))
-                .coerceIn(1e-4, 1.0)
+                .coerceIn(1e-4, hp.maxWidth)
 
-            val newPL = (newCenter - newWidth / 2).coerceIn(0.0, 1.0)
-            val newPR = (newCenter + newWidth / 2).coerceIn(0.0, 1.0)
+            val newCenter = (center + random.nextGaussian() * stddev)
+                .coerceIn(newWidth / 2.0, 1.0 - newWidth / 2.0)
+
+            val newPL = (newCenter - newWidth / 2)
+            val newPR = (newCenter + newWidth / 2)
 
             // --- 2. map to values ---
             val newLower = gene.cfg.percentile.value(gene.attributeIndex, newPL)

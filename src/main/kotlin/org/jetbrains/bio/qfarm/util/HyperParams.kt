@@ -29,7 +29,8 @@ data class HyperParameters(
     var lowRight: Double = 0.0,  // as percentile
     var upRight: Double = 100.0,   // as percentile
     // ADDED TEMPORARY
-    val alphaThreshold: Double = 0.05
+    val alphaThreshold: Double = 0.05,
+    val maxWidth: Double = 0.8,
 )
 
 // now mutable so CLI can override
