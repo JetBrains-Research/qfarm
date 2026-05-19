@@ -31,6 +31,8 @@ data class HyperParameters(
     // ADDED TEMPORARY
     val alphaThreshold: Double = 0.05,
     val maxWidth: Double = 0.8,
+
+    val rocComparison: RocComparisonMode = RocComparisonMode.CHILD_PLUS_PARENT,
 )
 
 // now mutable so CLI can override

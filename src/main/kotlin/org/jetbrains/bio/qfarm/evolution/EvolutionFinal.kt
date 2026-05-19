@@ -9,6 +9,7 @@ import org.jetbrains.bio.qfarm.util.PURPLE
 import org.jetbrains.bio.qfarm.util.RESET
 import org.jetbrains.bio.qfarm.util.YELLOW
 import org.jetbrains.bio.qfarm.evaluation.computeFrontScores
+import org.jetbrains.bio.qfarm.util.RocComparisonMode
 import org.jetbrains.bio.qfarm.util.hp
 
 fun topRange(
@@ -41,7 +42,23 @@ fun topRange(
         return ScoredFront(front, doubleArrayOf())
     }
 
-    val scores = computeFrontScores(front, env)
+    val rocFront = when (hp.rocComparison) {
+
+        RocComparisonMode.CHILD -> {
+            front
+        }
+
+        RocComparisonMode.CHILD_PLUS_PARENT -> {
+
+            if (parentFront == null || parentFront.isEmpty) {
+                front
+            } else {
+                parentFront.append(front)
+            }
+        }
+    }
+
+    val scores = computeFrontScores(rocFront, env)
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
     println("Range finder: elapsed=%.2fs".format(elapsed))
