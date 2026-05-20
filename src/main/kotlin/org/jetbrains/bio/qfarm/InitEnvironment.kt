@@ -2,7 +2,7 @@ package org.jetbrains.bio.qfarm
 
 import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.core.AttributeGene
-import org.jetbrains.bio.qfarm.evaluation.generateMedianFront
+import org.jetbrains.bio.qfarm.evaluation.generateRandomAucBaseline
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
@@ -133,6 +133,6 @@ fun initEnvironment(
         rightAttrIndex = rightAttrIndex
     )
 
-    generateMedianFront()
+    generateRandomAucBaseline(nColumns = hp.randomAucBaselineColumns)
 
 }

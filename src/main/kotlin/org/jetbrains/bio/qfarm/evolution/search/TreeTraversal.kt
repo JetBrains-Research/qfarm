@@ -41,7 +41,7 @@ fun treeTraversal(prefix: List<Int>) {
         )
 
         // STEP 4: filtering
-        val candidates = filterCandidates(evaluated)
+        val candidates = filterCandidates(evaluated, prefix)
 
         if (candidates.isEmpty()) {
             println("$RED No candidates survived filtering $RESET")
@@ -65,7 +65,15 @@ fun treeTraversal(prefix: List<Int>) {
                 meta = mapOf(
                     "depth" to (prefix.size + 1),
                     "improvement" to candidate.improvement,
-                    "deLong" to candidate.deLong
+
+                    // depth > 1
+                    "deLong" to candidate.deLong,
+
+                    // level 1
+                    "auc" to candidate.auc,
+                    "randomAucP" to candidate.randomAucP,
+                    "randomAucAdjustedP" to candidate.randomAucAdjustedP,
+                    "randomAucPass" to candidate.randomAucPass
                 )
             )
 

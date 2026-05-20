@@ -33,6 +33,7 @@ data class HyperParameters(
     val maxWidth: Double = 0.8,
 
     val rocComparison: RocComparisonMode = RocComparisonMode.CHILD_PLUS_PARENT,
+    val randomAucBaselineColumns: Int = 100,
 )
 
 // now mutable so CLI can override

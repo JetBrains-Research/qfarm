@@ -9,15 +9,38 @@ import org.jetbrains.bio.qfarm.util.RESET
 import org.jetbrains.bio.qfarm.util.hp
 
 fun filterCandidates(
-    candidates: List<CandidateAddition>
+    candidates: List<CandidateAddition>,
+    prefix: List<Int>
 ): List<CandidateAddition> {
 
+    val isLevel1 = prefix.isEmpty()
+
     val filtered = candidates.filter { c ->
-        val significant = c.deLong.pOneSided < hp.alphaThreshold
+
+        val significant = if (isLevel1) {
+            c.randomAucPass == true
+        } else {
+            c.deLong?.pOneSided?.let {
+                it < hp.alphaThreshold
+            } == true
+        }
+
         val active = isActive(c.front, c.attr)
 
         if (!significant) {
-            println("$RED 🛑 FILTERED OUT ${columnNames[c.attr]}  |  p=${"%.4g".format(c.deLong.pOneSided)} $RESET")
+            if (isLevel1) {
+                println(
+                    "$RED 🛑 FILTERED OUT ${columnNames[c.attr]}  |  " +
+                            "AUC=${"%.4f".format(c.auc)}  |  " +
+                            "raw p=${"%.4g".format(c.randomAucP)}  |  " +
+                            "Bonferroni p=${"%.4g".format(c.randomAucAdjustedP)} $RESET"
+                )
+            } else {
+                println(
+                    "$RED 🛑 FILTERED OUT ${columnNames[c.attr]}  |  " +
+                            "p=${"%.4g".format(c.deLong?.pOneSided)} $RESET"
+                )
+            }
         } else if (!active) {
             println("$RED ⚠️ FILTERED OUT ${columnNames[c.attr]}  |  INACTIVE $RESET")
         }

@@ -4,11 +4,15 @@ import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.compare.extractBarsFromLabel
 import org.jetbrains.bio.qfarm.compare.smoothedSpearmanPerNode
 import org.jetbrains.bio.qfarm.datasetWithHeader
+import org.jetbrains.bio.qfarm.evaluation.RandomAucBaseline
+import org.jetbrains.bio.qfarm.evaluation.bonferroniCorrect
+import org.jetbrains.bio.qfarm.evaluation.empiricalAucPValueGreater
 import org.jetbrains.bio.qfarm.evaluation.frontDistance
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.evolution.fullTopRange
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeRow
 import org.jetbrains.bio.qfarm.output.logs.recordStep
+import org.jetbrains.bio.qfarm.statistics.delong.AUC
 import org.jetbrains.bio.qfarm.statistics.delong.DeLong
 import org.jetbrains.bio.qfarm.util.CYAN
 import org.jetbrains.bio.qfarm.util.RESET
@@ -20,9 +24,14 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
     val frontMap = mutableMapOf<List<Int>, ScoredFront>()
     val failureMap = mutableMapOf<List<Int>, String>()
 
+    val level1TestCount = rows.count { row ->
+        row.rule.size == 1
+    }
+
     for (row in rows) {
 
         val decoded = decodeRule(row)
+        val isLevel1 = decoded.prefix.isEmpty()
 
         println("\n$CYAN 🔬 Re-evaluating: ${readLHS(decoded.attrs)} $RESET")
 
@@ -41,13 +50,47 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
         // -----------------------------
         // ROC (DeLong)
         // -----------------------------
-        val delong = DeLong.compare(
-            datasetWithHeader.labels,
-            parent.scored.scores,
-            front.scores
-        )
+        val delong = if (!isLevel1) {
+            DeLong.compare(
+                datasetWithHeader.labels,
+                parent.scored.scores,
+                front.scores
+            )
+        } else {
+            null
+        }
 
-        val rocPass = delong.pOneSided < hp.alphaThreshold
+        val auc = if (isLevel1) {
+            AUC.compute(datasetWithHeader.labels, front.scores)
+        } else {
+            delong?.auc2
+        }
+
+        val randomAucP = if (isLevel1) {
+            RandomAucBaseline.requireReady()
+
+            empiricalAucPValueGreater(
+                observedAuc = auc ?: error("Missing level-1 AUC"),
+                randomAucs = RandomAucBaseline.aucs
+            )
+        } else {
+            null
+        }
+
+        val randomAucAdjustedP = if (isLevel1) {
+            bonferroniCorrect(
+                rawP = randomAucP ?: error("Missing level-1 random AUC p-value"),
+                nTests = level1TestCount
+            )
+        } else {
+            null
+        }
+
+        val rocPass = if (isLevel1) {
+            randomAucAdjustedP!! < hp.alphaThreshold
+        } else {
+            delong!!.pOneSided < hp.alphaThreshold
+        }
 
         val improvement = frontDistance(
             parent.scored.front,
@@ -62,7 +105,14 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
             meta = mapOf(
                 "depth" to (decoded.prefix.size + 1),
                 "improvement" to improvement,
-                "deLong" to delong
+
+                // depth > 1
+                "deLong" to delong,
+
+                // level 1
+                "auc" to auc,
+                "randomAucP" to randomAucP,
+                "randomAucAdjustedP" to randomAucAdjustedP
             )
         )
 
@@ -125,9 +175,14 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
             meta = last.meta + mapOf(
                 "validation" to validated,
                 "failure" to finalFailure,
+
                 "distributionMetric" to "smooth+spearman",
                 "distributionDistance" to distDistance,
-                "distributionThreshold" to distThreshold
+                "distributionThreshold" to distThreshold,
+
+                "aucValidationMode" to if (isLevel1) "random-auc-baseline" else "delong-parent",
+                "randomAucP" to randomAucP,
+                "randomAucAdjustedP" to randomAucAdjustedP
             )
         )
 
@@ -136,7 +191,16 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
         // -----------------------------
         // DEBUG OUTPUT
         // -----------------------------
-        println("ROC p=${delong.pOneSided} → ${if (rocPass) "PASS" else "FAIL"}")
+        if (isLevel1) {
+            println(
+                "Level-1 random AUC test: auc=${"%.4f".format(auc)} " +
+                        "raw p=${"%.4g".format(randomAucP)} " +
+                        "adj p=${"%.4g".format(randomAucAdjustedP)} → " +
+                        if (rocPass) "PASS" else "FAIL"
+            )
+        } else {
+            println("ROC p=${delong!!.pOneSided} → ${if (rocPass) "PASS" else "FAIL"}")
+        }
 
         if (distFinal != null) {
             println(

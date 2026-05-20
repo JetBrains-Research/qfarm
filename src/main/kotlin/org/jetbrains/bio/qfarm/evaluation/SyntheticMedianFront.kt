@@ -20,7 +20,18 @@ object MedianFront {
     lateinit var scoredFront: ScoredFront
     lateinit var datasetWithHeader: DatasetWithHeader
     var auc: Double = Double.NaN
+}
+
+object RandomAucBaseline {
+    lateinit var aucs: List<Double>
     var initialized: Boolean = false
+
+    fun requireReady() {
+        require(::aucs.isInitialized && aucs.isNotEmpty()) {
+            "Level1RandomAucBaseline was not initialized. " +
+                    "Call generateLevel1RandomAucBaseline(...) before tree traversal or reconstruction."
+        }
+    }
 }
 
 data class SyntheticResult(
@@ -29,14 +40,14 @@ data class SyntheticResult(
     val dataset: DatasetWithHeader
 )
 
-fun generateMedianFront(
+fun generateRandomAucBaseline(
     nColumns: Int = 50   // 50 is enough in practice
 ) {
-    if (MedianFront.initialized) return
+    if (RandomAucBaseline.initialized) return
 
     val globalStart = System.nanoTime()
 
-    println("Generating median front (parallel)...")
+    println("Generating random AUC baseline (parallel)...")
 
     val baseData = datasetWithHeader.data
     val labels = datasetWithHeader.labels
@@ -127,17 +138,53 @@ fun generateMedianFront(
 
     require(results.isNotEmpty()) { "No valid synthetic fronts generated." }
 
+    // Store full random AUC pool
+    val aucs = results.map { it.auc }
+
     // --- 5. median selection ---
     val sorted = results.sortedBy { it.auc }
     val median = sorted[sorted.size / 2]
 
+    RandomAucBaseline.aucs = aucs
+    RandomAucBaseline.initialized = true
+
     MedianFront.scoredFront = median.front
     MedianFront.datasetWithHeader = median.dataset
     MedianFront.auc = median.auc
-    MedianFront.initialized = true
 
     val totalElapsed = (System.nanoTime() - globalStart) / 1_000_000_000.0
 
-    println("Median front ready: median AUC = %.4f".format(median.auc))
-    println("TOTAL median-front time: %.2fs".format(totalElapsed))
+    val sortedAucs = aucs.sorted()
+    val medianAuc = sortedAucs[sortedAucs.size / 2]
+
+    println(
+        "Level-1 random AUC baseline ready | " +
+                "n=${aucs.size} | " +
+                "median=${"%.4f".format(medianAuc)} | " +
+                "max=${"%.4f".format(aucs.maxOrNull())}"
+    )
+
+    println("TOTAL level-1 random-baseline time: %.2fs".format(totalElapsed))
+}
+
+fun empiricalAucPValueGreater(
+    observedAuc: Double,
+    randomAucs: List<Double>
+): Double {
+    require(randomAucs.isNotEmpty()) {
+        "Random AUC baseline must not be empty."
+    }
+
+    val greaterOrEqual = randomAucs.count { it >= observedAuc }
+
+    // TODO: yes, but if perfect, then 1/51 = 0.0196, so wtf...
+    return (greaterOrEqual + 1.0) / (randomAucs.size + 1.0)
+}
+
+fun bonferroniCorrect(
+    rawP: Double,
+    nTests: Int
+): Double {
+    require(nTests > 0) { "nTests must be > 0" }
+    return (rawP * nTests).coerceAtMost(1.0)
 }

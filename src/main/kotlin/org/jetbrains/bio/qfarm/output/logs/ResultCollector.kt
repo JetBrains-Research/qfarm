@@ -87,7 +87,7 @@ fun recordStep(
         "deltaArea" to deltaArea,
         "totalArea" to totalArea,
         "pValue" to deLong?.pOneSided,
-        "auc" to deLong?.auc2
+        "auc" to (deLong?.auc2 ?: meta["auc"])
     )
 
     // ------------------------------------------------------------
