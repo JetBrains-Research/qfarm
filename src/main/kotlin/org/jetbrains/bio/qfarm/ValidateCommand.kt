@@ -2,6 +2,8 @@ package org.jetbrains.bio.qfarm
 
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
+import com.github.ajalt.clikt.parameters.types.double
+import com.github.ajalt.clikt.parameters.types.int
 import org.jetbrains.bio.qfarm.util.hp
 import org.jetbrains.bio.qfarm.util.validate.loadRulesJson
 
@@ -17,6 +19,11 @@ class ValidateCommand : CliktCommand(name = "validate") {
         "--rules",
         help = "path to rules file (.jsonl)"
     ).required()
+
+    private val minSupportOpt by option("--min-support").int()
+    private val maxSupportOpt by option("--max-support").int()
+
+    private val spearmanThresholdOpt by option("--spearman-threshold").double()
 
     override fun run() {
 
@@ -37,7 +44,10 @@ class ValidateCommand : CliktCommand(name = "validate") {
 
         hp = hpFromJson.copy(
             dataPath = dataPath,
-            rightAttribute = rhsName
+            rightAttribute = rhsName,
+            minSupport = minSupportOpt ?: hpFromJson.minSupport,
+            maxSupport = maxSupportOpt ?: hpFromJson.maxSupport,
+            spearmanThreshold = spearmanThresholdOpt ?: hpFromJson.spearmanThreshold
         )
 
         // 3. Init environment (NEW dataset, SAME RHS)

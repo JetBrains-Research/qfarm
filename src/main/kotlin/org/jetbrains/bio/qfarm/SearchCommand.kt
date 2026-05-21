@@ -4,6 +4,7 @@ import org.jetbrains.bio.qfarm.util.hp
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
+import org.jetbrains.bio.qfarm.util.RocComparisonMode
 
 class SearchCommand : CliktCommand(name = "search") {
 
@@ -51,6 +52,15 @@ class SearchCommand : CliktCommand(name = "search") {
     private val stdMutationOpt by option("--std-mutation").double()
 
     private val alphaThresholdOpt by option("--alpha-threshold").double()
+
+    private val maxWidthOpt by option("--max-width").double()
+
+    private val rocComparisonOpt by option(
+        "--roc-comp",
+        help = "ROC comparison mode: child or child-plus-parent"
+    )
+
+    private val randomAucBaselineColumnsOpt by option("--rand-auc-cols").int()
 
     override fun run() {
 
@@ -109,6 +119,11 @@ class SearchCommand : CliktCommand(name = "search") {
 
             // threshold
             alphaThreshold = alphaThresholdOpt ?: hp.alphaThreshold,
+            maxWidth = maxWidthOpt ?: hp.maxWidth,
+            rocComparison = parseRocComparisonMode(rocComparisonOpt)
+                ?: hp.rocComparison,
+            randomAucBaselineColumns =
+                randomAucBaselineColumnsOpt ?: hp.randomAucBaselineColumns,
 
             // misc
             excludedColumns = excludedColumnsOpt ?: hp.excludedColumns,
@@ -116,7 +131,7 @@ class SearchCommand : CliktCommand(name = "search") {
 
             // required
             dataPath = dataPath,
-            rightAttribute = rhsName
+            rightAttribute = rhsName,
         )
 
         // ===== INIT =====
@@ -166,5 +181,23 @@ class SearchCommand : CliktCommand(name = "search") {
         require(a <= b) { "Lower percentile must be <= upper" }
 
         return a to b
+    }
+
+    fun parseRocComparisonMode(value: String?): RocComparisonMode? {
+        return when (value?.lowercase()) {
+            null -> null
+
+            "c", "child" ->
+                RocComparisonMode.CHILD
+
+            "cp", "child-parent", "child-plus-parent", "child+parent", "both" ->
+                RocComparisonMode.CHILD_PLUS_PARENT
+
+            else -> error(
+                "Invalid --roc '$value'. Use one of: c, cp\n" +
+                        "  c  = child only\n" +
+                        "  cp = child plus parent"
+            )
+        }
     }
 }

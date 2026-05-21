@@ -132,7 +132,7 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
             smoothedSpearmanPerNode(
                 oldLabel = row.label,
                 newLabel = node.label,
-                threshold = 0.20,
+                threshold = hp.spearmanThreshold,
                 sigma = 1.0,
                 radius = 2
             )

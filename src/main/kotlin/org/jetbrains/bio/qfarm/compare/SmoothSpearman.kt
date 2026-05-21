@@ -1,14 +1,14 @@
 package org.jetbrains.bio.qfarm.compare
 
+import org.jetbrains.bio.qfarm.util.hp
 import kotlin.math.exp
 import kotlin.math.sqrt
 
 const val N_BINS = 20
-const val SMOOTHED_SPEARMAN_THRESHOLD = 0.20
 
 data class SmoothedSpearmanResult(
     val distance: Double,
-    val threshold: Double = SMOOTHED_SPEARMAN_THRESHOLD
+    val threshold: Double = hp.spearmanThreshold
 ) {
     val pass: Boolean
         get() = distance < threshold
@@ -140,7 +140,7 @@ fun smoothedSpearmanDistance(
 fun smoothedSpearmanPerNode(
     oldLabel: String?,
     newLabel: String?,
-    threshold: Double = SMOOTHED_SPEARMAN_THRESHOLD,
+    threshold: Double = hp.spearmanThreshold,
     sigma: Double = 1.0,
     radius: Int = 2
 ): SmoothedSpearmanResult {
