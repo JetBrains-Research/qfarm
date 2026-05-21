@@ -169,10 +169,30 @@ Standard deviation controlling mutation magnitude.
 
 ---
 
-### Thresholds
+### Statistical validation
 
 `--alpha-threshold`  
-Statistical significance threshold (e.g., for p-value filtering). 
+Statistical significance threshold.
+
+`--roc`  
+ROC comparison mode.
+
+Allowed values:
+
+```text
+c   = child only
+cp  = child plus parent
+```
+
+Examples:
+
+```bash
+--roc c
+--roc cp
+```
+
+`--rand-auc-cols`  
+Number of synthetic random columns used to generate the level-1 empirical AUC baseline.
 
 ---
 
@@ -186,6 +206,8 @@ java -jar qfarm.jar search \
   --max-depth 3 \
   --max-children 2 \
   --max-first-children 10 \
+  --roc cp \
+  --rand-auc-cols 100 \
   --evo-cheap-pop 100 \
   --evo-cheap-gen 100 \
   --evo-full-pop 500 \
@@ -221,6 +243,15 @@ Path to dataset used for validation.
 `--rules` (required)  
 Path to the JSONL file containing rules generated from a previous run.
 
+`--min-support`  
+Override minimum support during validation/reconstruction.
+
+`--max-support`  
+Override maximum support during validation/reconstruction.
+
+`--spearman-threshold`  
+Threshold for smoothed Spearman distance validation during reconstruction.
+
 ---
 
 ## Example
@@ -228,7 +259,10 @@ Path to the JSONL file containing rules generated from a previous run.
 ```bash
 java -jar build/libs/qfarm-0.1.build.jar validate \
   --data data.csv \
-  --rules /path/to/previous_run/log.jsonl
+  --rules /path/to/previous_run/log.jsonl \
+  --min-support 5 \
+  --max-support 500 \
+  --spearman-threshold 0.20
 ```
 
 # 🧠 Notes
