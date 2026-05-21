@@ -174,7 +174,7 @@ Standard deviation controlling mutation magnitude.
 `--alpha-threshold`  
 Statistical significance threshold.
 
-`--roc`  
+`--roc-comp`  
 ROC comparison mode.
 
 Allowed values:
@@ -187,8 +187,8 @@ cp  = child plus parent
 Examples:
 
 ```bash
---roc c
---roc cp
+--roc-comp c
+--roc-comp cp
 ```
 
 `--rand-auc-cols`  
@@ -206,7 +206,7 @@ java -jar qfarm.jar search \
   --max-depth 3 \
   --max-children 2 \
   --max-first-children 10 \
-  --roc cp \
+  --roc-comp cp \
   --rand-auc-cols 100 \
   --evo-cheap-pop 100 \
   --evo-cheap-gen 100 \
