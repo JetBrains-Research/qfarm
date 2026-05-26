@@ -9,6 +9,9 @@ import org.jetbrains.letsPlot.label.xlab
 import org.jetbrains.letsPlot.label.ylab
 import org.jetbrains.letsPlot.letsPlot
 import org.jetbrains.letsPlot.scale.scaleColorManual
+import org.jetbrains.letsPlot.geom.geomHistogram
+import org.jetbrains.letsPlot.geom.geomVLine
+import org.jetbrains.letsPlot.label.labs
 
 
 fun buildROCPlot(
@@ -27,7 +30,7 @@ fun buildROCPlot(
             scaleColorManual(breaks = breaks, values = palette) +
             ggsize(PLOT_WIDTH, PLOT_HEIGHT)
 
-    series.forEachIndexed { i, (name, scores) ->
+    series.forEachIndexed { _, (name, scores) ->
 
         val roc = computeROC(labels, scores)
 
@@ -61,4 +64,43 @@ fun buildROCPlot(
     }
 
     return plot
+}
+
+fun buildRandomAucDistributionPlot(
+    randomAucs: List<Double>,
+    observedAuc: Double,
+    title: String
+): Plot {
+    require(randomAucs.isNotEmpty()) {
+        "Random AUC baseline is empty."
+    }
+
+    val data = mapOf(
+        "auc" to randomAucs
+    )
+
+    return letsPlot(data) {
+        x = "auc"
+    } +
+            geomHistogram(
+                bins = 20,
+                alpha = 0.75,
+                fill = "#4C78A8",
+                color = "#2F4B7C"
+            ) +
+            geomVLine(
+                xintercept = observedAuc,
+                linetype = "dashed",
+                size = 1.5,
+                color = "#F28E2B"
+            ) +
+            ggtitle(
+                "$title\n" +
+                        "Blue histogram = random baseline AUCs | " +
+                        "Orange dashed line = observed child AUC"
+            ) +
+            labs(
+                x = "AUC",
+                y = "Count"
+            )
 }

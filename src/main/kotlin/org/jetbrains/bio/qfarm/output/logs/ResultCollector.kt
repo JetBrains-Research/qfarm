@@ -109,7 +109,8 @@ fun recordStep(
         childScoredFront = scoredFront,
         attrs = prefix + addition,
         deLong = deLong,
-        title = title
+        title = title,
+        meta = enrichedMeta
     )
 
     if (rendered != null) {
