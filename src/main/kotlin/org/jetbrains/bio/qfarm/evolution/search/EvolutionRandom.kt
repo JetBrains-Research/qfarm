@@ -4,13 +4,13 @@ import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
-import org.jetbrains.bio.qfarm.util.BLUE
+import org.jetbrains.bio.qfarm.params.BLUE
 import org.jetbrains.bio.qfarm.GLOBAL_ENV
 import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.runEvolution
-import org.jetbrains.bio.qfarm.util.RESET
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.RESET
+import org.jetbrains.bio.qfarm.params.hp
 
 
 fun topAttribute(

@@ -9,7 +9,7 @@ import org.jetbrains.bio.qfarm.output.tree.RULE_TREE_ROOT
 import org.jetbrains.bio.qfarm.output.tree.exportLeafRules
 import org.jetbrains.bio.qfarm.output.tree.toDOTFromTrie
 import org.jetbrains.bio.qfarm.output.validate.writeTxtValidated
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.validate.LoadedRulesFile
 import java.io.File
 

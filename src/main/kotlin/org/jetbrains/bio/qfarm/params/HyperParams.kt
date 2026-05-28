@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.util
+package org.jetbrains.bio.qfarm.params
 
 import kotlinx.serialization.Serializable
 
@@ -27,7 +27,7 @@ data class HyperParameters(
     // SIGNIFICANCE PARAMS
     val alphaThreshold: Double = 0.05,
     val rocComparison: RocComparisonMode = RocComparisonMode.CHILD_PLUS_PARENT,
-    val randomAucBaselineColumns: Int = 100,
+    val randomAucBaselineColumns: Int = 1000,
     val spearmanThreshold: Double = 0.20,
 
     // DATASET CHARACTERISTICS

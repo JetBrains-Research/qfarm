@@ -9,8 +9,8 @@ import org.jetbrains.bio.qfarm.evolution.cheapTopRange
 import org.jetbrains.bio.qfarm.rightAttrIndex
 import org.jetbrains.bio.qfarm.statistics.delong.AUC
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
-import org.jetbrains.bio.qfarm.util.RED
-import org.jetbrains.bio.qfarm.util.RESET
+import org.jetbrains.bio.qfarm.params.RED
+import org.jetbrains.bio.qfarm.params.RESET
 
 
 data class CheapCandidate(

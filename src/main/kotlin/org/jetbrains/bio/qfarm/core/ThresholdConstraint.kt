@@ -6,7 +6,7 @@ import io.jenetics.engine.Constraint
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.Factory
 import org.jetbrains.bio.qfarm.datasetWithHeader
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 
 /**
  * Fast constraint that enforces min/max support on the antecedent (X) only.

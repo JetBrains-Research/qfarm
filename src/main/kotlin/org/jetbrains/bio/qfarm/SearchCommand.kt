@@ -1,10 +1,10 @@
 package org.jetbrains.bio.qfarm
 
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
-import org.jetbrains.bio.qfarm.util.RocComparisonMode
+import org.jetbrains.bio.qfarm.params.RocComparisonMode
 
 class SearchCommand : CliktCommand(name = "search") {
 

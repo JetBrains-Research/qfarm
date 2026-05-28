@@ -5,7 +5,7 @@ import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.core.AttributeGene
-import org.jetbrains.bio.qfarm.evaluation.MedianFront
+import org.jetbrains.bio.qfarm.evaluation.random.MedianFront
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeRow
 import org.jetbrains.bio.qfarm.util.readLHS

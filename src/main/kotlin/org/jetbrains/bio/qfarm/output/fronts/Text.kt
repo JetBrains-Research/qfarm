@@ -1,7 +1,7 @@
 package org.jetbrains.bio.qfarm.output.fronts
 
 import org.jetbrains.bio.qfarm.rightGene
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import java.io.File
 import kotlin.math.roundToInt
 

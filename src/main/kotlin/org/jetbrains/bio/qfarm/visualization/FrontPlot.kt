@@ -1,10 +1,9 @@
 package org.jetbrains.bio.qfarm.visualization
 
-import org.jetbrains.bio.qfarm.evaluation.MedianFront
-import org.jetbrains.bio.qfarm.util.RESET
-import org.jetbrains.bio.qfarm.util.YELLOW
+import org.jetbrains.bio.qfarm.params.RESET
+import org.jetbrains.bio.qfarm.params.YELLOW
 import org.jetbrains.bio.qfarm.datasetWithHeader
-import org.jetbrains.bio.qfarm.evaluation.RandomAucBaseline
+import org.jetbrains.bio.qfarm.evaluation.random.RandomAucBaseline
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.evaluation.toPFSeries
 import org.jetbrains.bio.qfarm.statistics.delong.AUC
@@ -31,23 +30,14 @@ fun renderFrontPlots(
         val hasRealParent =
             parentScoredFront?.front != null && !parentScoredFront.front.isEmpty
 
-        val effectiveParentFront = if (hasRealParent) {
-            parentScoredFront!!.front
-        } else {
-            MedianFront.scoredFront.front
-        }
+        val parentName = if (hasRealParent) "Parent" else null
 
-        val parentDataset = if (hasRealParent) {
-            datasetWithHeader
-        } else {
-            MedianFront.datasetWithHeader
-        }
-
-        val parentName = if (hasRealParent) "Parent" else "Median"
-
-        // ---------- PF plot ----------
+// ---------- PF plot ----------
         val pfSeries = buildList {
-            add(toPFSeries(effectiveParentFront, parentName, parentDataset))
+            if (hasRealParent) {
+                add(toPFSeries(parentScoredFront!!.front, "Parent", datasetWithHeader))
+            }
+
             add(toPFSeries(childScoredFront.front, "Child"))
         }
 
@@ -99,7 +89,7 @@ fun renderFrontPlots(
             val effectiveParentScores = parentScoredFront!!.scores
 
             val rocSeries: List<Pair<String, DoubleArray>> = buildList {
-                add(parentName to effectiveParentScores)
+                add("Parent" to effectiveParentScores)
                 add("Child" to childScoredFront.scores)
             }
 

@@ -2,8 +2,8 @@ package org.jetbrains.bio.qfarm.visualization
 
 import org.jetbrains.bio.qfarm.OUTPUT
 import org.jetbrains.bio.qfarm.columnNames
-import org.jetbrains.bio.qfarm.util.RESET
-import org.jetbrains.bio.qfarm.util.YELLOW
+import org.jetbrains.bio.qfarm.params.RESET
+import org.jetbrains.bio.qfarm.params.YELLOW
 import org.jetbrains.letsPlot.export.ggsave
 import org.jetbrains.letsPlot.intern.Plot
 import java.io.File
@@ -36,7 +36,7 @@ fun buildPalette(seriesNames: List<String>): Pair<List<String>, List<String>> {
         0 -> emptyList()
         1 -> listOf("#1f77b4")
         2 -> listOf("#1f77b4", "#ff7f0e")
-        else -> (0 until seriesNames.size).map { i ->
+        else -> seriesNames.indices.map { i ->
             "hsl(${(360.0 / seriesNames.size * i).toInt()},70%,50%)"
         }
     }

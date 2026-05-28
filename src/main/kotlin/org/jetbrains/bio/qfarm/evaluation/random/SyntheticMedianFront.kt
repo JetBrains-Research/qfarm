@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.evaluation
+package org.jetbrains.bio.qfarm.evaluation.random
 
 import org.jetbrains.bio.qfarm.bounds
 import org.jetbrains.bio.qfarm.columnNames
@@ -42,8 +42,8 @@ data class SyntheticResult(
 
 fun generateRandomAucBaseline(
     nColumns: Int = 50   // 50 is enough in practice
-) {
-    if (RandomAucBaseline.initialized) return
+): List<Double> {
+    if (RandomAucBaseline.initialized) return emptyList()
 
     val globalStart = System.nanoTime()
 
@@ -145,7 +145,7 @@ fun generateRandomAucBaseline(
     val sorted = results.sortedBy { it.auc }
     val median = sorted[sorted.size / 2]
 
-    RandomAucBaseline.aucs = aucs
+//    RandomAucBaseline.aucs = aucs
     RandomAucBaseline.initialized = true
 
     MedianFront.scoredFront = median.front
@@ -165,6 +165,8 @@ fun generateRandomAucBaseline(
     )
 
     println("TOTAL level-1 random-baseline time: %.2fs".format(totalElapsed))
+
+    return aucs
 }
 
 fun empiricalAucPValueGreater(

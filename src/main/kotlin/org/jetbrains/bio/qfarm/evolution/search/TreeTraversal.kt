@@ -1,14 +1,14 @@
 package org.jetbrains.bio.qfarm.evolution.search
 
-import org.jetbrains.bio.qfarm.util.RED
-import org.jetbrains.bio.qfarm.util.RESET
+import org.jetbrains.bio.qfarm.params.RED
+import org.jetbrains.bio.qfarm.params.RESET
 import org.jetbrains.bio.qfarm.TOPRULES
-import org.jetbrains.bio.qfarm.util.YELLOW
+import org.jetbrains.bio.qfarm.params.YELLOW
 import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.output.logs.recordStep
-import org.jetbrains.bio.qfarm.util.CYAN
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.CYAN
+import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.readLHS
 
 

@@ -4,6 +4,9 @@ import io.jenetics.Genotype
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.core.RuleSideChromosome
+import org.jetbrains.bio.qfarm.params.BLUE
+import org.jetbrains.bio.qfarm.params.RESET
+import org.jetbrains.bio.qfarm.params.YELLOW
 import kotlin.String
 import kotlin.collections.List
 import kotlin.math.roundToInt

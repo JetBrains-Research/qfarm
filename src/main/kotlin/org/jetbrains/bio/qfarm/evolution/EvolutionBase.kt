@@ -17,7 +17,7 @@ import org.jetbrains.bio.qfarm.core.createGenotypeFactory
 import org.jetbrains.bio.qfarm.core.createIndexPool
 import org.jetbrains.bio.qfarm.core.normalizeSeedGenotype
 import org.jetbrains.bio.qfarm.evaluation.evaluateRule
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.paretoFrontOf
 
 /**

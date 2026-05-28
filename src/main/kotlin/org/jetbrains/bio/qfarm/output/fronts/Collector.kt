@@ -2,7 +2,7 @@ package org.jetbrains.bio.qfarm.output.fronts
 
 import org.jetbrains.bio.qfarm.output.tree.RuleTreeNode
 import org.jetbrains.bio.qfarm.rightGene
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import kotlin.collections.component1
 import kotlin.collections.component2
 

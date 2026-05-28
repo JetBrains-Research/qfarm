@@ -2,7 +2,6 @@ package org.jetbrains.bio.qfarm
 
 import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.core.AttributeGene
-import org.jetbrains.bio.qfarm.evaluation.generateRandomAucBaseline
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
@@ -13,7 +12,7 @@ import org.jetbrains.bio.qfarm.util.computeBoundsFromSorted
 import org.jetbrains.bio.qfarm.util.computeLabelsFast
 import org.jetbrains.bio.qfarm.util.computeSortedColumns
 import org.jetbrains.bio.qfarm.util.cumulativePercentage
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.loadNumericDataset
 import org.jetbrains.bio.qfarm.util.printFirstRows
 import org.jetbrains.bio.qfarm.util.removeRowsWithNaNRHS
@@ -132,7 +131,5 @@ fun initEnvironment(
         percentileProvider = percentileProvider,
         rightAttrIndex = rightAttrIndex
     )
-
-    generateRandomAucBaseline(nColumns = hp.randomAucBaselineColumns)
 
 }

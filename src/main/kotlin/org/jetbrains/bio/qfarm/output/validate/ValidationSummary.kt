@@ -11,7 +11,7 @@ import org.jetbrains.bio.qfarm.output.fronts.pad
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeRow
 import org.jetbrains.bio.qfarm.output.tree.RuleTreeNode
 import org.jetbrains.bio.qfarm.rightGene
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import java.io.File
 import kotlin.math.roundToInt
 

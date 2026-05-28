@@ -7,8 +7,8 @@ import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.core.RuleSideChromosome
 import org.jetbrains.bio.qfarm.evaluation.averageVerticalDistance
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
-import org.jetbrains.bio.qfarm.util.RED
-import org.jetbrains.bio.qfarm.util.RESET
+import org.jetbrains.bio.qfarm.params.RED
+import org.jetbrains.bio.qfarm.params.RESET
 
 /* -------------------------- Case: NO parent front -------------------------- */
 

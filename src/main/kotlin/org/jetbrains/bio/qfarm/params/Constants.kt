@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.util
+package org.jetbrains.bio.qfarm.params
 
 const val RED = "\u001B[31m"
 const val RESET = "\u001B[0m"

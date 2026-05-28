@@ -4,9 +4,9 @@ import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.compare.extractBarsFromLabel
 import org.jetbrains.bio.qfarm.compare.smoothedSpearmanPerNode
 import org.jetbrains.bio.qfarm.datasetWithHeader
-import org.jetbrains.bio.qfarm.evaluation.RandomAucBaseline
-import org.jetbrains.bio.qfarm.evaluation.bonferroniCorrect
-import org.jetbrains.bio.qfarm.evaluation.empiricalAucPValueGreater
+import org.jetbrains.bio.qfarm.evaluation.random.RandomAucBaseline
+import org.jetbrains.bio.qfarm.evaluation.random.bonferroniCorrect
+import org.jetbrains.bio.qfarm.evaluation.random.empiricalAucPValueGreater
 import org.jetbrains.bio.qfarm.evaluation.frontDistance
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.evolution.fullTopRange
@@ -14,9 +14,9 @@ import org.jetbrains.bio.qfarm.output.logs.RuleTreeRow
 import org.jetbrains.bio.qfarm.output.logs.recordStep
 import org.jetbrains.bio.qfarm.statistics.delong.AUC
 import org.jetbrains.bio.qfarm.statistics.delong.DeLong
-import org.jetbrains.bio.qfarm.util.CYAN
-import org.jetbrains.bio.qfarm.util.RESET
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.CYAN
+import org.jetbrains.bio.qfarm.params.RESET
+import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.readLHS
 
 fun reevaluateTree(rows: List<RuleTreeRow>) {

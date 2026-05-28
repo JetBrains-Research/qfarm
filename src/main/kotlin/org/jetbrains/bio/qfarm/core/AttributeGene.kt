@@ -3,7 +3,7 @@ package org.jetbrains.bio.qfarm.core
 import io.jenetics.Gene
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.rand
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import kotlin.math.max
 import kotlin.math.min
 

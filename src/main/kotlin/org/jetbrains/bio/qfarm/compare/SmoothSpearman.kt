@@ -1,6 +1,6 @@
 package org.jetbrains.bio.qfarm.compare
 
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import kotlin.math.exp
 import kotlin.math.sqrt
 

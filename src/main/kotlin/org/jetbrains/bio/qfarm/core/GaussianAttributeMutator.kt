@@ -2,7 +2,7 @@ package org.jetbrains.bio.qfarm.core
 
 import io.jenetics.Mutator
 import io.jenetics.ext.moea.Vec
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import java.util.random.RandomGenerator
 
 class PercentileAttributeMutator(

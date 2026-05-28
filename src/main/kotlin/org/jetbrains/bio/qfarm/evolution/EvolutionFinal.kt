@@ -5,12 +5,12 @@ import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.GLOBAL_ENV
-import org.jetbrains.bio.qfarm.util.PURPLE
-import org.jetbrains.bio.qfarm.util.RESET
-import org.jetbrains.bio.qfarm.util.YELLOW
+import org.jetbrains.bio.qfarm.params.PURPLE
+import org.jetbrains.bio.qfarm.params.RESET
+import org.jetbrains.bio.qfarm.params.YELLOW
 import org.jetbrains.bio.qfarm.evaluation.computeFrontScores
-import org.jetbrains.bio.qfarm.util.RocComparisonMode
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.RocComparisonMode
+import org.jetbrains.bio.qfarm.params.hp
 
 fun topRange(
     attributes: List<Int>,
