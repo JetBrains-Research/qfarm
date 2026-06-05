@@ -2,6 +2,9 @@ package org.jetbrains.bio.qfarm
 
 import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.core.AttributeGene
+import org.jetbrains.bio.qfarm.evaluation.FeatureBounds
+import org.jetbrains.bio.qfarm.evaluation.IndexedRow
+import org.jetbrains.bio.qfarm.evaluation.LuceneRangeEvaluationOracle
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
@@ -29,6 +32,10 @@ lateinit var bounds: Array<DoubleArray>
 lateinit var percentileProvider: SortedColumnsPercentileProvider
 lateinit var init_cfg: RuleInitConfig
 lateinit var rightGene: AttributeGene
+
+lateinit var ruleEvaluationOracle: LuceneRangeEvaluationOracle
+lateinit var featureBounds: FeatureBounds
+
 var rightAttrIndex: Int = -1
 
 var TOPRULES: MutableList<List<Int>> = mutableListOf()
@@ -123,13 +130,33 @@ fun initEnvironment(
     val positives = datasetWithHeader.labels.sum()
     println("Positive labels: $positives / ${datasetWithHeader.labels.size}")
 
+    featureBounds = FeatureBounds(
+        min = DoubleArray(bounds.size) { i -> bounds[i][0] },
+        max = DoubleArray(bounds.size) { i -> bounds[i][1] }
+    )
+
+    val rows = datasetWithHeader.data.mapIndexed { rowIndex, row ->
+        IndexedRow(
+            rowIndex = rowIndex,
+            coordinates = row,
+            isPositive = datasetWithHeader.labels[rowIndex] == 1
+        )
+    }
+
+    ruleEvaluationOracle = LuceneRangeEvaluationOracle(
+        rows = rows,
+        dims = datasetWithHeader.data.first().size
+    )
+
     GLOBAL_ENV = EvolutionEnvironment(
         datasetWithHeader = datasetWithHeader,
         columnNames = columnNames,
         sortedColumns = sortedColumns,
         bounds = bounds,
         percentileProvider = percentileProvider,
-        rightAttrIndex = rightAttrIndex
+        rightAttrIndex = rightAttrIndex,
+        ruleEvaluationOracle = ruleEvaluationOracle,
+        featureBounds = featureBounds
     )
 
 }

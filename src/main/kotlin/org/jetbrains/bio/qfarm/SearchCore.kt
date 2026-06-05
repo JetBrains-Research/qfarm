@@ -3,7 +3,6 @@ package org.jetbrains.bio.qfarm
 import org.jetbrains.bio.qfarm.evaluation.random.RandomAucBaseline
 import org.jetbrains.bio.qfarm.evaluation.random.buildAucBaselineComparisonPlot
 import org.jetbrains.bio.qfarm.evaluation.random.generateAnalyticalRandomAucBaseline
-import org.jetbrains.bio.qfarm.evaluation.random.generateRandomAucBaseline
 import org.jetbrains.bio.qfarm.evolution.search.treeTraversal
 import org.jetbrains.bio.qfarm.output.OutputManager
 import org.jetbrains.bio.qfarm.output.logs.RHS

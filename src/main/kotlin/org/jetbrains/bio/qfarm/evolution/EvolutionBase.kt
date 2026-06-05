@@ -47,7 +47,7 @@ fun runEvolution(
     val genotypeFactory = createGenotypeFactory(cfg, indexPool)
 
     val fitness: (Genotype<AttributeGene>) -> Vec<DoubleArray> = { gt ->
-        Vec.of(*evaluateRule(gt, env.datasetWithHeader))
+        Vec.of(*evaluateRule(gt, env.ruleEvaluationOracle))
     }
 
     val engine = Engine

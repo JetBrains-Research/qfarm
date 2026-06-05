@@ -47,6 +47,8 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     jmh("org.openjdk.jmh:jmh-core:1.37")
     jmh("org.openjdk.jmh:jmh-generator-annprocess:1.37")
+    implementation("org.apache.lucene:lucene-core:9.12.2")
+    implementation("org.apache.lucene:lucene-analysis-common:9.12.2")
 
 }
 
