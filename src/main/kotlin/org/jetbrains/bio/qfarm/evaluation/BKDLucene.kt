@@ -3,16 +3,16 @@ package org.jetbrains.bio.qfarm.evaluation
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.DoublePoint
-import org.apache.lucene.document.Field
-import org.apache.lucene.document.StringField
+import org.apache.lucene.document.NumericDocValuesField
 import org.apache.lucene.index.DirectoryReader
+import org.apache.lucene.index.DocValues
 import org.apache.lucene.index.IndexWriter
 import org.apache.lucene.index.IndexWriterConfig
-import org.apache.lucene.index.Term
-import org.apache.lucene.search.BooleanClause
-import org.apache.lucene.search.BooleanQuery
+import org.apache.lucene.index.LeafReaderContext
+import org.apache.lucene.index.NumericDocValues
 import org.apache.lucene.search.IndexSearcher
-import org.apache.lucene.search.TermQuery
+import org.apache.lucene.search.ScoreMode
+import org.apache.lucene.search.SimpleCollector
 import org.apache.lucene.store.ByteBuffersDirectory
 import org.apache.lucene.store.Directory
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
@@ -73,9 +73,7 @@ class LuceneRangeEvaluationOracle(
 
     companion object {
         private const val FEATURES_FIELD = "features"
-        private const val POSITIVE_FIELD = "positive"
-        private const val POSITIVE_VALUE = "1"
-        private const val NEGATIVE_VALUE = "0"
+        private const val POSITIVE_DV_FIELD = "positive_dv"
 
         fun fromDataset(
             dataset: DatasetWithHeader,
@@ -110,6 +108,10 @@ class LuceneRangeEvaluationOracle(
             "attributes must not be empty"
         }
 
+        require(attributes.distinct().size == attributes.size) {
+            "attributes must not contain duplicates: $attributes"
+        }
+
         require(attributes.size <= 8) {
             "Lucene multidimensional DoublePoint supports at most 8 dimensions; got ${attributes.size}"
         }
@@ -136,10 +138,9 @@ class LuceneRangeEvaluationOracle(
                 doc.add(DoublePoint(FEATURES_FIELD, *localCoordinates))
 
                 doc.add(
-                    StringField(
-                        POSITIVE_FIELD,
-                        if (row.isPositive) POSITIVE_VALUE else NEGATIVE_VALUE,
-                        Field.Store.NO
+                    NumericDocValuesField(
+                        POSITIVE_DV_FIELD,
+                        if (row.isPositive) 1L else 0L
                     )
                 )
 
@@ -167,17 +168,38 @@ class LuceneRangeEvaluationOracle(
             rectangle.max
         )
 
-        val support = searcher.count(rangeQuery)
+        var support = 0
+        var positiveCount = 0
 
-        val positiveQuery = BooleanQuery.Builder()
-            .add(rangeQuery, BooleanClause.Occur.FILTER)
-            .add(
-                TermQuery(Term(POSITIVE_FIELD, POSITIVE_VALUE)),
-                BooleanClause.Occur.FILTER
-            )
-            .build()
+        searcher.search(
+            rangeQuery,
+            object : SimpleCollector() {
 
-        val positiveCount = searcher.count(positiveQuery)
+                private lateinit var positiveValues: NumericDocValues
+
+                override fun doSetNextReader(context: LeafReaderContext) {
+                    positiveValues = DocValues.getNumeric(
+                        context.reader(),
+                        POSITIVE_DV_FIELD
+                    )
+                }
+
+                override fun collect(doc: Int) {
+                    support++
+
+                    if (
+                        positiveValues.advanceExact(doc) &&
+                        positiveValues.longValue() == 1L
+                    ) {
+                        positiveCount++
+                    }
+                }
+
+                override fun scoreMode(): ScoreMode {
+                    return ScoreMode.COMPLETE_NO_SCORES
+                }
+            }
+        )
 
         return RuleStats(
             support = support,
