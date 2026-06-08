@@ -16,6 +16,7 @@ import org.jetbrains.bio.qfarm.core.SupportThresholdConstraint
 import org.jetbrains.bio.qfarm.core.createGenotypeFactory
 import org.jetbrains.bio.qfarm.core.createIndexPool
 import org.jetbrains.bio.qfarm.core.normalizeSeedGenotype
+import org.jetbrains.bio.qfarm.evaluation.LuceneRangeEvaluationOracle
 import org.jetbrains.bio.qfarm.evaluation.evaluateRule
 import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.paretoFrontOf
@@ -30,7 +31,8 @@ fun runEvolution(
     popSize: Int = hp.popSizeCheap,
     generationCount: Int = hp.maxGenCheap,
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of(),
-    env: EvolutionEnvironment = GLOBAL_ENV
+    env: EvolutionEnvironment = GLOBAL_ENV,
+    oracle: LuceneRangeEvaluationOracle
 ): ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> {
 
 //  Build the config:
@@ -47,7 +49,7 @@ fun runEvolution(
     val genotypeFactory = createGenotypeFactory(cfg, indexPool)
 
     val fitness: (Genotype<AttributeGene>) -> Vec<DoubleArray> = { gt ->
-        Vec.of(*evaluateRule(gt, env.ruleEvaluationOracle))
+        Vec.of(*evaluateRule(gt, oracle, env.bounds))
     }
 
     val engine = Engine

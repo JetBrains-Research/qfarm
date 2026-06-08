@@ -4,7 +4,6 @@ import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
-import org.jetbrains.bio.qfarm.evaluation.FeatureBounds
 import org.jetbrains.bio.qfarm.evaluation.LuceneRangeEvaluationOracle
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.rand
@@ -15,10 +14,7 @@ data class EvolutionEnvironment(
     val sortedColumns: List<DoubleArray>,
     val bounds: Array<DoubleArray>,
     val percentileProvider: SortedColumnsPercentileProvider,
-    val rightAttrIndex: Int,
-
-    val ruleEvaluationOracle: LuceneRangeEvaluationOracle,
-    val featureBounds: FeatureBounds
+    val rightAttrIndex: Int
 )
 
 data class ScoredFront(

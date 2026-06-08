@@ -1,41 +1,48 @@
 package org.jetbrains.bio.qfarm.evaluation
 
 import io.jenetics.Genotype
-import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.core.RuleSideChromosome
-import org.jetbrains.bio.qfarm.datasetWithHeader
 
 fun evaluateRule(
     genotype: Genotype<AttributeGene>,
-    oracle: LuceneRangeEvaluationOracle
+    oracle: LuceneRangeEvaluationOracle,
+    globalBounds: Array<DoubleArray>
 ): DoubleArray {
 
     val lhs = genotype[0] as RuleSideChromosome
 
-    val indices = mutableListOf<Int>()
-    val lows = mutableListOf<Double>()
-    val ups = mutableListOf<Double>()
+    val min = DoubleArray(oracle.dims)
+    val max = DoubleArray(oracle.dims)
+
+    for ((localDim, originalAttrIndex) in oracle.attributes.withIndex()) {
+        min[localDim] = globalBounds[originalAttrIndex][0]
+        max[localDim] = globalBounds[originalAttrIndex][1]
+    }
+
+    var hasActiveGene = false
 
     for (i in 0 until lhs.length()) {
         val g = lhs[i]
 
         if (!g.isDefault) {
-            indices += g.attributeIndex
-            lows += g.lowerBound
-            ups += g.upperBound
+            hasActiveGene = true
+
+            val localDim = oracle.localDimensionOf(g.attributeIndex)
+
+            min[localDim] = g.lowerBound
+            max[localDim] = g.upperBound
         }
     }
 
-    if (indices.isEmpty()) {
+    if (!hasActiveGene) {
         return doubleArrayOf(0.0, 0.0)
     }
 
     val stats = oracle.evaluate(
-        HyperRectangle(
-            indices = indices.toIntArray(),
-            min = lows.toDoubleArray(),
-            max = ups.toDoubleArray()
+        LocalHyperRectangle(
+            min = min,
+            max = max
         )
     )
 

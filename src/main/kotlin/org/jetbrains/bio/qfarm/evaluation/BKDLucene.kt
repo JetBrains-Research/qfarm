@@ -15,6 +15,7 @@ import org.apache.lucene.search.IndexSearcher
 import org.apache.lucene.search.TermQuery
 import org.apache.lucene.store.ByteBuffersDirectory
 import org.apache.lucene.store.Directory
+import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import java.io.Closeable
 
 data class IndexedRow(
@@ -23,13 +24,7 @@ data class IndexedRow(
     val isPositive: Boolean
 )
 
-data class FeatureBounds(
-    val min: DoubleArray,
-    val max: DoubleArray
-)
-
-data class HyperRectangle(
-    val indices: IntArray,
+data class LocalHyperRectangle(
     val min: DoubleArray,
     val max: DoubleArray
 ) {
@@ -40,13 +35,16 @@ data class HyperRectangle(
 
         for (i in min.indices) {
             require(min[i] <= max[i]) {
-                "Invalid rectangle at dimension $i: min=${min[i]} > max=${max[i]}"
+                "Invalid rectangle at local dimension $i: min=${min[i]} > max=${max[i]}"
             }
             require(min[i].isFinite() && max[i].isFinite()) {
-                "Rectangle contains NaN or Infinity at dimension $i"
+                "Rectangle contains NaN or Infinity at local dimension $i"
             }
         }
     }
+
+    val dims: Int
+        get() = min.size
 }
 
 data class RuleStats(
@@ -70,25 +68,50 @@ data class RuleStats(
  */
 class LuceneRangeEvaluationOracle(
     rows: List<IndexedRow>,
-    val dims: Int
+    val attributes: List<Int>
 ) : Closeable {
 
     companion object {
-        private const val FEATURE_PREFIX = "feature_"
+        private const val FEATURES_FIELD = "features"
         private const val POSITIVE_FIELD = "positive"
         private const val POSITIVE_VALUE = "1"
         private const val NEGATIVE_VALUE = "0"
 
-        private fun featureField(index: Int): String = "$FEATURE_PREFIX$index"
+        fun fromDataset(
+            dataset: DatasetWithHeader,
+            attributes: List<Int>
+        ): LuceneRangeEvaluationOracle {
+            val rows = dataset.data.mapIndexed { rowIndex, row ->
+                IndexedRow(
+                    rowIndex = rowIndex,
+                    coordinates = row,
+                    isPositive = dataset.labels[rowIndex] == 1
+                )
+            }
+
+            return LuceneRangeEvaluationOracle(
+                rows = rows,
+                attributes = attributes
+            )
+        }
     }
+
+    val dims: Int = attributes.size
+
+    private val attributeToLocalDim: Map<Int, Int> =
+        attributes.withIndex().associate { it.value to it.index }
 
     private val directory: Directory = ByteBuffersDirectory()
     private val reader: DirectoryReader
     private val searcher: IndexSearcher
 
     init {
-        require(dims > 0) {
-            "dims must be positive"
+        require(attributes.isNotEmpty()) {
+            "attributes must not be empty"
+        }
+
+        require(attributes.size <= 8) {
+            "Lucene multidimensional DoublePoint supports at most 8 dimensions; got ${attributes.size}"
         }
 
         val analyzer = KeywordAnalyzer()
@@ -96,24 +119,21 @@ class LuceneRangeEvaluationOracle(
 
         IndexWriter(directory, config).use { writer ->
             for (row in rows) {
-                require(row.coordinates.size == dims) {
-                    "Row ${row.rowIndex} has dimension ${row.coordinates.size}, expected $dims"
-                }
+                val localCoordinates = DoubleArray(dims)
 
-                require(row.coordinates.all { it.isFinite() }) {
-                    "Row ${row.rowIndex} contains NaN or Infinity: ${row.coordinates.contentToString()}"
+                for ((localDim, originalAttrIndex) in attributes.withIndex()) {
+                    val v = row.coordinates[originalAttrIndex]
+
+                    require(v.isFinite()) {
+                        "Row ${row.rowIndex}, attribute $originalAttrIndex contains NaN or Infinity: $v"
+                    }
+
+                    localCoordinates[localDim] = v
                 }
 
                 val doc = Document()
 
-                for (i in 0 until dims) {
-                    doc.add(
-                        DoublePoint(
-                            featureField(i),
-                            row.coordinates[i]
-                        )
-                    )
-                }
+                doc.add(DoublePoint(FEATURES_FIELD, *localCoordinates))
 
                 doc.add(
                     StringField(
@@ -131,23 +151,21 @@ class LuceneRangeEvaluationOracle(
         searcher = IndexSearcher(reader)
     }
 
-    fun evaluate(rectangle: HyperRectangle): RuleStats {
-        val rangeBuilder = BooleanQuery.Builder()
+    fun localDimensionOf(attributeIndex: Int): Int {
+        return attributeToLocalDim[attributeIndex]
+            ?: error("Attribute $attributeIndex is not part of this oracle. Attributes=$attributes")
+    }
 
-        for (j in rectangle.indices.indices) {
-            val attrIndex = rectangle.indices[j]
-
-            rangeBuilder.add(
-                DoublePoint.newRangeQuery(
-                    featureField(attrIndex),
-                    rectangle.min[j],
-                    rectangle.max[j]
-                ),
-                BooleanClause.Occur.FILTER
-            )
+    fun evaluate(rectangle: LocalHyperRectangle): RuleStats {
+        require(rectangle.dims == dims) {
+            "Rectangle has dimension ${rectangle.dims}, expected $dims"
         }
 
-        val rangeQuery = rangeBuilder.build()
+        val rangeQuery = DoublePoint.newRangeQuery(
+            FEATURES_FIELD,
+            rectangle.min,
+            rectangle.max
+        )
 
         val support = searcher.count(rangeQuery)
 
@@ -161,7 +179,10 @@ class LuceneRangeEvaluationOracle(
 
         val positiveCount = searcher.count(positiveQuery)
 
-        return RuleStats(support, positiveCount)
+        return RuleStats(
+            support = support,
+            positiveCount = positiveCount
+        )
     }
 
     override fun close() {
