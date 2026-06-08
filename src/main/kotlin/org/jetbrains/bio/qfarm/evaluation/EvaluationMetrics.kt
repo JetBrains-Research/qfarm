@@ -6,7 +6,7 @@ import org.jetbrains.bio.qfarm.core.RuleSideChromosome
 
 fun evaluateRule(
     genotype: Genotype<AttributeGene>,
-    oracle: LuceneRangeEvaluationOracle,
+    oracle: TinSpinRangeEvaluationOracle,
     globalBounds: Array<DoubleArray>
 ): DoubleArray {
 
@@ -40,7 +40,7 @@ fun evaluateRule(
     }
 
     val stats = oracle.evaluate(
-        LocalHyperRectangle(
+        TinSpinLocalHyperRectangle(
             min = min,
             max = max
         )

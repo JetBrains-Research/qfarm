@@ -5,7 +5,8 @@ import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.GLOBAL_ENV
-import org.jetbrains.bio.qfarm.evaluation.LuceneRangeEvaluationOracle
+import org.jetbrains.bio.qfarm.evaluation.TinSpinIndexKind
+import org.jetbrains.bio.qfarm.evaluation.TinSpinRangeEvaluationOracle
 import org.jetbrains.bio.qfarm.params.PURPLE
 import org.jetbrains.bio.qfarm.params.RESET
 import org.jetbrains.bio.qfarm.params.YELLOW
@@ -27,10 +28,11 @@ fun topRange(
     println("\n${PURPLE}$label : SEARCHING FOR THE BEST RANGE OF ${attributes.map { idx -> env.columnNames[idx]}} ... $RESET")
     require(attributes.isNotEmpty()) { "attributes must not be empty." }
 
-    LuceneRangeEvaluationOracle
+    TinSpinRangeEvaluationOracle
         .fromDataset(
             dataset = env.datasetWithHeader,
-            attributes = attributes
+            attributes = attributes,
+            indexKind = TinSpinIndexKind.KD_TREE
         )
         .use { oracle ->
 

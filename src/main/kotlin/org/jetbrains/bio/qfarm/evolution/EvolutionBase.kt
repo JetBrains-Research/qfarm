@@ -16,7 +16,7 @@ import org.jetbrains.bio.qfarm.core.SupportThresholdConstraint
 import org.jetbrains.bio.qfarm.core.createGenotypeFactory
 import org.jetbrains.bio.qfarm.core.createIndexPool
 import org.jetbrains.bio.qfarm.core.normalizeSeedGenotype
-import org.jetbrains.bio.qfarm.evaluation.LuceneRangeEvaluationOracle
+import org.jetbrains.bio.qfarm.evaluation.TinSpinRangeEvaluationOracle
 import org.jetbrains.bio.qfarm.evaluation.evaluateRule
 import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.paretoFrontOf
@@ -32,7 +32,7 @@ fun runEvolution(
     generationCount: Int = hp.maxGenCheap,
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of(),
     env: EvolutionEnvironment = GLOBAL_ENV,
-    oracle: LuceneRangeEvaluationOracle
+    oracle: TinSpinRangeEvaluationOracle
 ): ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> {
 
 //  Build the config:

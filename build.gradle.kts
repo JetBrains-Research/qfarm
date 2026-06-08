@@ -47,8 +47,7 @@ dependencies {
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-core:1.8.1")
     jmh("org.openjdk.jmh:jmh-core:1.37")
     jmh("org.openjdk.jmh:jmh-generator-annprocess:1.37")
-    implementation("org.apache.lucene:lucene-core:10.4.0")
-    implementation("org.apache.lucene:lucene-analysis-common:10.4.0")
+    implementation("org.tinspin:tinspin-indexes:2.1.3")
 
 }
 
@@ -88,10 +87,6 @@ tasks.register<Copy>("processBuildProperties") {
         }
     }
     sourceSets.main.get().output.resourcesDir?.let { into(it) }
-}
-
-tasks.withType<JavaExec> {
-    jvmArgs("--add-modules", "jdk.incubator.vector")
 }
 
 tasks.jar {

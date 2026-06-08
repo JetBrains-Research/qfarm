@@ -2,8 +2,6 @@ package org.jetbrains.bio.qfarm
 
 import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.core.AttributeGene
-import org.jetbrains.bio.qfarm.evaluation.IndexedRow
-import org.jetbrains.bio.qfarm.evaluation.LuceneRangeEvaluationOracle
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
