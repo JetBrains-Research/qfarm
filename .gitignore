@@ -46,3 +46,6 @@ nbdist/
 .nb-gradle/
 /src/test/resources/
 delong_reference.py
+
+profile.jfr
+profile_last.jfr

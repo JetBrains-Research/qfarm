@@ -1,5 +1,8 @@
 package org.jetbrains.bio.qfarm.evaluation
 
+import io.jenetics.Genotype
+import org.jetbrains.bio.qfarm.core.AttributeGene
+import org.jetbrains.bio.qfarm.core.RuleSideChromosome
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.tinspin.index.PointMap
 import java.io.Closeable
@@ -71,8 +74,18 @@ class TinSpinRangeEvaluationOracle(
 
     val dims: Int = attributes.size
 
-    private val attributeToLocalDim: Map<Int, Int> =
-        attributes.withIndex().associate { it.value to it.index }
+    private val attributeToLocalDim: IntArray = run {
+        val maxAttr = attributes.maxOrNull()
+            ?: error("attributes must not be empty")
+
+        val map = IntArray(maxAttr + 1) { -1 }
+
+        for ((localDim, originalAttrIndex) in attributes.withIndex()) {
+            map[originalAttrIndex] = localDim
+        }
+
+        map
+    }
 
     private val index: PointMap<Boolean> =
         when (indexKind) {
@@ -109,8 +122,17 @@ class TinSpinRangeEvaluationOracle(
     }
 
     fun localDimensionOf(attributeIndex: Int): Int {
-        return attributeToLocalDim[attributeIndex]
-            ?: error("Attribute $attributeIndex is not part of this TinSpin oracle. Attributes=$attributes")
+        if (attributeIndex !in attributeToLocalDim.indices) {
+            error("Attribute $attributeIndex is not part of this TinSpin oracle. Attributes=$attributes")
+        }
+
+        val localDim = attributeToLocalDim[attributeIndex]
+
+        if (localDim < 0) {
+            error("Attribute $attributeIndex is not part of this TinSpin oracle. Attributes=$attributes")
+        }
+
+        return localDim
     }
 
     fun evaluate(rectangle: TinSpinLocalHyperRectangle): TinSpinRuleStats {
@@ -141,6 +163,47 @@ class TinSpinRangeEvaluationOracle(
 
     override fun close() {
         index.clear()
+    }
+
+    fun supportOf(genotype: Genotype<AttributeGene>, globalBounds: Array<DoubleArray>): Int {
+        val lhs = genotype[0] as RuleSideChromosome
+
+        val min = DoubleArray(dims)
+        val max = DoubleArray(dims)
+
+        for ((localDim, originalAttrIndex) in attributes.withIndex()) {
+            min[localDim] = globalBounds[originalAttrIndex][0]
+            max[localDim] = globalBounds[originalAttrIndex][1]
+        }
+
+        var hasActiveGene = false
+
+        for (i in 0 until lhs.length()) {
+            val g = lhs[i]
+
+            if (!g.isDefault) {
+                hasActiveGene = true
+
+                val localDim = localDimensionOf(g.attributeIndex)
+
+                min[localDim] = g.lowerBound
+                max[localDim] = g.upperBound
+            }
+        }
+
+        if (!hasActiveGene) {
+            return 0
+        }
+
+        var support = 0
+        val iterator = index.query(min, max)
+
+        while (iterator.hasNext()) {
+            iterator.next()
+            support++
+        }
+
+        return support
     }
 }
 
