@@ -121,19 +121,8 @@ class TinSpinRangeEvaluationOracle(
         }
     }
 
-    fun localDimensionOf(attributeIndex: Int): Int {
-        if (attributeIndex !in attributeToLocalDim.indices) {
-            error("Attribute $attributeIndex is not part of this TinSpin oracle. Attributes=$attributes")
-        }
-
-        val localDim = attributeToLocalDim[attributeIndex]
-
-        if (localDim < 0) {
-            error("Attribute $attributeIndex is not part of this TinSpin oracle. Attributes=$attributes")
-        }
-
-        return localDim
-    }
+    fun localDimensionOf(attributeIndex: Int): Int =
+        attributeToLocalDim[attributeIndex]
 
     fun evaluate(rectangle: TinSpinLocalHyperRectangle): TinSpinRuleStats {
         require(rectangle.dims == dims) {
