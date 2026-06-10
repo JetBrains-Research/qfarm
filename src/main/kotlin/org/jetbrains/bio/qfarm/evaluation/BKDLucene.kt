@@ -165,19 +165,8 @@ class LuceneRangeEvaluationOracle(
         searcher = IndexSearcher(reader)
     }
 
-    fun localDimensionOf(attributeIndex: Int): Int {
-        if (attributeIndex !in attributeToLocalDim.indices) {
-            error("Attribute $attributeIndex is not part of this Lucene oracle. Attributes=$attributes")
-        }
-
-        val localDim = attributeToLocalDim[attributeIndex]
-
-        if (localDim < 0) {
-            error("Attribute $attributeIndex is not part of this Lucene oracle. Attributes=$attributes")
-        }
-
-        return localDim
-    }
+    private fun localDimensionOf(attributeIndex: Int): Int =
+        attributeToLocalDim[attributeIndex]
 
     fun supportOf(
         genotype: Genotype<AttributeGene>,
