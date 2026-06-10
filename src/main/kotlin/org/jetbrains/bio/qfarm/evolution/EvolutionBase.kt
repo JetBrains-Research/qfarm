@@ -55,7 +55,13 @@ fun runEvolution(
     val engine = Engine
         .builder(fitness, genotypeFactory)
         .optimize(Optimize.MAXIMUM)
-        .constraint(SupportThresholdConstraint(genotypeFactory, env.datasetWithHeader.data))
+        .constraint(
+            SupportThresholdConstraint(
+                genotypeFactory = genotypeFactory,
+                oracle = oracle,
+                bounds = env.bounds
+            )
+        )
         .populationSize(popSize)
         .offspringFraction(0.75)
         .alterers(PercentileAttributeMutator(hp.probabilityMutation, cfg.fixedAttributes))

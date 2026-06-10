@@ -1,5 +1,6 @@
 package org.jetbrains.bio.qfarm.evaluation
 
+import io.jenetics.Genotype
 import org.apache.lucene.analysis.core.KeywordAnalyzer
 import org.apache.lucene.document.Document
 import org.apache.lucene.document.DoublePoint
@@ -15,6 +16,8 @@ import org.apache.lucene.search.ScoreMode
 import org.apache.lucene.search.SimpleCollector
 import org.apache.lucene.store.ByteBuffersDirectory
 import org.apache.lucene.store.Directory
+import org.jetbrains.bio.qfarm.core.AttributeGene
+import org.jetbrains.bio.qfarm.core.RuleSideChromosome
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import java.io.Closeable
 
@@ -96,8 +99,18 @@ class LuceneRangeEvaluationOracle(
 
     val dims: Int = attributes.size
 
-    private val attributeToLocalDim: Map<Int, Int> =
-        attributes.withIndex().associate { it.value to it.index }
+    private val attributeToLocalDim: IntArray = run {
+        val maxAttr = attributes.maxOrNull()
+            ?: error("attributes must not be empty")
+
+        val map = IntArray(maxAttr + 1) { -1 }
+
+        for ((localDim, originalAttrIndex) in attributes.withIndex()) {
+            map[originalAttrIndex] = localDim
+        }
+
+        map
+    }
 
     private val directory: Directory = ByteBuffersDirectory()
     private val reader: DirectoryReader
@@ -153,8 +166,59 @@ class LuceneRangeEvaluationOracle(
     }
 
     fun localDimensionOf(attributeIndex: Int): Int {
-        return attributeToLocalDim[attributeIndex]
-            ?: error("Attribute $attributeIndex is not part of this oracle. Attributes=$attributes")
+        if (attributeIndex !in attributeToLocalDim.indices) {
+            error("Attribute $attributeIndex is not part of this Lucene oracle. Attributes=$attributes")
+        }
+
+        val localDim = attributeToLocalDim[attributeIndex]
+
+        if (localDim < 0) {
+            error("Attribute $attributeIndex is not part of this Lucene oracle. Attributes=$attributes")
+        }
+
+        return localDim
+    }
+
+    fun supportOf(
+        genotype: Genotype<AttributeGene>,
+        globalBounds: Array<DoubleArray>
+    ): Int {
+        val lhs = genotype[0] as RuleSideChromosome
+
+        val min = DoubleArray(dims)
+        val max = DoubleArray(dims)
+
+        for ((localDim, originalAttrIndex) in attributes.withIndex()) {
+            min[localDim] = globalBounds[originalAttrIndex][0]
+            max[localDim] = globalBounds[originalAttrIndex][1]
+        }
+
+        var hasActiveGene = false
+
+        for (i in 0 until lhs.length()) {
+            val g = lhs[i]
+
+            if (!g.isDefault) {
+                hasActiveGene = true
+
+                val localDim = localDimensionOf(g.attributeIndex)
+
+                min[localDim] = g.lowerBound
+                max[localDim] = g.upperBound
+            }
+        }
+
+        if (!hasActiveGene) {
+            return 0
+        }
+
+        val rangeQuery = DoublePoint.newRangeQuery(
+            FEATURES_FIELD,
+            min,
+            max
+        )
+
+        return searcher.count(rangeQuery)
     }
 
     fun evaluate(rectangle: LocalHyperRectangle): RuleStats {
