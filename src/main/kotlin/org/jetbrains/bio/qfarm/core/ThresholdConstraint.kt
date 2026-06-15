@@ -7,6 +7,7 @@ import io.jenetics.ext.moea.Vec
 import io.jenetics.util.Factory
 import org.jetbrains.bio.qfarm.evaluation.TinSpinRangeEvaluationOracle
 import org.jetbrains.bio.qfarm.params.hp
+import java.util.concurrent.atomic.AtomicIntegerArray
 
 /**
  * Fast constraint that enforces min/max support on the antecedent (X) only.
@@ -20,6 +21,23 @@ class SupportThresholdConstraint(
     private val maxSupport: Int = hp.maxSupport,
     private val maxAttempts: Int = 10
 ) : Constraint<AttributeGene, Vec<DoubleArray>> {
+
+    companion object {
+        private val attemptCounts = AtomicIntegerArray(11) // 1..10
+
+        fun printAttemptStatistics() {
+            println("Total repair attempt statistics:")
+            for (i in 1 until attemptCounts.length()) {
+                println("$i attempts: ${attemptCounts.get(i)}")
+            }
+        }
+
+        fun resetAttemptStatistics() {
+            for (i in 0 until attemptCounts.length()) {
+                attemptCounts.set(i, 0)
+            }
+        }
+    }
 
     override fun test(individual: Phenotype<AttributeGene, Vec<DoubleArray>>): Boolean {
         val sx = if (individual.isEvaluated) {
@@ -51,6 +69,7 @@ class SupportThresholdConstraint(
             val sx = oracle.supportOf(candidate, bounds)
 
             if (sx in minSupport..maxSupport) {
+                attemptCounts.incrementAndGet(attempts + 1)
                 return Phenotype.of(candidate, generation)
             }
 
@@ -63,6 +82,7 @@ class SupportThresholdConstraint(
 
             attempts++
         }
+
 
         return if (bestGenotype != null && gapToRange(sx0, minSupport, maxSupport) > bestGap) {
             Phenotype.of(bestGenotype, generation)

@@ -18,6 +18,7 @@ import org.jetbrains.bio.qfarm.core.createIndexPool
 import org.jetbrains.bio.qfarm.core.normalizeSeedGenotype
 import org.jetbrains.bio.qfarm.evaluation.TinSpinRangeEvaluationOracle
 import org.jetbrains.bio.qfarm.evaluation.evaluateRule
+import org.jetbrains.bio.qfarm.pairwisePrior
 import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.paretoFrontOf
 
@@ -41,7 +42,8 @@ fun runEvolution(
         bounds = env.bounds,
         percentile = env.percentileProvider,
         fixedAttributes = fixedAttributes,
-        searchAttributes = searchAttributes
+        searchAttributes = searchAttributes,
+        pairwisePrior = pairwisePrior
     )
 
     // --- build engine using existing genotype factory ---

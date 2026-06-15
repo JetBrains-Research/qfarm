@@ -1,6 +1,10 @@
 package org.jetbrains.bio.qfarm.core
 import io.jenetics.Chromosome
 import io.jenetics.util.ISeq
+import org.jetbrains.bio.qfarm.core.init.RuleInitMode
+import org.jetbrains.bio.qfarm.core.init.createIndependentGenes
+import org.jetbrains.bio.qfarm.core.init.createOriginalRandomGenes
+import org.jetbrains.bio.qfarm.core.init.createPairwiseGenes
 import org.jetbrains.bio.qfarm.evolution.IndexPool
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 
@@ -35,34 +39,37 @@ class RuleSideChromosome(
 
     companion object {
         fun of(cfg: RuleInitConfig, indexPool: IndexPool): RuleSideChromosome {
-
             val fixedIndices = cfg.fixedAttributes.toSet()
 
             val searchSet = cfg.searchAttributes
                 .filter { it != cfg.rightAttrIndex }
                 .filter { it !in fixedIndices }
 
-            val genes = mutableListOf<AttributeGene>()
+            val indices = mutableListOf<Int>()
 
-            // Always include fixed attributes
             for (idx in fixedIndices) {
-                val min = cfg.bounds[idx][0]
-                val max = cfg.bounds[idx][1]
-                genes += AttributeGene.of(idx, min, max, cfg)
+                indices += idx
             }
 
-            // Pick ONE search attribute
             if (searchSet.isNotEmpty()) {
                 val idx = indexPool.takeRandom(1).firstOrNull()
                     ?: searchSet.random()
-
-                val min = cfg.bounds[idx][0]
-                val max = cfg.bounds[idx][1]
-                genes += AttributeGene.of(idx, min, max, cfg)
+                indices += idx
             }
 
-            require(genes.isNotEmpty()) {
+            require(indices.isNotEmpty()) {
                 "Antecedent chromosome would be empty"
+            }
+
+            val genes = when (cfg.initMode) {
+                RuleInitMode.ORIGINAL_RANDOM ->
+                    createOriginalRandomGenes(indices, cfg)
+
+                RuleInitMode.INDEPENDENT ->
+                    createIndependentGenes(indices, cfg)
+
+                RuleInitMode.PAIRWISE_PERCENTILE ->
+                    createPairwiseGenes(indices, cfg)
             }
 
             return RuleSideChromosome(ISeq.of(genes), cfg, indexPool)

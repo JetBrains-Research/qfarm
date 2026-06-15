@@ -4,6 +4,8 @@ import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
+import org.jetbrains.bio.qfarm.core.init.PairwisePercentilePrior
+import org.jetbrains.bio.qfarm.core.init.RuleInitMode
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.rand
 
@@ -29,46 +31,68 @@ fun interface PercentileProvider {
     fun value(attributeIndex: Int, percentile: Double): Double
 }
 
+interface BidirectionalPercentileProvider : PercentileProvider {
+    fun percentileOf(attributeIndex: Int, value: Double): Double
+}
+
 data class RuleInitConfig(
     val rightAttrIndex: Int,
     val bounds: Array<DoubleArray>,
     val percentile: PercentileProvider,
-
-    // Fixed attributes: (index) — these are always present & will mutate
     val fixedAttributes: List<Int> = emptyList(),
-
-    // Explicit list of attribute indices to search among for the “additional” attribute
-    // If empty, chromosome will use only the fixed attributes.
-    val searchAttributes: List<Int> = emptyList()
+    val searchAttributes: List<Int> = emptyList(),
+    val initMode: RuleInitMode = RuleInitMode.PAIRWISE_PERCENTILE,
+    val pairwisePrior: PairwisePercentilePrior? = null
 )
 
 class SortedColumnsPercentileProvider(
-    private val sortedColumns: List<DoubleArray>     // sorted ascending
-) : PercentileProvider {
+    private val sortedColumns: List<DoubleArray>
+) : BidirectionalPercentileProvider {
 
     override fun value(attributeIndex: Int, percentile: Double): Double {
-        require(attributeIndex in sortedColumns.indices) { "attributeIndex out of range: $attributeIndex" }
+        require(attributeIndex in sortedColumns.indices)
         val col = sortedColumns[attributeIndex]
         val n = col.size
-        require(n > 0) { "Empty column at index $attributeIndex" }
 
-        // clamp + fast paths
         val p = percentile.coerceIn(0.0, 1.0)
         if (p <= 0.0) return col[0]
         if (p >= 1.0) return col[n - 1]
 
-        // linear interpolation between nearest ranks
         val pos = p * (n - 1)
         val lo = pos.toInt()
         val hi = lo + 1
         val w = pos - lo
 
-        // exact hit -> avoid extra ops
         if (w == 0.0 || hi >= n) return col[lo]
 
-        val a = col[lo]
-        val b = col[hi]
-        return a + (b - a) * w
+        return col[lo] + (col[hi] - col[lo]) * w
+    }
+
+    override fun percentileOf(attributeIndex: Int, value: Double): Double {
+        require(attributeIndex in sortedColumns.indices)
+        val col = sortedColumns[attributeIndex]
+        val n = col.size
+        require(n > 0)
+
+        if (value <= col[0]) return 0.0
+        if (value >= col[n - 1]) return 1.0
+
+        val idx = col.binarySearch(value)
+
+        val insertionPoint = if (idx >= 0) {
+            // For duplicates, use the middle of the equal-value block
+            var left = idx
+            while (left > 0 && col[left - 1] == value) left--
+
+            var right = idx
+            while (right + 1 < n && col[right + 1] == value) right++
+
+            (left + right) / 2.0
+        } else {
+            (-idx - 1).toDouble()
+        }
+
+        return insertionPoint / (n - 1)
     }
 }
 

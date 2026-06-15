@@ -4,6 +4,7 @@ import org.jetbrains.bio.qfarm.params.hp
 import com.github.ajalt.clikt.core.CliktCommand
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
+import org.jetbrains.bio.qfarm.core.SupportThresholdConstraint
 import org.jetbrains.bio.qfarm.params.RocComparisonMode
 
 class SearchCommand : CliktCommand(name = "search") {
@@ -144,6 +145,7 @@ class SearchCommand : CliktCommand(name = "search") {
 
         // ===== EXECUTE =====
         runSearch()
+        SupportThresholdConstraint.printAttemptStatistics()
     }
 
     // ===== HELPERS =====

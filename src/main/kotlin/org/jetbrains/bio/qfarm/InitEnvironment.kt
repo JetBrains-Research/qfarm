@@ -2,6 +2,8 @@ package org.jetbrains.bio.qfarm
 
 import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.core.AttributeGene
+import org.jetbrains.bio.qfarm.core.init.PairwisePercentilePrior
+import org.jetbrains.bio.qfarm.core.init.buildPairwisePercentilePrior
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
@@ -29,6 +31,7 @@ lateinit var bounds: Array<DoubleArray>
 lateinit var percentileProvider: SortedColumnsPercentileProvider
 lateinit var init_cfg: RuleInitConfig
 lateinit var rightGene: AttributeGene
+lateinit var pairwisePrior: PairwisePercentilePrior
 
 var rightAttrIndex: Int = -1
 
@@ -55,13 +58,15 @@ fun initEnvironment(
 
     if (datasetWithHeader.header.size < 100) printFirstRows(datasetWithHeader)
 
+    val data = datasetWithHeader.data
+
     columnNames = datasetWithHeader.header
     rightAttrIndex = columnNames.indexOf(rhsName)
     require(rightAttrIndex >= 0) { "Right-hand-side column '$rhsName' not found." }
 
     datasetWithHeader = removeRowsWithNaNRHS(datasetWithHeader, rightAttrIndex)
 
-    sortedColumns = computeSortedColumns(datasetWithHeader.data)
+    sortedColumns = computeSortedColumns(data)
     bounds = computeBoundsFromSorted(sortedColumns)
     percentileProvider = SortedColumnsPercentileProvider(sortedColumns)
 
@@ -123,6 +128,15 @@ fun initEnvironment(
 
     val positives = datasetWithHeader.labels.sum()
     println("Positive labels: $positives / ${datasetWithHeader.labels.size}")
+
+    val percentileProvider = SortedColumnsPercentileProvider(sortedColumns)
+
+    pairwisePrior = buildPairwisePercentilePrior(
+        dataset = data,
+        percentile = percentileProvider,
+        attributeCount = data[0].size,
+        binCount = 10
+    )
 
     GLOBAL_ENV = EvolutionEnvironment(
         datasetWithHeader = datasetWithHeader,
