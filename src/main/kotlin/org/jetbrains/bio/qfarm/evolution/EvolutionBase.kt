@@ -16,6 +16,7 @@ import org.jetbrains.bio.qfarm.core.SupportThresholdConstraint
 import org.jetbrains.bio.qfarm.core.createGenotypeFactory
 import org.jetbrains.bio.qfarm.core.createIndexPool
 import org.jetbrains.bio.qfarm.core.normalizeSeedGenotype
+import org.jetbrains.bio.qfarm.evaluation.CountingKdTreeOracle
 import org.jetbrains.bio.qfarm.evaluation.evaluateRule
 import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.paretoFrontOf
@@ -30,7 +31,8 @@ fun runEvolution(
     popSize: Int = hp.popSizeCheap,
     generationCount: Int = hp.maxGenCheap,
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of(),
-    env: EvolutionEnvironment = GLOBAL_ENV
+    env: EvolutionEnvironment = GLOBAL_ENV,
+    oracle: CountingKdTreeOracle
 ): ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> {
 
 //  Build the config:
@@ -47,13 +49,18 @@ fun runEvolution(
     val genotypeFactory = createGenotypeFactory(cfg, indexPool)
 
     val fitness: (Genotype<AttributeGene>) -> Vec<DoubleArray> = { gt ->
-        Vec.of(*evaluateRule(gt, env.datasetWithHeader))
+        Vec.of(*evaluateRule(gt, oracle))
     }
 
     val engine = Engine
         .builder(fitness, genotypeFactory)
         .optimize(Optimize.MAXIMUM)
-        .constraint(SupportThresholdConstraint(genotypeFactory, env.datasetWithHeader.data))
+        .constraint(
+            SupportThresholdConstraint(
+                genotypeFactory = genotypeFactory,
+                oracle = oracle
+            )
+        )
         .populationSize(popSize)
         .offspringFraction(0.75)
         .alterers(PercentileAttributeMutator(hp.probabilityMutation, cfg.fixedAttributes))
