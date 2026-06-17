@@ -89,6 +89,12 @@ class CountingKdTreeOracle(
             globalBounds[attributes[localDim]][1]
         }
 
+    private val localGlobalWidth: DoubleArray =
+        DoubleArray(dims) { localDim ->
+            val originalAttr = attributes[localDim]
+            globalBounds[originalAttr][1] - globalBounds[originalAttr][0]
+        }
+
     private val queryBuffers: ThreadLocal<Pair<DoubleArray, DoubleArray>> =
         ThreadLocal.withInitial {
             Pair(
@@ -176,9 +182,6 @@ class CountingKdTreeOracle(
         queryMin: DoubleArray,
         queryMax: DoubleArray
     ): Int {
-        require(queryMin.size == dims)
-        require(queryMax.size == dims)
-
         val rootNode = root ?: return 0
 
         var support = 0
@@ -266,9 +269,6 @@ class CountingKdTreeOracle(
         queryMin: DoubleArray,
         queryMax: DoubleArray
     ): KdCountResult {
-        require(queryMin.size == dims)
-        require(queryMax.size == dims)
-
         val rootNode = root ?: return KdCountResult(0, 0)
 
         var support = 0
@@ -402,10 +402,7 @@ class CountingKdTreeOracle(
             val nodeWidth = maxBounds[d] - minBounds[d]
             if (nodeWidth <= 0.0) continue
 
-            val originalAttr = attributes[d]
-            val globalWidth =
-                globalBounds[originalAttr][1] - globalBounds[originalAttr][0]
-
+            val globalWidth = localGlobalWidth[d]
             if (globalWidth <= 0.0) continue
 
             val score = nodeWidth / globalWidth
