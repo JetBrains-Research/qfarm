@@ -141,9 +141,11 @@ class CountingKdTreeOracle(
         build(indices, 0, indices.size)
     }
 
-    fun evaluate(genotype: Genotype<AttributeGene>): KdCountResult {
-        val (min, max) = queryBuffers.get()
-
+    private fun fillQueryBounds(
+        genotype: Genotype<AttributeGene>,
+        min: DoubleArray,
+        max: DoubleArray
+    ): Boolean {
         baseMin.copyInto(min)
         baseMax.copyInto(max)
 
@@ -162,10 +164,69 @@ class CountingKdTreeOracle(
                 max[localDim] = g.upperBound
 
                 if (min[localDim] > max[localDim]) {
-                    return KdCountResult(0, 0)
+                    return false
                 }
             }
         }
+
+        return hasActiveGene
+    }
+
+    private fun countSupportOnly(
+        queryMin: DoubleArray,
+        queryMax: DoubleArray
+    ): Int {
+        require(queryMin.size == dims)
+        require(queryMax.size == dims)
+
+        val rootNode = root ?: return 0
+
+        var support = 0
+
+        fun visit(node: Node) {
+            if (!intersects(node.minBounds, node.maxBounds, queryMin, queryMax)) {
+                return
+            }
+
+            if (containedBy(node.minBounds, node.maxBounds, queryMin, queryMax)) {
+                support += node.count
+                return
+            }
+
+            when (node) {
+                is LeafNode -> {
+                    val idxs = node.indices
+
+                    for (i in idxs.indices) {
+                        val rowIndex = idxs[i]
+                        val p = points[rowIndex]
+
+                        if (pointInside(p, queryMin, queryMax)) {
+                            support++
+                        }
+                    }
+                }
+
+                is InternalNode -> {
+                    visit(node.left)
+                    visit(node.right)
+                }
+            }
+        }
+
+        visit(rootNode)
+
+        return support
+    }
+
+    fun evaluate(genotype: Genotype<AttributeGene>): KdCountResult {
+        val (min, max) = queryBuffers.get()
+
+        val hasActiveGene = fillQueryBounds(
+            genotype = genotype,
+            min = min,
+            max = max
+        )
 
         if (!hasActiveGene) {
             return KdCountResult(
@@ -178,7 +239,27 @@ class CountingKdTreeOracle(
     }
 
     fun supportOf(genotype: Genotype<AttributeGene>): Int {
-        return evaluate(genotype).support
+        val (min, max) = queryBuffers.get()
+
+        val hasActiveGene = fillQueryBounds(
+            genotype = genotype,
+            min = min,
+            max = max
+        )
+
+        if (!hasActiveGene) {
+            return 0
+        }
+
+        return countSupportOnly(min, max)
+    }
+
+    // test purpose only
+    fun supportRange(
+        queryMin: DoubleArray,
+        queryMax: DoubleArray
+    ): Int {
+        return countSupportOnly(queryMin, queryMax)
     }
 
     fun countRange(
