@@ -43,6 +43,10 @@ class CountingKdTreeOracle(
                         "Compute labels before building CountingKdTreeOracle."
             }
 
+            require(leafSize >= 1) {
+                "leafSize must be >= 1, got $leafSize"
+            }
+
             val dims = attributes.size
 
             val points = Array(dataset.data.size) { rowIndex ->
@@ -74,7 +78,24 @@ class CountingKdTreeOracle(
     }
 
     val dims: Int = attributes.size
-    private val rowCount: Int = points.size
+
+    private val baseMin: DoubleArray =
+        DoubleArray(dims) { localDim ->
+            globalBounds[attributes[localDim]][0]
+        }
+
+    private val baseMax: DoubleArray =
+        DoubleArray(dims) { localDim ->
+            globalBounds[attributes[localDim]][1]
+        }
+
+    private val queryBuffers: ThreadLocal<Pair<DoubleArray, DoubleArray>> =
+        ThreadLocal.withInitial {
+            Pair(
+                DoubleArray(dims),
+                DoubleArray(dims)
+            )
+        }
 
     private val attributeToLocalDim: IntArray = run {
         val maxAttr = attributes.maxOrNull()
@@ -107,8 +128,6 @@ class CountingKdTreeOracle(
     private class InternalNode(
         val left: Node,
         val right: Node,
-        val splitDim: Int,
-        val splitValue: Double,
         override val minBounds: DoubleArray,
         override val maxBounds: DoubleArray,
         override val count: Int,
@@ -123,13 +142,10 @@ class CountingKdTreeOracle(
     }
 
     fun evaluate(genotype: Genotype<AttributeGene>): KdCountResult {
-        val min = DoubleArray(dims)
-        val max = DoubleArray(dims)
+        val (min, max) = queryBuffers.get()
 
-        for ((localDim, originalAttrIndex) in attributes.withIndex()) {
-            min[localDim] = globalBounds[originalAttrIndex][0]
-            max[localDim] = globalBounds[originalAttrIndex][1]
-        }
+        baseMin.copyInto(min)
+        baseMax.copyInto(max)
 
         var hasActiveGene = false
         val lhs = genotype[0] as RuleSideChromosome
@@ -144,13 +160,17 @@ class CountingKdTreeOracle(
 
                 min[localDim] = g.lowerBound
                 max[localDim] = g.upperBound
+
+                if (min[localDim] > max[localDim]) {
+                    return KdCountResult(0, 0)
+                }
             }
         }
 
         if (!hasActiveGene) {
             return KdCountResult(
-                support = rowCount,
-                positiveSupport = labels.sum()
+                support = 0,
+                positiveSupport = 0
             )
         }
 
@@ -266,7 +286,6 @@ class CountingKdTreeOracle(
         )
 
         val mid = (from + to) ushr 1
-        val splitValue = points[indices[mid]][splitDim]
 
         val left = build(indices, from, mid)
         val right = build(indices, mid, to)
@@ -274,8 +293,6 @@ class CountingKdTreeOracle(
         return InternalNode(
             left = left,
             right = right,
-            splitDim = splitDim,
-            splitValue = splitValue,
             minBounds = minBounds,
             maxBounds = maxBounds,
             count = count,
