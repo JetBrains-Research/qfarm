@@ -359,6 +359,16 @@ class CountingKdTreeOracle(
 
         val splitDim = widestDimension(minBounds, maxBounds)
 
+        if (splitDim < 0) {
+            return LeafNode(
+                indices = indices.copyOfRange(from, to),
+                minBounds = minBounds,
+                maxBounds = maxBounds,
+                count = count,
+                positiveCount = positiveCount
+            )
+        }
+
         indices.sortRangeByCoordinate(
             from = from,
             to = to,
@@ -385,14 +395,23 @@ class CountingKdTreeOracle(
         minBounds: DoubleArray,
         maxBounds: DoubleArray
     ): Int {
-        var bestDim = 0
-        var bestWidth = maxBounds[0] - minBounds[0]
+        var bestDim = -1
+        var bestScore = -1.0
 
-        for (d in 1 until dims) {
-            val width = maxBounds[d] - minBounds[d]
+        for (d in 0 until dims) {
+            val nodeWidth = maxBounds[d] - minBounds[d]
+            if (nodeWidth <= 0.0) continue
 
-            if (width > bestWidth) {
-                bestWidth = width
+            val originalAttr = attributes[d]
+            val globalWidth =
+                globalBounds[originalAttr][1] - globalBounds[originalAttr][0]
+
+            if (globalWidth <= 0.0) continue
+
+            val score = nodeWidth / globalWidth
+
+            if (score > bestScore) {
+                bestScore = score
                 bestDim = d
             }
         }
