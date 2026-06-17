@@ -1,10 +1,9 @@
 package org.jetbrains.bio.qfarm
 
-import org.jetbrains.bio.qfarm.evaluation.random.RandomAucBaseline
-import org.jetbrains.bio.qfarm.evaluation.random.buildAucBaselineComparisonPlot
 import org.jetbrains.bio.qfarm.evaluation.random.generateAnalyticalRandomAucBaseline
-import org.jetbrains.bio.qfarm.evaluation.random.generateRandomAucBaseline
+import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.evolution.search.treeTraversal
+import org.jetbrains.bio.qfarm.evolution.writeRangeTimingsCsv
 import org.jetbrains.bio.qfarm.output.OutputManager
 import org.jetbrains.bio.qfarm.output.logs.RHS
 import org.jetbrains.bio.qfarm.output.tree.RULE_TREE_ROOT
@@ -15,7 +14,6 @@ import org.jetbrains.bio.qfarm.output.tree.toDOTFromTrie
 import org.jetbrains.bio.qfarm.params.BLUE
 import org.jetbrains.bio.qfarm.params.RESET
 import org.jetbrains.bio.qfarm.params.hp
-import org.jetbrains.bio.qfarm.visualization.FrontStore
 import java.io.File
 
 
@@ -86,6 +84,11 @@ fun runSearch() {
         .waitFor()
 
     exportAllRuleFormats(RULE_TREE_ROOT)
+
+    writeRangeTimingsCsv(
+        OUTPUT.rangeTimingsCsv,
+        EvolutionContext.fullRangeTimingRows
+    )
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
     println("\nTOTAL RUNTIME: $elapsed s")

@@ -21,6 +21,8 @@ data class OutputManager(
 
     val rulesTreeValidatedTxt = File(runDir, "validation_summary.txt")
 
+    val rangeTimingsCsv = File(runDir, "range_timings.csv")
+
     fun init() {
         require(baseDir.exists() || baseDir.mkdirs()) {
             "Failed to create base directory: $baseDir"

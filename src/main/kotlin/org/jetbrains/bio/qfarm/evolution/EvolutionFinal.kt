@@ -22,60 +22,111 @@ fun topRange(
     label: String = "🏆"
 ): ScoredFront {
 
-    val start = System.nanoTime()
+    val totalStart = System.nanoTime()
 
     println("\n${PURPLE}$label : SEARCHING FOR THE BEST RANGE OF ${attributes.map { idx -> env.columnNames[idx]}} ... $RESET")
     require(attributes.isNotEmpty()) { "attributes must not be empty." }
 
-    CountingKdTreeOracle
-        .fromDataset(
-            dataset = env.datasetWithHeader,
-            attributes = attributes,
-            globalBounds = env.bounds,
-            leafSize = 32
-        )
-        .use { oracle ->
+    val treeStart = System.nanoTime()
 
-            val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
-                runEvolution(
-                    fixedAttributes = attributes,
-                    popSize = popSize,
-                    generationCount = generationCount,
-                    parentFront = parentFront,
-                    env = env,
-                    oracle = oracle
-                )
+    val oracle = CountingKdTreeOracle.fromDataset(
+        dataset = env.datasetWithHeader,
+        attributes = attributes,
+        globalBounds = env.bounds,
+        leafSize = 32
+    )
 
-            println("$PURPLE [🏁 Pareto front (all) has ${front.size()} solutions] $RESET")
+    val treeMs = nsToMs(System.nanoTime() - treeStart)
 
-            if (front.isEmpty) {
-                println("$YELLOW [⚠️ No solutions matched the requested attributes. Returning empty result.] $RESET")
-                return ScoredFront(front, doubleArrayOf())
-            }
+    val evolutionStart = System.nanoTime()
 
-            val rocFront = when (hp.rocComparison) {
-
-                RocComparisonMode.CHILD -> {
-                    front
-                }
-
-                RocComparisonMode.CHILD_PLUS_PARENT -> {
-
-                    if (parentFront == null || parentFront.isEmpty) {
-                        front
-                    } else {
-                        parentFront.append(front)
-                    }
-                }
-            }
-
-            val scores = computeFrontScores(rocFront, env)
-
-            val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
-            println("Range finder: elapsed=%.2fs".format(elapsed))
-
-            return ScoredFront(front, scores)
+    val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
+        oracle.use {
+            runEvolution(
+                fixedAttributes = attributes,
+                popSize = popSize,
+                generationCount = generationCount,
+                parentFront = parentFront,
+                env = env,
+                oracle = it
+            )
         }
+
+    val evolutionMs = nsToMs(System.nanoTime() - evolutionStart)
+
+    println("$PURPLE [🏁 Pareto front (all) has ${front.size()} solutions] $RESET")
+
+    if (front.isEmpty) {
+        val totalMs = nsToMs(System.nanoTime() - totalStart)
+
+        logRangeTimingRow(
+            attributes = attributes,
+            env = env,
+            label = label,
+            treeMs = treeMs,
+            evolutionMs = evolutionMs,
+            scoringMs = 0.0,
+            totalMs = totalMs
+        )
+
+        println(
+            """
+            attributes      = ${attributes.map { env.columnNames[it] }}
+            RANGE TIMING:
+              treeBuild = ${fmtMs(treeMs)} (${fmtPct(treeMs, totalMs)})
+              evolution = ${fmtMs(evolutionMs)} (${fmtPct(evolutionMs, totalMs)})
+              scoring   = ${fmtMs(0.0)} (${fmtPct(0.0, totalMs)})
+              total     = ${fmtMs(totalMs)}
+            """.trimIndent()
+        )
+
+        println("$YELLOW [⚠️ No solutions matched the requested attributes. Returning empty result.] $RESET")
+        return ScoredFront(front, doubleArrayOf())
+    }
+
+    val scoringStart = System.nanoTime()
+
+    val rocFront = when (hp.rocComparison) {
+        RocComparisonMode.CHILD -> {
+            front
+        }
+
+        RocComparisonMode.CHILD_PLUS_PARENT -> {
+            if (parentFront == null || parentFront.isEmpty) {
+                front
+            } else {
+                parentFront.append(front)
+            }
+        }
+    }
+
+    val scores = computeFrontScores(rocFront, env)
+
+    val scoringMs = nsToMs(System.nanoTime() - scoringStart)
+    val totalMs = nsToMs(System.nanoTime() - totalStart)
+
+    logRangeTimingRow(
+        attributes = attributes,
+        env = env,
+        label = label,
+        treeMs = treeMs,
+        evolutionMs = evolutionMs,
+        scoringMs = scoringMs,
+        totalMs = totalMs
+    )
+
+    println(
+        """
+        attributes      = ${attributes.map { env.columnNames[it] }}
+        RANGE TIMING:
+          treeBuild = ${fmtMs(treeMs)} (${fmtPct(treeMs, totalMs)})
+          evolution = ${fmtMs(evolutionMs)} (${fmtPct(evolutionMs, totalMs)})
+          scoring   = ${fmtMs(scoringMs)} (${fmtPct(scoringMs, totalMs)})
+          total     = ${fmtMs(totalMs)}
+        """.trimIndent()
+    )
+
+    return ScoredFront(front, scores)
 }
 
 fun cheapTopRange(
@@ -114,3 +165,25 @@ fun fullTopRange(
         label = "🏆 FULL SEARCH"
     )
 }
+
+private fun nsToMs(ns: Long): Double =
+    ns / 1_000_000.0
+
+private fun fmtMs(ms: Double): String =
+    "%.3f ms".format(ms)
+
+private fun fmtPct(partMs: Double, totalMs: Double): String =
+    if (totalMs == 0.0) "0.00%"
+    else "%.2f%%".format(partMs * 100.0 / totalMs)
+
+fun rangeSearchKindFromLabel(label: String): RangeSearchKind =
+    when {
+        label.contains("FULL", ignoreCase = true) ->
+            RangeSearchKind.FULL_SEARCH
+
+        label.contains("CHEAP", ignoreCase = true) ->
+            RangeSearchKind.CHEAP_EVOLUTION
+
+        else ->
+            error("Unknown range search type for label: $label")
+    }
