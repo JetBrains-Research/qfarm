@@ -1,6 +1,6 @@
 package org.jetbrains.bio.qfarm.visualization
 
-import org.jetbrains.bio.qfarm.evaluation.computeROC
+import org.jetbrains.bio.qfarm.evaluation.fronts.computeROC
 import org.jetbrains.letsPlot.geom.geomLine
 import org.jetbrains.letsPlot.ggsize
 import org.jetbrains.letsPlot.intern.Plot

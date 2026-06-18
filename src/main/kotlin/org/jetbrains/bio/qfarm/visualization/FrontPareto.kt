@@ -3,7 +3,7 @@ package org.jetbrains.bio.qfarm.visualization
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.evaluation.random.MedianFront
-import org.jetbrains.bio.qfarm.evaluation.PFSeries
+import org.jetbrains.bio.qfarm.evaluation.fronts.PFSeries
 import org.jetbrains.bio.qfarm.util.compactRuleString
 import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.params.hp

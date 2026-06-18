@@ -5,7 +5,7 @@ import org.jetbrains.bio.qfarm.params.YELLOW
 import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.evaluation.random.RandomAucBaseline
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
-import org.jetbrains.bio.qfarm.evaluation.toPFSeries
+import org.jetbrains.bio.qfarm.evaluation.fronts.toPFSeries
 import org.jetbrains.bio.qfarm.statistics.delong.AUC
 import org.jetbrains.bio.qfarm.statistics.delong.DeLong
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult

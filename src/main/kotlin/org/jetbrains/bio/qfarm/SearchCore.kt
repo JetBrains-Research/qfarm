@@ -31,20 +31,6 @@ fun runSearch() {
 
     generateAnalyticalRandomAucBaseline(nShuffles = hp.randomAucBaselineColumns)
 
-//    val evolvedAucs = generateRandomAucBaseline(
-//        nColumns = hp.randomAucBaselineColumns
-//    )
-//
-//    val comparisonPlot = buildAucBaselineComparisonPlot(
-//        evolvedAucs = evolvedAucs,
-//        analyticalAucs = RandomAucBaseline.aucs
-//    )
-//
-//    FrontStore.saveAndUrl(
-//        comparisonPlot,
-//        "auc_baseline_comparison"
-//    )
-
     RULE_JSON_WRITER = RuleTreeJsonWriter(OUTPUT.logFile)
 
     RULE_JSON_WRITER.writeMetadata(

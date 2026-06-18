@@ -7,7 +7,7 @@ import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.evaluation.random.RandomAucBaseline
 import org.jetbrains.bio.qfarm.evaluation.random.bonferroniCorrect
 import org.jetbrains.bio.qfarm.evaluation.random.empiricalAucPValueGreater
-import org.jetbrains.bio.qfarm.evaluation.frontDistance
+import org.jetbrains.bio.qfarm.evaluation.fronts.frontDistance
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.evolution.fullTopRange
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeRow

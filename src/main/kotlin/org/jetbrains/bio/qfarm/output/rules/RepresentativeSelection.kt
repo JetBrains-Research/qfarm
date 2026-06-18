@@ -1,7 +1,7 @@
 package org.jetbrains.bio.qfarm.output.rules
 
-import org.jetbrains.bio.qfarm.evaluation.ConfusionMetrics
-import org.jetbrains.bio.qfarm.evaluation.toPFSeries
+import org.jetbrains.bio.qfarm.evaluation.fronts.ConfusionMetrics
+import org.jetbrains.bio.qfarm.evaluation.fronts.toPFSeries
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader

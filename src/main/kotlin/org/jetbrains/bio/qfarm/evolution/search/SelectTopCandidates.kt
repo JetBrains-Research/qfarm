@@ -19,5 +19,5 @@ fun selectTopCandidates(
 
     println("$GREEN Selected top ${selected.size}/${cheap.size} candidates $RESET")
 
-    return selected.map { it -> it.attr }
+    return selected.map { it.attr }
 }

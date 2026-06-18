@@ -5,7 +5,7 @@ import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.params.RED
 import org.jetbrains.bio.qfarm.params.RESET
 import org.jetbrains.bio.qfarm.datasetWithHeader
-import org.jetbrains.bio.qfarm.evaluation.frontDistance
+import org.jetbrains.bio.qfarm.evaluation.fronts.frontDistance
 import org.jetbrains.bio.qfarm.util.readLHS
 import org.jetbrains.bio.qfarm.statistics.delong.DeLong
 import kotlinx.coroutines.*

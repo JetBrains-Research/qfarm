@@ -9,7 +9,7 @@ import org.jetbrains.bio.qfarm.evaluation.CountingKdTreeOracle
 import org.jetbrains.bio.qfarm.params.PURPLE
 import org.jetbrains.bio.qfarm.params.RESET
 import org.jetbrains.bio.qfarm.params.YELLOW
-import org.jetbrains.bio.qfarm.evaluation.computeFrontScores
+import org.jetbrains.bio.qfarm.evaluation.fronts.computeFrontScores
 import org.jetbrains.bio.qfarm.params.RocComparisonMode
 import org.jetbrains.bio.qfarm.params.hp
 
