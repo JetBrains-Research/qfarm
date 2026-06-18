@@ -4,6 +4,7 @@ import io.jenetics.Genotype
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.core.RuleSideChromosome
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
+import org.jetbrains.bio.qfarm.util.DiscreteColumnInfo
 import java.io.Closeable
 
 data class KdCountResult(
@@ -19,6 +20,7 @@ class CountingKdTreeOracle(
     private val labels: IntArray,
     val attributes: List<Int>,
     private val globalBounds: Array<DoubleArray>,
+    private val discreteInfo: DiscreteColumnInfo,
     private val leafSize: Int = 32
 ) : Closeable {
 
@@ -27,6 +29,7 @@ class CountingKdTreeOracle(
             dataset: DatasetWithHeader,
             attributes: List<Int>,
             globalBounds: Array<DoubleArray>,
+            discreteInfo: DiscreteColumnInfo,
             leafSize: Int = 32
         ): CountingKdTreeOracle {
 
@@ -45,6 +48,13 @@ class CountingKdTreeOracle(
 
             require(leafSize >= 1) {
                 "leafSize must be >= 1, got $leafSize"
+            }
+
+            val maxAttr = attributes.maxOrNull()
+                ?: error("attributes must not be empty")
+
+            require(discreteInfo.isDiscrete.size > maxAttr) {
+                "discreteInfo size=${discreteInfo.isDiscrete.size} too small for attributes=$attributes"
             }
 
             val dims = attributes.size
@@ -72,6 +82,7 @@ class CountingKdTreeOracle(
                 labels = labels,
                 attributes = attributes,
                 globalBounds = globalBounds,
+                discreteInfo = discreteInfo,
                 leafSize = leafSize
             )
         }
@@ -89,18 +100,17 @@ class CountingKdTreeOracle(
             globalBounds[attributes[localDim]][1]
         }
 
-    private val localGlobalWidth: DoubleArray =
-        DoubleArray(dims) { localDim ->
-            val originalAttr = attributes[localDim]
-            globalBounds[originalAttr][1] - globalBounds[originalAttr][0]
-        }
-
     private val queryBuffers: ThreadLocal<Pair<DoubleArray, DoubleArray>> =
         ThreadLocal.withInitial {
             Pair(
                 DoubleArray(dims),
                 DoubleArray(dims)
             )
+        }
+
+    private val localDiscrete: BooleanArray =
+        BooleanArray(dims) { localDim ->
+            discreteInfo.isDiscrete[attributes[localDim]]
         }
 
     private val attributeToLocalDim: IntArray = run {
@@ -144,7 +154,7 @@ class CountingKdTreeOracle(
         null
     } else {
         val indices = IntArray(points.size) { it }
-        build(indices, 0, indices.size)
+        build(indices, 0, indices.size, depth = 0)
     }
 
     private fun fillQueryBounds(
@@ -315,10 +325,46 @@ class CountingKdTreeOracle(
         return KdCountResult(support, positiveSupport)
     }
 
+    private fun chooseDiscreteSplitBoundary(
+        indices: IntArray,
+        from: Int,
+        to: Int,
+        dim: Int
+    ): Int {
+        val idealMid = (from + to) ushr 1
+
+        val leftAtMid = points[indices[idealMid - 1]][dim]
+        val rightAtMid = points[indices[idealMid]][dim]
+
+        if (leftAtMid != rightAtMid) {
+            return idealMid
+        }
+
+        var bestSplit = -1
+        var bestDistance = Int.MAX_VALUE
+
+        for (i in from + 1 until to) {
+            val left = points[indices[i - 1]][dim]
+            val right = points[indices[i]][dim]
+
+            if (left != right) {
+                val distance = kotlin.math.abs(i - idealMid)
+
+                if (distance < bestDistance) {
+                    bestDistance = distance
+                    bestSplit = i
+                }
+            }
+        }
+
+        return if (bestSplit >= 0) bestSplit else idealMid
+    }
+
     private fun build(
         indices: IntArray,
         from: Int,
-        to: Int
+        to: Int,
+        depth: Int
     ): Node {
 
         require(from < to) {
@@ -357,7 +403,11 @@ class CountingKdTreeOracle(
             )
         }
 
-        val splitDim = widestDimension(minBounds, maxBounds)
+        val splitDim = cyclicSplitDimension(
+            minBounds = minBounds,
+            maxBounds = maxBounds,
+            depth = depth
+        )
 
         if (splitDim < 0) {
             return LeafNode(
@@ -376,10 +426,20 @@ class CountingKdTreeOracle(
             points = points
         )
 
-        val mid = (from + to) ushr 1
+        val mid =
+            if (localDiscrete[splitDim]) {
+                chooseDiscreteSplitBoundary(
+                    indices = indices,
+                    from = from,
+                    to = to,
+                    dim = splitDim
+                )
+            } else {
+                (from + to) ushr 1
+            }
 
-        val left = build(indices, from, mid)
-        val right = build(indices, mid, to)
+        val left = build(indices, from, mid, depth + 1)
+        val right = build(indices, mid, to, depth + 1)
 
         return InternalNode(
             left = left,
@@ -391,29 +451,23 @@ class CountingKdTreeOracle(
         )
     }
 
-    private fun widestDimension(
+    private fun cyclicSplitDimension(
         minBounds: DoubleArray,
-        maxBounds: DoubleArray
+        maxBounds: DoubleArray,
+        depth: Int
     ): Int {
-        var bestDim = -1
-        var bestScore = -1.0
+        var d = depth % dims
 
-        for (d in 0 until dims) {
-            val nodeWidth = maxBounds[d] - minBounds[d]
-            if (nodeWidth <= 0.0) continue
-
-            val globalWidth = localGlobalWidth[d]
-            if (globalWidth <= 0.0) continue
-
-            val score = nodeWidth / globalWidth
-
-            if (score > bestScore) {
-                bestScore = score
-                bestDim = d
+        repeat(dims) {
+            if (maxBounds[d] > minBounds[d]) {
+                return d
             }
+
+            d++
+            if (d == dims) d = 0
         }
 
-        return bestDim
+        return -1
     }
 
     private fun pointInside(

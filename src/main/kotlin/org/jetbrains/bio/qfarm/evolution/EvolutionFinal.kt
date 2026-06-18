@@ -33,6 +33,7 @@ fun topRange(
         dataset = env.datasetWithHeader,
         attributes = attributes,
         globalBounds = env.bounds,
+        discreteInfo = env.discreteInfo,
         leafSize = 32
     )
 

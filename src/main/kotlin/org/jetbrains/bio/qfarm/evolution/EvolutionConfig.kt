@@ -6,6 +6,7 @@ import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.rand
+import org.jetbrains.bio.qfarm.util.DiscreteColumnInfo
 
 data class EvolutionEnvironment(
     val datasetWithHeader: DatasetWithHeader,
@@ -13,6 +14,7 @@ data class EvolutionEnvironment(
     val sortedColumns: List<DoubleArray>,
     val bounds: Array<DoubleArray>,
     val percentileProvider: SortedColumnsPercentileProvider,
+    val discreteInfo: DiscreteColumnInfo,
     val rightAttrIndex: Int
 )
 

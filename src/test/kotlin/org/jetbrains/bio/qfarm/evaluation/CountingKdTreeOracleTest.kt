@@ -5,6 +5,8 @@ import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.util.computeBoundsFromSorted
 import org.jetbrains.bio.qfarm.util.computeLabelsFast
 import org.jetbrains.bio.qfarm.util.computeSortedColumns
+import org.jetbrains.bio.qfarm.util.detectDiscreteColumns
+import org.jetbrains.bio.qfarm.util.DiscreteColumnInfo
 import org.jetbrains.bio.qfarm.util.loadNumericDataset
 import org.jetbrains.bio.qfarm.util.removeRowsWithNaNRHS
 import java.io.File
@@ -22,9 +24,10 @@ class CountingKdTreeOracleTest {
         val dataset = toyDataset()
         val attributes = listOf(1, 2)
         val bounds = computeTestBounds(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset)
 
         CountingKdTreeOracle
-            .fromDataset(dataset, attributes, bounds, leafSize = 2)
+            .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 2)
             .use { oracle ->
                 assertKdEqualsLinear(
                     dataset = dataset,
@@ -42,9 +45,10 @@ class CountingKdTreeOracleTest {
         val dataset = toyDataset()
         val attributes = listOf(1, 2, 3)
         val bounds = computeTestBounds(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset)
 
         CountingKdTreeOracle
-            .fromDataset(dataset, attributes, bounds, leafSize = 2)
+            .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 2)
             .use { oracle ->
                 val queryMin = DoubleArray(attributes.size) { localDim ->
                     bounds[attributes[localDim]][0]
@@ -70,9 +74,10 @@ class CountingKdTreeOracleTest {
         val dataset = toyDataset()
         val attributes = listOf(1, 2)
         val bounds = computeTestBounds(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset)
 
         CountingKdTreeOracle
-            .fromDataset(dataset, attributes, bounds, leafSize = 2)
+            .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 2)
             .use { oracle ->
                 assertKdEqualsLinear(
                     dataset = dataset,
@@ -90,9 +95,10 @@ class CountingKdTreeOracleTest {
         val dataset = toyDataset()
         val attributes = listOf(1, 2)
         val bounds = computeTestBounds(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset)
 
         CountingKdTreeOracle
-            .fromDataset(dataset, attributes, bounds, leafSize = 1)
+            .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 1)
             .use { oracle ->
                 assertKdEqualsLinear(
                     dataset = dataset,
@@ -110,9 +116,10 @@ class CountingKdTreeOracleTest {
         val dataset = toyDataset()
         val attributes = listOf(1)
         val bounds = computeTestBounds(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset)
 
         CountingKdTreeOracle
-            .fromDataset(dataset, attributes, bounds, leafSize = 2)
+            .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 2)
             .use { oracle ->
                 assertKdEqualsLinear(
                     dataset = dataset,
@@ -130,10 +137,11 @@ class CountingKdTreeOracleTest {
         val dataset = randomDataset(rows = 500, cols = 6, seed = 123)
         val attributes = listOf(1, 3, 5)
         val bounds = computeTestBounds(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset)
         val rnd = Random(42)
 
         CountingKdTreeOracle
-            .fromDataset(dataset, attributes, bounds, leafSize = 16)
+            .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 16)
             .use { oracle ->
                 repeat(1_000) { queryId ->
                     val (queryMin, queryMax) = randomQuery(attributes, bounds, rnd)
@@ -154,6 +162,7 @@ class CountingKdTreeOracleTest {
     fun `countRange and supportRange match linear scan for random dimensions and leaf sizes`() {
         val dataset = randomDataset(rows = 1_000, cols = 8, seed = 999)
         val bounds = computeTestBounds(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset)
         val rnd = Random(7)
 
         val attributeSets = listOf(
@@ -170,7 +179,7 @@ class CountingKdTreeOracleTest {
         for (attributes in attributeSets) {
             for (leafSize in leafSizes) {
                 CountingKdTreeOracle
-                    .fromDataset(dataset, attributes, bounds, leafSize)
+                    .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize)
                     .use { oracle ->
                         repeat(250) { queryId ->
                             val (queryMin, queryMax) = randomQuery(attributes, bounds, rnd)
@@ -205,9 +214,10 @@ class CountingKdTreeOracleTest {
 
         val attributes = listOf(1, 2)
         val bounds = computeTestBounds(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset)
 
         CountingKdTreeOracle
-            .fromDataset(dataset, attributes, bounds, leafSize = 1)
+            .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 1)
             .use { oracle ->
                 assertKdEqualsLinear(
                     dataset = dataset,
@@ -225,6 +235,51 @@ class CountingKdTreeOracleTest {
                     queryMin = doubleArrayOf(0.0, 0.0),
                     queryMax = doubleArrayOf(100.0, 100.0),
                     queryId = "duplicates-full"
+                )
+            }
+    }
+
+    @Test
+    fun `countRange and supportRange match linear scan with repeated discrete values`() {
+        val dataset = DatasetWithHeader(
+            header = listOf("rhs", "gender", "score"),
+            data = listOf(
+                doubleArrayOf(1.0, 0.0, 0.0),
+                doubleArrayOf(0.0, 0.0, 0.0),
+                doubleArrayOf(1.0, 0.0, 1.0),
+                doubleArrayOf(0.0, 0.0, 1.0),
+                doubleArrayOf(1.0, 0.0, 1.0),
+                doubleArrayOf(0.0, 0.0, 2.0),
+                doubleArrayOf(1.0, 1.0, 2.0),
+                doubleArrayOf(0.0, 1.0, 2.0),
+                doubleArrayOf(1.0, 1.0, 3.0)
+            ),
+            labels = intArrayOf(1, 0, 1, 0, 1, 0, 1, 0, 1)
+        )
+
+        val attributes = listOf(1, 2)
+        val bounds = computeTestBounds(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset)
+
+        CountingKdTreeOracle
+            .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 1)
+            .use { oracle ->
+                assertKdEqualsLinear(
+                    dataset = dataset,
+                    attributes = attributes,
+                    oracle = oracle,
+                    queryMin = doubleArrayOf(1.0, 2.0),
+                    queryMax = doubleArrayOf(1.0, 3.0),
+                    queryId = "discrete-gender-score"
+                )
+
+                assertKdEqualsLinear(
+                    dataset = dataset,
+                    attributes = attributes,
+                    oracle = oracle,
+                    queryMin = doubleArrayOf(0.0, 1.0),
+                    queryMax = doubleArrayOf(0.0, 2.0),
+                    queryId = "discrete-repeated-zero"
                 )
             }
     }
@@ -252,7 +307,7 @@ class CountingKdTreeOracleTest {
         printlnRealDatasetHeader("friedman", datasetPath, prepared, attributes)
 
         CountingKdTreeOracle
-            .fromDataset(dataset, attributes, bounds, leafSize = 32)
+            .fromDataset(dataset, attributes, bounds, prepared.discreteInfo, leafSize = 32)
             .use { oracle ->
                 repeat(1_000) { queryId ->
                     val (queryMin, queryMax) = randomQuery(attributes, bounds, rnd)
@@ -292,7 +347,7 @@ class CountingKdTreeOracleTest {
         printlnRealDatasetHeader("nhanes", datasetPath, prepared, attributes)
 
         CountingKdTreeOracle
-            .fromDataset(dataset, attributes, bounds, leafSize = 32)
+            .fromDataset(dataset, attributes, bounds, prepared.discreteInfo, leafSize = 32)
             .use { oracle ->
                 repeat(2_000) { queryId ->
                     val (queryMin, queryMax) = randomQuery(attributes, bounds, rnd)
@@ -438,6 +493,10 @@ class CountingKdTreeOracleTest {
 
         val sortedColumns = computeSortedColumns(dataset.data)
         val bounds = computeBoundsFromSorted(sortedColumns)
+        val discreteInfo = detectDiscreteColumns(
+            sortedColumns = sortedColumns,
+            maxDistinct = 16
+        )
         val percentileProvider = SortedColumnsPercentileProvider(sortedColumns)
 
         val minC = bounds[rhsIndex][0]
@@ -470,16 +529,29 @@ class CountingKdTreeOracleTest {
 
         require(dataset.labels.size == dataset.data.size)
 
-        return PreparedDataset(dataset, bounds, rhsIndex, rhsLo, rhsHi)
+        return PreparedDataset(dataset, bounds, discreteInfo, rhsIndex, rhsLo, rhsHi)
     }
 
     private data class PreparedDataset(
         val dataset: DatasetWithHeader,
         val bounds: Array<DoubleArray>,
+        val discreteInfo: DiscreteColumnInfo,
         val rhsIndex: Int,
         val rhsLo: Double,
         val rhsHi: Double
     )
+
+    private fun computeTestDiscreteInfo(
+        dataset: DatasetWithHeader,
+        maxDistinct: Int = 16
+    ): DiscreteColumnInfo {
+        val sortedColumns = computeSortedColumns(dataset.data)
+
+        return detectDiscreteColumns(
+            sortedColumns = sortedColumns,
+            maxDistinct = maxDistinct
+        )
+    }
 
     private fun randomQuery(
         attributes: List<Int>,

@@ -47,14 +47,3 @@ private fun quickSortByCoordinate(
         quickSortByCoordinate(array, i, right, dim, points)
     }
 }
-
-//private fun IntArray.sortRangeByCoordinate(
-//    from: Int,
-//    to: Int,
-//    dim: Int,
-//    points: Array<DoubleArray>
-//) {
-//    java.util.Arrays.sort(
-//        this.toTypedArray(),
-//    )
-//}
