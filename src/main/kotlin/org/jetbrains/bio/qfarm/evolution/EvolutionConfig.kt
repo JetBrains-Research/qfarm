@@ -24,7 +24,6 @@ data class ScoredFront(
 )
 
 object EvolutionContext {
-    val fullRangeTimingRows = mutableListOf<RangeTimingRow>()
     val frontStack = ArrayDeque<ScoredFront>()
 }
 
