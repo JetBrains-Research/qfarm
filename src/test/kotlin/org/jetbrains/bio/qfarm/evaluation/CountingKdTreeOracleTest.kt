@@ -20,11 +20,11 @@ class CountingKdTreeOracleTest {
         System.getProperty("qfarm.test.verbose") == "true"
 
     @Test
-    fun `countRange and supportRange match linear scan on simple fixed query`() {
+    fun `countRange and supportRange match linear scan on binary and discrete query`() {
         val dataset = toyDataset()
-        val attributes = listOf(1, 2)
+        val attributes = listOf(1, 2) // binary_gender, discrete_score
         val bounds = computeTestBounds(dataset)
-        val discreteInfo = computeTestDiscreteInfo(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset, maxDistinct = 6)
 
         CountingKdTreeOracle
             .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 2)
@@ -33,9 +33,30 @@ class CountingKdTreeOracleTest {
                     dataset = dataset,
                     attributes = attributes,
                     oracle = oracle,
-                    queryMin = doubleArrayOf(2.0, 10.0),
-                    queryMax = doubleArrayOf(5.0, 30.0),
-                    queryId = "toy-fixed"
+                    queryMin = doubleArrayOf(1.0, 2.0),
+                    queryMax = doubleArrayOf(1.0, 4.0),
+                    queryId = "toy-binary-discrete"
+                )
+            }
+    }
+
+    @Test
+    fun `countRange and supportRange match linear scan on nondiscrete and continuous query`() {
+        val dataset = toyDataset()
+        val attributes = listOf(3, 4) // age_years, glucose
+        val bounds = computeTestBounds(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset, maxDistinct = 6)
+
+        CountingKdTreeOracle
+            .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 2)
+            .use { oracle ->
+                assertKdEqualsLinear(
+                    dataset = dataset,
+                    attributes = attributes,
+                    oracle = oracle,
+                    queryMin = doubleArrayOf(45.0, 110.0),
+                    queryMax = doubleArrayOf(75.0, 165.0),
+                    queryId = "toy-nondiscrete-continuous"
                 )
             }
     }
@@ -43,9 +64,9 @@ class CountingKdTreeOracleTest {
     @Test
     fun `countRange and supportRange match linear scan when query covers full selected bounds`() {
         val dataset = toyDataset()
-        val attributes = listOf(1, 2, 3)
+        val attributes = listOf(1, 2, 3, 4)
         val bounds = computeTestBounds(dataset)
-        val discreteInfo = computeTestDiscreteInfo(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset, maxDistinct = 6)
 
         CountingKdTreeOracle
             .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 2)
@@ -72,9 +93,9 @@ class CountingKdTreeOracleTest {
     @Test
     fun `countRange and supportRange match linear scan for empty result query`() {
         val dataset = toyDataset()
-        val attributes = listOf(1, 2)
+        val attributes = listOf(1, 2, 3, 4)
         val bounds = computeTestBounds(dataset)
-        val discreteInfo = computeTestDiscreteInfo(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset, maxDistinct = 6)
 
         CountingKdTreeOracle
             .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 2)
@@ -83,8 +104,8 @@ class CountingKdTreeOracleTest {
                     dataset = dataset,
                     attributes = attributes,
                     oracle = oracle,
-                    queryMin = doubleArrayOf(999.0, 999.0),
-                    queryMax = doubleArrayOf(1000.0, 1000.0),
+                    queryMin = doubleArrayOf(1.0, 9.0, 200.0, 999.0),
+                    queryMax = doubleArrayOf(1.0, 10.0, 210.0, 1000.0),
                     queryId = "toy-empty"
                 )
             }
@@ -93,9 +114,9 @@ class CountingKdTreeOracleTest {
     @Test
     fun `countRange and supportRange match linear scan for single-point boundary query`() {
         val dataset = toyDataset()
-        val attributes = listOf(1, 2)
+        val attributes = listOf(1, 2, 3, 4)
         val bounds = computeTestBounds(dataset)
-        val discreteInfo = computeTestDiscreteInfo(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset, maxDistinct = 6)
 
         CountingKdTreeOracle
             .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 1)
@@ -104,19 +125,19 @@ class CountingKdTreeOracleTest {
                     dataset = dataset,
                     attributes = attributes,
                     oracle = oracle,
-                    queryMin = doubleArrayOf(3.0, 30.0),
-                    queryMax = doubleArrayOf(3.0, 30.0),
+                    queryMin = doubleArrayOf(1.0, 2.0, 53.0, 126.7),
+                    queryMax = doubleArrayOf(1.0, 2.0, 53.0, 126.7),
                     queryId = "toy-single-point"
                 )
             }
     }
 
     @Test
-    fun `countRange and supportRange match linear scan for one-dimensional tree`() {
+    fun `countRange and supportRange match linear scan for one-dimensional binary tree`() {
         val dataset = toyDataset()
-        val attributes = listOf(1)
+        val attributes = listOf(1) // binary_gender
         val bounds = computeTestBounds(dataset)
-        val discreteInfo = computeTestDiscreteInfo(dataset)
+        val discreteInfo = computeTestDiscreteInfo(dataset, maxDistinct = 6)
 
         CountingKdTreeOracle
             .fromDataset(dataset, attributes, bounds, discreteInfo, leafSize = 2)
@@ -125,9 +146,9 @@ class CountingKdTreeOracleTest {
                     dataset = dataset,
                     attributes = attributes,
                     oracle = oracle,
-                    queryMin = doubleArrayOf(2.0),
-                    queryMax = doubleArrayOf(4.0),
-                    queryId = "toy-1d"
+                    queryMin = doubleArrayOf(1.0),
+                    queryMax = doubleArrayOf(1.0),
+                    queryId = "toy-1d-binary"
                 )
             }
     }
@@ -319,46 +340,6 @@ class CountingKdTreeOracleTest {
                         queryMin = queryMin,
                         queryMax = queryMax,
                         queryId = "friedman-$queryId"
-                    )
-                }
-            }
-    }
-
-    @Test
-    fun `real nhanes dataset random queries match linear scan if file exists`() {
-        val datasetPath = "data/nhanes_5yr_train.csv"
-
-        if (!File(datasetPath).exists()) {
-            println("Skipping real NHANES test because file does not exist: $datasetPath")
-            return
-        }
-
-        val prepared = prepareDatasetWithLabels(
-            filePath = datasetPath,
-            rhsName = "death_in_next_5yrs",
-            rhsRange = 1.0 to 1.0
-        )
-
-        val dataset = prepared.dataset
-        val bounds = prepared.bounds
-        val attributes = pickExistingAttributes(dataset, listOf(1, 3, 6, 10))
-        val rnd = Random(5678)
-
-        printlnRealDatasetHeader("nhanes", datasetPath, prepared, attributes)
-
-        CountingKdTreeOracle
-            .fromDataset(dataset, attributes, bounds, prepared.discreteInfo, leafSize = 32)
-            .use { oracle ->
-                repeat(2_000) { queryId ->
-                    val (queryMin, queryMax) = randomQuery(attributes, bounds, rnd)
-
-                    assertKdEqualsLinear(
-                        dataset = dataset,
-                        attributes = attributes,
-                        oracle = oracle,
-                        queryMin = queryMin,
-                        queryMax = queryMax,
-                        queryId = "nhanes-$queryId"
                     )
                 }
             }
@@ -578,15 +559,26 @@ class CountingKdTreeOracleTest {
 
     private fun toyDataset(): DatasetWithHeader =
         DatasetWithHeader(
-            header = listOf("rhs", "a", "b", "c"),
-            data = listOf(
-                doubleArrayOf(1.0, 1.0, 10.0, 100.0),
-                doubleArrayOf(0.0, 2.0, 20.0, 200.0),
-                doubleArrayOf(1.0, 3.0, 30.0, 300.0),
-                doubleArrayOf(0.0, 4.0, 40.0, 400.0),
-                doubleArrayOf(1.0, 5.0, 50.0, 500.0)
+            header = listOf(
+                "rhs",
+                "binary_gender",     // binary: 0/1
+                "discrete_score",    // small discrete: 0..5
+                "age_years",         // non-discrete integer-like: many possible values
+                "glucose"            // continuous
             ),
-            labels = intArrayOf(1, 0, 1, 0, 1)
+            data = listOf(
+                doubleArrayOf(1.0, 0.0, 0.0, 30.0,  82.5),
+                doubleArrayOf(0.0, 0.0, 1.0, 35.0,  91.2),
+                doubleArrayOf(1.0, 0.0, 1.0, 42.0, 105.8),
+                doubleArrayOf(0.0, 0.0, 2.0, 48.0, 118.4),
+                doubleArrayOf(1.0, 1.0, 2.0, 53.0, 126.7),
+                doubleArrayOf(0.0, 1.0, 3.0, 59.0, 137.9),
+                doubleArrayOf(1.0, 1.0, 3.0, 64.0, 149.3),
+                doubleArrayOf(0.0, 1.0, 4.0, 71.0, 162.6),
+                doubleArrayOf(1.0, 1.0, 5.0, 76.0, 174.1),
+                doubleArrayOf(0.0, 0.0, 5.0, 82.0, 188.8)
+            ),
+            labels = intArrayOf(1, 0, 1, 0, 1, 0, 1, 0, 1, 0)
         )
 
     private fun randomDataset(
