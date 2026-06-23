@@ -1,5 +1,6 @@
 package org.jetbrains.bio.qfarm
 
+import org.jetbrains.bio.qfarm.evaluation.random.generateAnalyticalRandomAucBaseline
 import org.jetbrains.bio.qfarm.evolution.validate.reevaluateTree
 import org.jetbrains.bio.qfarm.output.OutputManager
 import org.jetbrains.bio.qfarm.output.fronts.buildExportRows
@@ -31,12 +32,16 @@ fun runValidation(loaded: LoadedRulesFile) {
 
     RULE_JSON_WRITER.writeMetadata(
         rhs = loaded.metadata.rhs,
-        hp = loaded.metadata.hyperparameters
+        hp = hp
     )
 
     // Reset runtime state
     RULE_TREE_ROOT.children.clear()
     RULE_TREE_ROOT.steps.clear()
+
+    generateAnalyticalRandomAucBaseline(
+        nShuffles = hp.randomAucBaselineColumns
+    )
 
     // Reevaluate rules on the new dataset
     reevaluateTree(loaded.rules)

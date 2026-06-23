@@ -51,9 +51,11 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
         // ROC (DeLong)
         // -----------------------------
         val delong = if (!isLevel1) {
+            val parentScored = parent.scored
+                ?: error("Missing parent front for ${readLHS(decoded.attrs)}")
             DeLong.compare(
                 datasetWithHeader.labels,
-                parent.scored.scores,
+                parentScored.scores,
                 front.scores
             )
         } else {
@@ -92,10 +94,9 @@ fun reevaluateTree(rows: List<RuleTreeRow>) {
             delong!!.pOneSided < hp.alphaThreshold
         }
 
-        val improvement = frontDistance(
-            parent.scored.front,
-            front.front
-        )
+        val improvement = parent.scored?.let {
+            frontDistance(it.front, front.front)
+        } ?: 0.0
 
         val node = recordStep(
             prefix = decoded.prefix,

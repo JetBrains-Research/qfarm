@@ -86,7 +86,8 @@ fun recordStep(
     val enrichedMeta = meta + mapOf(
         "deltaArea" to deltaArea,
         "totalArea" to totalArea,
-        "pValue" to deLong?.pOneSided,
+        "pValue" to (deLong?.pOneSided
+            ?: meta["randomAucAdjustedP"]),
         "auc" to (deLong?.auc2 ?: meta["auc"])
     )
 
