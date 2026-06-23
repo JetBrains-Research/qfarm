@@ -44,6 +44,8 @@ fun computeFrontScores(
 
         for (r in data.indices) {
 
+            val eps = 1e-6
+
             val row = data[r]
 
             var covered = true
@@ -56,7 +58,7 @@ fun computeFrontScores(
                     error("NaN encountered in dataset at row=$r column=${idxs[j]}. NaNs not supported yet.")
                 }
 
-                if (v < lows[j] || v > ups[j]) {
+                if (v < lows[j] - eps || v > ups[j] + eps) {
                     covered = false
                     break
                 }
