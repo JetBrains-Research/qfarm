@@ -124,17 +124,17 @@ Any parameter not provided falls back to defaults defined in `HyperParameters`.
 
 ### Output
 
-`--name`  
+`--name` (default: test_run)  
 Name of the current run.
 
 ---
 
 ### Rule constraints
 
-`--min-support` (default: 100)  
+`--min-support` (default: 1)  
 Minimum number of records that must satisfy the rule. 
 
-`--max-support` (default: 5000)  
+`--max-support` (default: 1000000)  
 Maximum number of records a rule can cover. 
 
 `--max-width` (default: 0.8)  
@@ -146,43 +146,43 @@ Maximum number of attributes in the antecedent (rule length).
 `--max-children` (default: 1)  
 Maximum number of children per internal node in the rule tree.  
 
-`--max-first-children` (default: 1)  
+`--max-first-children` (default: 4)  
 Maximum number of children for the root node.
 
 ---
 
 ### Evolution parameters
 
-`--evo-cheap-pop`  
+`--evo-cheap-pop` (default: 100)  
 Population size used in the **cheap (initial) evolution phase**. 
 
-`--evo-cheap-gen`  
+`--evo-cheap-gen` (default: 100)  
 Number of generations for the cheap evolution phase.  
 
-`--evo-full-pop`  
+`--evo-full-pop` (default: 500)  
 Population size used in the **full evolution phase**.  
 
-`--evo-full-gen`  
+`--evo-full-gen` (default: 500)  
 Number of generations for the full evolution phase. 
 
 ---
 
 ### Mutation parameters
 
-`--prob-mutation` (default: 1.0)  
+`--prob-mutation` (default: 0.75)  
 Probability of applying mutation to a gene during evolution. 
 
-`--std-mutation` (default: 0.15)  
+`--std-mutation` (default: 0.02)  
 Standard deviation controlling mutation magnitude. 
 
 ---
 
 ### Statistical validation
 
-`--alpha-threshold`  
+`--alpha-threshold` (default: 0.05)  
 Statistical significance threshold.
 
-`--roc-comp`  
+`--roc-comp` (default: cp)  
 ROC comparison mode.
 
 Allowed values:
@@ -199,7 +199,7 @@ Examples:
 --roc-comp cp
 ```
 
-`--rand-auc-cols`  
+`--rand-auc-cols` (default: 1000)  
 Number of random columns used to generate the level-1 empirical AUC baseline.
 
 ---
