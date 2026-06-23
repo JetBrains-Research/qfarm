@@ -122,6 +122,11 @@ MIN,6.0
 All hyperparameters can be overridden through CLI flags.  
 Any parameter not provided falls back to defaults defined in `HyperParameters`.
 
+### Output
+
+`--name`  
+Name of the current run.
+
 ---
 
 ### Rule constraints
@@ -131,6 +136,9 @@ Minimum number of records that must satisfy the rule.
 
 `--max-support` (default: 5000)  
 Maximum number of records a rule can cover. 
+
+`--max-width` (default: 0.8)  
+Maximum normalized width allowed for continuous attribute intervals.
 
 `--max-depth` (default: 2)  
 Maximum number of attributes in the antecedent (rule length). 
@@ -192,7 +200,7 @@ Examples:
 ```
 
 `--rand-auc-cols`  
-Number of synthetic random columns used to generate the level-1 empirical AUC baseline.
+Number of random columns used to generate the level-1 empirical AUC baseline.
 
 ---
 
@@ -200,23 +208,23 @@ Number of synthetic random columns used to generate the level-1 empirical AUC ba
 
 ```bash
 java -jar qfarm.jar search \
-  --data data.csv \
+  --data data/friedman.csv \
   --rhs y \
-  --rhs-range 4.0,MAX \
-  --max-depth 3 \
-  --max-children 2 \
-  --max-first-children 10 \
-  --roc-comp cp \
-  --rand-auc-cols 100 \
+  --rhs-range-percentile 80,100 \
+  --name KB-friedman \
+  --min-support 1 \
+  --max-support 500 \
+  --max-children 3 \
+  --max-depth 5 \
+  --max-first-children 5 \
+  --alpha-threshold 0.01 \
   --evo-cheap-pop 100 \
   --evo-cheap-gen 100 \
   --evo-full-pop 500 \
   --evo-full-gen 500 \
-  --prob-mutation 0.75 \
-  --std-mutation 0.02 \
-  --min-support 5 \
-  --max-support 500 \
-  --alpha-threshold 0.05
+  --max-width 0.8 \
+  --roc-comp cp \
+  --rand-auc-cols 1000
 ```
 
 ---
