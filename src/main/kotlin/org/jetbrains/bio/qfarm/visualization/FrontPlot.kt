@@ -9,11 +9,13 @@ import org.jetbrains.bio.qfarm.evaluation.fronts.toPFSeries
 import org.jetbrains.bio.qfarm.statistics.delong.AUC
 import org.jetbrains.bio.qfarm.statistics.delong.DeLong
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
+import org.jetbrains.bio.qfarm.util.combinedParetoFront
 
 data class RenderedFrontPlots(
     val pfUrl: String,
     val rocUrl: String,
-    val combinedUrl: String
+    val combinedUrl: String,
+    val labelPfUrl: String = pfUrl
 )
 
 fun renderFrontPlots(
@@ -50,6 +52,33 @@ fun renderFrontPlots(
 
         val pfUrl = FrontStore.saveAndUrl(pfPlot, "${filename}_pf")
             ?: return null
+
+
+        // ---------- Label-only PF plot ----------
+// Build the Pareto front of Parent ∪ Child, used only for node histograms.
+        val labelFront = combinedParetoFront(
+            parentScoredFront = parentScoredFront,
+            childScoredFront = childScoredFront
+        )
+
+        val labelPfSeries = listOf(
+            toPFSeries(
+                front = labelFront,
+                seriesName = "Child",
+                newDataset = datasetWithHeader
+            )
+        )
+
+        val labelPfPlot = buildParetoFrontPlotCombined(
+            labelPfSeries,
+            title = title
+        )
+
+        val labelPfUrl = FrontStore.saveAndUrl(
+            labelPfPlot,
+            "${filename}_label_pf"
+        ) ?: pfUrl
+
 
         // ---------- ROC / AUC plot ----------
         val secondPlotUrl = if (isLevel1) {
@@ -139,7 +168,8 @@ fun renderFrontPlots(
         RenderedFrontPlots(
             pfUrl = pfUrl,
             rocUrl = secondPlotUrl,
-            combinedUrl = combinedUrl
+            combinedUrl = combinedUrl,
+            labelPfUrl = labelPfUrl
         )
 
     } catch (t: Throwable) {

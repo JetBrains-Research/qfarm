@@ -74,6 +74,7 @@ fun initEnvironment(
     val minC = bounds[rightAttrIndex][0]
     val maxC = bounds[rightAttrIndex][1]
 
+    // TODO: what the actual fuck... remove the double translation from percentile to percentile
     val (rhsLo, rhsHi) = when {
         rhsRange != null -> {
             val (loOpt, hiOpt) = rhsRange

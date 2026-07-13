@@ -34,4 +34,4 @@ data class OutputManager(
 }
 
 fun sanitize(name: String): String =
-    name.replace(Regex("[^a-zA-Z0-9._-]"), "_")
+    name.replace(Regex("[^a-zA-Z0-9._/\\\\-]"), "_")

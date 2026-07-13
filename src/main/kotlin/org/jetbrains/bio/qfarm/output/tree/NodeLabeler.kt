@@ -33,7 +33,7 @@ object NodeLabeler {
     }
 
     private fun resolveFrontHtml(n: RuleTreeNode): File? {
-        val url = n.plots?.pfUrl ?: return null
+        val url = n.plots?.labelPfUrl ?: return null
 
         return try {
             val file = File(java.net.URI(url))

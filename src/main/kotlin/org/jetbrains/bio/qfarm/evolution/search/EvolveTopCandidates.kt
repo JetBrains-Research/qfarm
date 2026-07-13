@@ -15,6 +15,7 @@ import org.jetbrains.bio.qfarm.evaluation.random.empiricalAucPValueGreater
 import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.evolution.ScoredFront
 import org.jetbrains.bio.qfarm.evolution.fullTopRange
+import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.statistics.delong.AUC
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 
@@ -99,7 +100,7 @@ fun evaluateAllAdditions(
                         auc = auc,
                         randomAucP = rawP,
                         randomAucAdjustedP = adjustedP,
-                        randomAucPass = adjustedP < 0.05
+                        randomAucPass = adjustedP < hp.alphaThreshold
                     )
 
                 } else {
