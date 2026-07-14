@@ -10,6 +10,7 @@ const val GREEN  = "\u001B[32m"
 
 enum class RocComparisonMode {
     CHILD,
-    CHILD_PLUS_PARENT
+    CHILD_PLUS_PARENT,
+    MERGE
 }
 

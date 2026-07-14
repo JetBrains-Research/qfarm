@@ -57,7 +57,7 @@ class SearchCommand : CliktCommand(name = "search") {
 
     private val rocComparisonOpt by option(
         "--roc-comp",
-        help = "ROC comparison mode: child or child-plus-parent"
+        help = "ROC comparison mode: child, child-plus-parent, or merge"
     )
 
     private val randomAucBaselineColumnsOpt by option("--rand-auc-cols").int()
@@ -193,10 +193,14 @@ class SearchCommand : CliktCommand(name = "search") {
             "cp", "child-parent", "child-plus-parent", "child+parent", "both" ->
                 RocComparisonMode.CHILD_PLUS_PARENT
 
+            "m", "merge" ->
+                RocComparisonMode.MERGE
+
             else -> error(
-                "Invalid --roc '$value'. Use one of: c, cp\n" +
+                "Invalid --roc '$value'. Use one of: c, cp, m\n" +
                         "  c  = child only\n" +
-                        "  cp = child plus parent"
+                        "  cp = child plus parent\n" +
+                        "  m  = merge (pareto front of combined)"
             )
         }
     }

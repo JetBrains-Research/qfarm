@@ -12,6 +12,7 @@ import org.jetbrains.bio.qfarm.params.YELLOW
 import org.jetbrains.bio.qfarm.evaluation.fronts.computeFrontScores
 import org.jetbrains.bio.qfarm.params.RocComparisonMode
 import org.jetbrains.bio.qfarm.params.hp
+import org.jetbrains.bio.qfarm.util.paretoFrontOf
 
 fun topRange(
     attributes: List<Int>,
@@ -62,6 +63,14 @@ fun topRange(
                 front
             } else {
                 parentFront.append(front)
+            }
+        }
+
+        RocComparisonMode.MERGE -> {
+            if (parentFront == null || parentFront.isEmpty) {
+                front
+            } else {
+                ISeq.of(paretoFrontOf(parentFront.append(front)))
             }
         }
     }

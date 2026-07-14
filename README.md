@@ -190,6 +190,7 @@ Allowed values:
 ```text
 c   = child only
 cp  = child plus parent
+m   = merge (pareto front of combined)
 ```
 
 Examples:
@@ -197,6 +198,7 @@ Examples:
 ```bash
 --roc-comp c
 --roc-comp cp
+--roc-comp m
 ```
 
 `--rand-auc-cols` (default: 1000)  
