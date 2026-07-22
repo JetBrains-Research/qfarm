@@ -2,78 +2,315 @@ package org.jetbrains.bio.qfarm
 
 import org.jetbrains.bio.qfarm.params.hp
 import com.github.ajalt.clikt.core.CliktCommand
+import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
 import org.jetbrains.bio.qfarm.params.RocComparisonMode
 
+
 class SearchCommand : CliktCommand(name = "search") {
 
-    // ===== REQUIRED =====
+    override fun commandHelp(context: Context): String = """
+        Mine quantitative association rules from a CSV dataset.
+
+        The right-hand-side target interval must be specified using exactly
+        one of --rhs-range or --rhs-range-percentile.
+
+        Parameters not explicitly supplied use the defaults configured in
+        HyperParameters.
+    """.trimIndent()
+
+    override fun commandHelpEpilog(context: Context): String = """
+        Range formats:
+
+          --rhs-range:
+            4.0,8.0
+            4.0..8.0
+            MIN,8.0
+            4.0,MAX
+            MIN,MAX
+    
+          --rhs-range-percentile:
+            80,100
+            80..100
+            [80,100]
+
+        In zsh, bracket expressions should be quoted:
+
+          --rhs-range-percentile "[80,100]"
+
+        ROC comparison modes:
+
+          c   Child front only
+          cp  Child and parent fronts
+          m   Pareto front of the combined child and parent solutions
+
+        Minimal example:
+
+          java -jar qfarm.jar search \
+            --data data.csv \
+            --rhs y \
+            --rhs-range-percentile 90,100
+
+        Full example:
+
+          java -jar qfarm.jar search \
+            --data data/friedman.csv \
+            --rhs y \
+            --rhs-range-percentile 80,100 \
+            --name KB-friedman \
+            --min-support 1 \
+            --max-support 500 \
+            --max-children 3 \
+            --max-depth 5 \
+            --max-first-children 5 \
+            --alpha-threshold 0.01 \
+            --evo-cheap-pop 100 \
+            --evo-cheap-gen 100 \
+            --evo-full-pop 500 \
+            --evo-full-gen 500 \
+            --prob-mutation 0.75 \
+            --std-mutation 0.02 \
+            --max-width 0.8 \
+            --roc-comp cp \
+            --rand-auc-cols 1000
+    """.trimIndent()
+
+    // =====================================================================
+    // Required dataset options
+    // =====================================================================
+
     private val dataPath by option(
         "--data",
-        help = "path/to/dataset.csv"
+        metavar = "PATH",
+        help = "Path to the input CSV dataset."
     ).required()
 
     private val rhsName by option(
         "--rhs",
-        help = "right-hand-side column name as in dataset"
+        metavar = "COLUMN",
+        help = "Name of the right-hand-side target column in the dataset."
     ).required()
 
-    // ===== RANGE OPTIONS (mutually exclusive) =====
+    // =====================================================================
+    // RHS range options
+    // Exactly one must be supplied.
+    // =====================================================================
+
     private val rhsRangeArg by option(
         "--rhs-range",
-        help = "numerical lo,hi or lo..hi; MIN/MAX allowed"
+        metavar = "LOW,HIGH",
+        help = """
+            Absolute numerical range of the RHS target. Accepts LOW,HIGH or
+            LOW..HIGH. MIN and MAX may be used for unbounded endpoints.
+            Cannot be combined with --rhs-range-percentile.
+        """.trimIndent()
     )
 
     private val rhsPctArg by option(
         "--rhs-range-percentile",
-        help = "percentile pLo,pHi or pLo..pHi in [0,100]"
+        metavar = "LOW,HIGH",
+        help = """
+            Percentile range of the RHS target, with both values in [0,100].
+            Accepts LOW,HIGH or LOW..HIGH. Cannot be combined with --rhs-range.
+        """.trimIndent()
     )
 
-    // ===== OPTIONAL PARAMETERS =====
-    private val runNameOpt by option("--name")
+    // =====================================================================
+    // Output
+    // =====================================================================
 
-    private val exclColsOpt by option("--excl-cols")
+    private val runNameOpt by option(
+        "--name",
+        metavar = "NAME",
+        help = "Name of the run and its results directory. Default: ${hp.runName}."
+    )
 
-    private val minSupportOpt by option("--min-support").int()
-    private val maxSupportOpt by option("--max-support").int()
+    // =====================================================================
+    // Dataset columns
+    // =====================================================================
 
-    private val maxDepthOpt by option("--max-depth").int()
-    private val maxChildrenOpt by option("--max-children").int()
-    private val maxFirstChildrenOpt by option("--max-first-children").int()
+    private val exclColsOpt by option(
+        "--excl-cols",
+        metavar = "COL1,COL2,...",
+        help = """
+            Comma-separated columns to exclude from rule antecedents.
+            The RHS column is handled separately.
+        """.trimIndent()
+    )
 
-    private val evoCheapPopOpt by option("--evo-cheap-pop").int()
-    private val evoCheapGenOpt by option("--evo-cheap-gen").int()
+    // =====================================================================
+    // Rule constraints
+    // =====================================================================
 
-    private val evoFullPopOpt by option("--evo-full-pop").int()
-    private val evoFullGenOpt by option("--evo-full-gen").int()
+    private val minSupportOpt by option(
+        "--min-support",
+        metavar = "COUNT",
+        help = """
+            Minimum number of dataset records that must satisfy a rule.
+            Default: ${hp.minSupport}.
+        """.trimIndent()
+    ).int()
 
-    private val probMutationOpt by option("--prob-mutation").double()
-    private val stdMutationOpt by option("--std-mutation").double()
+    private val maxSupportOpt by option(
+        "--max-support",
+        metavar = "COUNT",
+        help = """
+            Maximum number of dataset records that a rule may cover.
+            Default: ${hp.maxSupport}.
+        """.trimIndent()
+    ).int()
 
-    private val alphaThresholdOpt by option("--alpha-threshold").double()
+    private val maxWidthOpt by option(
+        "--max-width",
+        metavar = "VALUE",
+        help = """
+            Maximum normalized percentile-width allowed for continuous attribute
+            intervals. Default: ${hp.maxWidth}.
+        """.trimIndent()
+    ).double()
 
-    private val maxWidthOpt by option("--max-width").double()
+    // =====================================================================
+    // Rule-tree construction
+    // =====================================================================
+
+    private val maxDepthOpt by option(
+        "--max-depth",
+        metavar = "COUNT",
+        help = """
+            Maximum number of attributes in a rule antecedent.
+            Default: ${hp.maxDepth}.
+        """.trimIndent()
+    ).int()
+
+    private val maxChildrenOpt by option(
+        "--max-children",
+        metavar = "COUNT",
+        help = """
+            Maximum number of children generated for an internal rule-tree
+            node. Default: ${hp.maxChildren}.
+        """.trimIndent()
+    ).int()
+
+    private val maxFirstChildrenOpt by option(
+        "--max-first-children",
+        metavar = "COUNT",
+        help = """
+            Maximum number of children generated from the root node.
+            Default: ${hp.maxFirstChildren}.
+        """.trimIndent()
+    ).int()
+
+    // =====================================================================
+    // Evolution parameters
+    // =====================================================================
+
+    private val evoCheapPopOpt by option(
+        "--evo-cheap-pop",
+        metavar = "COUNT",
+        help = """
+            Population size used during the initial cheap evolution phase.
+            Default: ${hp.popSizeCheap}.
+        """.trimIndent()
+    ).int()
+
+    private val evoCheapGenOpt by option(
+        "--evo-cheap-gen",
+        metavar = "COUNT",
+        help = """
+            Number of generations in the initial cheap evolution phase.
+            Default: ${hp.maxGenCheap}.
+        """.trimIndent()
+    ).int()
+
+    private val evoFullPopOpt by option(
+        "--evo-full-pop",
+        metavar = "COUNT",
+        help = """
+            Population size used during the full evolution phase.
+            Default: ${hp.popSizeFull}.
+        """.trimIndent()
+    ).int()
+
+    private val evoFullGenOpt by option(
+        "--evo-full-gen",
+        metavar = "COUNT",
+        help = """
+            Number of generations in the full evolution phase.
+            Default: ${hp.maxGenFull}.
+        """.trimIndent()
+    ).int()
+
+    // =====================================================================
+    // Mutation parameters
+    // =====================================================================
+
+    private val probMutationOpt by option(
+        "--prob-mutation",
+        metavar = "PROBABILITY",
+        help = """
+            Probability of applying mutation during evolution.
+            Expected range: [0,1]. Default: ${hp.probabilityMutation}.
+        """.trimIndent()
+    ).double()
+
+    private val stdMutationOpt by option(
+        "--std-mutation",
+        metavar = "VALUE",
+        help = """
+            Standard deviation controlling mutation magnitude.
+            Default: ${hp.stdMutation}.
+        """.trimIndent()
+    ).double()
+
+    // =====================================================================
+    // Statistical validation
+    // =====================================================================
+
+    private val alphaThresholdOpt by option(
+        "--alpha-threshold",
+        metavar = "VALUE",
+        help = """
+            Statistical significance threshold used during rule validation.
+            Default: ${hp.alphaThreshold}.
+        """.trimIndent()
+    ).double()
 
     private val rocComparisonOpt by option(
         "--roc-comp",
-        help = "ROC comparison mode: child, child-plus-parent, or merge"
+        metavar = "MODE",
+        help = """
+            ROC comparison mode: c = child only, cp = child plus parent,
+            m = merged Pareto front. Default: ${hp.rocComparison}.
+        """.trimIndent()
     )
 
-    private val randomAucBaselineColumnsOpt by option("--rand-auc-cols").int()
+    private val randomAucBaselineColumnsOpt by option(
+        "--rand-auc-cols",
+        metavar = "COUNT",
+        help = """
+            Number of random columns used to construct the level-1 empirical
+            AUC baseline. Default: ${hp.randomAucBaselineColumns}.
+        """.trimIndent()
+    ).int()
 
     override fun run() {
-
         // ===== VALIDATION =====
         val hasRange = rhsRangeArg != null
         val hasPct = rhsPctArg != null
 
         if (!hasRange && !hasPct) {
-            error("One of --rhs-range or --rhs-range-percentile must be provided.")
+            error(
+                "Missing RHS range: provide exactly one of " +
+                        "--rhs-range or --rhs-range-percentile."
+            )
         }
 
         if (hasRange && hasPct) {
-            error("Provide exactly one of --rhs-range or --rhs-range-percentile, not both.")
+            error(
+                "The options --rhs-range and --rhs-range-percentile are " +
+                        "mutually exclusive; provide only one."
+            )
         }
 
         // ===== PARSING =====
@@ -98,43 +335,40 @@ class SearchCommand : CliktCommand(name = "search") {
 
         // ===== UPDATE GLOBAL CONFIG =====
         hp = hp.copy(
-            // thresholds
             minSupport = minSupportOpt ?: hp.minSupport,
             maxSupport = maxSupportOpt ?: hp.maxSupport,
 
-            // rule tree building
             maxDepth = maxDepthOpt ?: hp.maxDepth,
             maxChildren = maxChildrenOpt ?: hp.maxChildren,
             maxFirstChildren = maxFirstChildrenOpt ?: hp.maxFirstChildren,
 
-            // evolutions
             popSizeCheap = evoCheapPopOpt ?: hp.popSizeCheap,
             maxGenCheap = evoCheapGenOpt ?: hp.maxGenCheap,
             popSizeFull = evoFullPopOpt ?: hp.popSizeFull,
             maxGenFull = evoFullGenOpt ?: hp.maxGenFull,
 
-            // mutation
-            probabilityMutation = probMutationOpt ?: hp.probabilityMutation,
+            probabilityMutation =
+                probMutationOpt ?: hp.probabilityMutation,
             stdMutation = stdMutationOpt ?: hp.stdMutation,
 
-            // threshold
-            alphaThreshold = alphaThresholdOpt ?: hp.alphaThreshold,
+            alphaThreshold =
+                alphaThresholdOpt ?: hp.alphaThreshold,
             maxWidth = maxWidthOpt ?: hp.maxWidth,
-            rocComparison = parseRocComparisonMode(rocComparisonOpt)
-                ?: hp.rocComparison,
+            rocComparison =
+                parseRocComparisonMode(rocComparisonOpt)
+                    ?: hp.rocComparison,
             randomAucBaselineColumns =
-                randomAucBaselineColumnsOpt ?: hp.randomAucBaselineColumns,
+                randomAucBaselineColumnsOpt
+                    ?: hp.randomAucBaselineColumns,
 
-            // misc
-            excludedColumns = excludedColumnsOpt ?: hp.excludedColumns,
+            excludedColumns =
+                excludedColumnsOpt ?: hp.excludedColumns,
             runName = runNameOpt ?: hp.runName,
 
-            // required
             dataPath = dataPath,
-            rightAttribute = rhsName,
+            rightAttribute = rhsName
         )
 
-        // ===== INIT =====
         initEnvironment(
             dataPath = dataPath,
             rhsName = rhsName,
@@ -142,11 +376,8 @@ class SearchCommand : CliktCommand(name = "search") {
             rhsPercentiles = rhsPercentiles
         )
 
-        // ===== EXECUTE =====
         runSearch()
     }
-
-    // ===== HELPERS =====
 
     private fun parseRangeDoubles(arg: String): Pair<Double?, Double?> {
         val cleaned = arg.trim()
@@ -155,14 +386,22 @@ class SearchCommand : CliktCommand(name = "search") {
             .replace("..", ",")
 
         val parts = cleaned.split(",").map { it.trim() }
-        require(parts.size == 2) { "Range must have two values, got: $arg" }
 
-        fun parseEnd(s: String): Double? = when (s.uppercase()) {
-            "MIN", "MAX" -> null
-            else -> s.toDoubleOrNull()
+        require(parts.size == 2) {
+            "Invalid RHS range '$arg'. Expected LOW,HIGH or LOW..HIGH."
         }
 
-        return parseEnd(parts[0]) to parseEnd(parts[1])
+        fun parseEndpoint(value: String): Double? =
+            when (value.uppercase()) {
+                "MIN", "MAX" -> null
+                else -> value.toDoubleOrNull()
+                    ?: error(
+                        "Invalid range endpoint '$value'. " +
+                                "Use a number, MIN, or MAX."
+                    )
+            }
+
+        return parseEndpoint(parts[0]) to parseEndpoint(parts[1])
     }
 
     private fun parseIntPair(arg: String): Pair<Int, Int> {
@@ -172,36 +411,52 @@ class SearchCommand : CliktCommand(name = "search") {
             .replace("..", ",")
 
         val parts = cleaned.split(",").map { it.trim() }
-        require(parts.size == 2) { "Percentile range must have 2 ints, got: $arg" }
 
-        val a = parts[0].toInt()
-        val b = parts[1].toInt()
+        require(parts.size == 2) {
+            "Invalid percentile range '$arg'. Expected LOW,HIGH or LOW..HIGH."
+        }
 
-        require(a in 0..100 && b in 0..100) { "Percentiles must be in [0,100]" }
-        require(a <= b) { "Lower percentile must be <= upper" }
+        val lower = parts[0].toIntOrNull()
+            ?: error("Invalid lower percentile '${parts[0]}': expected an integer.")
 
-        return a to b
+        val upper = parts[1].toIntOrNull()
+            ?: error("Invalid upper percentile '${parts[1]}': expected an integer.")
+
+        require(lower in 0..100 && upper in 0..100) {
+            "Percentiles must be between 0 and 100."
+        }
+
+        require(lower <= upper) {
+            "The lower percentile must not exceed the upper percentile."
+        }
+
+        return lower to upper
     }
 
-    fun parseRocComparisonMode(value: String?): RocComparisonMode? {
-        return when (value?.lowercase()) {
+    private fun parseRocComparisonMode(
+        value: String?
+    ): RocComparisonMode? =
+        when (value?.lowercase()) {
             null -> null
 
             "c", "child" ->
                 RocComparisonMode.CHILD
 
-            "cp", "child-parent", "child-plus-parent", "child+parent", "both" ->
+            "cp",
+            "child-parent",
+            "child-plus-parent",
+            "child+parent",
+            "both" ->
                 RocComparisonMode.CHILD_PLUS_PARENT
 
             "m", "merge" ->
                 RocComparisonMode.MERGE
 
             else -> error(
-                "Invalid --roc '$value'. Use one of: c, cp, m\n" +
-                        "  c  = child only\n" +
-                        "  cp = child plus parent\n" +
-                        "  m  = merge (pareto front of combined)"
+                "Invalid --roc-comp value '$value'. Use one of:\n" +
+                        "  c   child only\n" +
+                        "  cp  child plus parent\n" +
+                        "  m   merged Pareto front"
             )
         }
-    }
 }
