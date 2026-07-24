@@ -5,7 +5,9 @@ import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
+import org.jetbrains.bio.qfarm.logger.InitialRuntimeEstimator
 import org.jetbrains.bio.qfarm.logger.ProgressLogger
+import org.jetbrains.bio.qfarm.logger.ValidationProgressLogger
 import org.jetbrains.bio.qfarm.output.OutputManager
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeJsonWriter
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
@@ -25,6 +27,7 @@ val rand = RandomRegistry.random()
 // all these become lateinit / vars, initialized by initEnvironment()
 lateinit var OUTPUT: OutputManager
 lateinit var PROGRESS: ProgressLogger
+lateinit var VALIDATION_PROGRESS: ValidationProgressLogger
 lateinit var GLOBAL_ENV: EvolutionEnvironment
 lateinit var datasetWithHeader: DatasetWithHeader
 lateinit var columnNames: List<String>
@@ -148,10 +151,18 @@ fun initEnvironment(
             it != rightAttrIndex
         }
 
+    val datasetRows =
+        datasetWithHeader.labels.size
+
     PROGRESS = ProgressLogger(
-        maxDepth = hp.maxDepth,
-        maxFirstChildren = hp.maxFirstChildren,
-        maxChildren = hp.maxChildren,
+        maxDepth =
+            hp.maxDepth,
+
+        maxFirstChildren =
+            hp.maxFirstChildren,
+
+        maxChildren =
+            hp.maxChildren,
 
         randomBaselineColumns =
             hp.randomAucBaselineColumns,
@@ -163,13 +174,39 @@ fun initEnvironment(
         searchableAttributes =
             searchableAttributes,
 
-        // Temporary constants.
-        // Replace later with the formulas you provide.
-        initialCheapEvolutionSeconds = 10.0,
-        initialFullEvolutionSeconds = 60.0,
+        initialCheapEvolutionSeconds =
+            InitialRuntimeEstimator
+                .cheapEvolutionSeconds(
+                    datasetRows =
+                        datasetRows,
+                    population =
+                        hp.popSizeCheap,
+                    generations =
+                        hp.maxGenCheap
+                ),
 
-        initialRandomAucSeconds = 20.0,
-        initialFinalizationSeconds = 1.0
+        initialFullEvolutionSeconds =
+            InitialRuntimeEstimator
+                .fullEvolutionSeconds(
+                    datasetRows =
+                        datasetRows,
+                    population =
+                        hp.popSizeFull,
+                    generations =
+                        hp.maxGenFull
+                ),
+
+        initialRandomAucSeconds =
+            InitialRuntimeEstimator
+                .randomAucSeconds(
+                    datasetRows =
+                        datasetRows,
+                    randomAucColumns =
+                        hp.randomAucBaselineColumns
+                ),
+
+        initialFinalizationSeconds =
+            1.0
     )
 
     val discreteNames = columnNames.indices
