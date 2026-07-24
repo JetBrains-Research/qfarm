@@ -27,7 +27,11 @@ fun runSearch() {
     )
     OUTPUT.init()
 
+    PROGRESS.runStarted()
+
     generateAnalyticalRandomAucBaseline(nShuffles = hp.randomAucBaselineColumns)
+
+    PROGRESS.randomBaselineFinished()
 
     RULE_JSON_WRITER = RuleTreeJsonWriter(OUTPUT.logFile)
 
@@ -38,6 +42,8 @@ fun runSearch() {
 
     val emptyPrefix: MutableList<Int> = mutableListOf()
     treeTraversal(emptyPrefix)
+
+    PROGRESS.treeSearchFinished()
 
     exportLeafRules(
         RULE_TREE_ROOT,
@@ -78,5 +84,7 @@ fun runSearch() {
     )
 
     RULE_JSON_WRITER.close()
+
+    PROGRESS.runFinished()
 
 }
