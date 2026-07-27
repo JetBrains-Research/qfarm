@@ -8,6 +8,21 @@ import kotlin.collections.iterator
 import kotlin.math.roundToInt
 import kotlin.math.max
 
+
+private const val CONFIDENCE_FIELD = "Confidence"
+
+data class WeightedRulePct(
+    val rulePct: String,
+    val confidence: Double
+)
+
+data class WeightedInterval(
+    val attr: String,
+    val lo: Int,
+    val hi: Int,
+    val confidence: Double
+)
+
 /**
  * Reads a Lets-Plot HTML file and extracts plotSpec JSON.
  */
@@ -47,25 +62,47 @@ fun extractPlotSpecFromHtml(htmlFile: File): JsonObject {
 }
 
 /**
- * Extracts rulePct strings for CHILD series only.
+ * Extracts CHILD rule descriptions together with their confidence.
+ *
+ * Assumes rulePct, series, and confidence are parallel arrays
+ * inside the same Lets-Plot layer.
  */
-fun extractChildRulePct(plotSpec: JsonObject): List<String> {
-    val out = mutableListOf<String>()
+fun extractChildRulePcts(
+    plotSpec: JsonObject
+): List<WeightedRulePct> {
+
+    val out = mutableListOf<WeightedRulePct>()
     val layers = plotSpec["layers"]?.jsonArray ?: return out
 
     for (layer in layers) {
         val obj = layer.jsonObject
         val data = obj["data"]?.jsonObject ?: continue
 
-        if (!data.containsKey("rulePct")) continue
-
         val series = data["series"]?.jsonArray ?: continue
-        val rulePct = data["rulePct"]!!.jsonArray
+        val rulePcts = data["rulePct"]?.jsonArray ?: continue
+        val confidences = data[CONFIDENCE_FIELD]?.jsonArray ?: continue
 
-        for (i in rulePct.indices) {
-            if (series[i].jsonPrimitive.content == "Child") {
-                out += rulePct[i].jsonPrimitive.content
+        val size = minOf(
+            series.size,
+            rulePcts.size,
+            confidences.size
+        )
+
+        for (i in 0 until size) {
+            if (series[i].jsonPrimitive.content != "Child") {
+                continue
             }
+
+            val rulePct = rulePcts[i].jsonPrimitive.content
+
+            val confidence = confidences[i]
+                .jsonPrimitive
+                .double
+
+            out += WeightedRulePct(
+                rulePct = rulePct,
+                confidence = confidence
+            )
         }
     }
 
@@ -75,23 +112,27 @@ fun extractChildRulePct(plotSpec: JsonObject): List<String> {
 private val RULE_PCT_REGEX =
     Regex("""([^()\n]+?)\s*\(\s*(\d{1,3})\s*%\s*,\s*(\d{1,3})\s*%\s*\)""")
 
-data class Interval(
-    val attr: String,
-    val lo: Int,
-    val hi: Int
-)
-
-/** Parse rulePct strings that may contain MULTIPLE attributes */
-fun parseIntervals(rulePcts: List<String>): List<Interval> =
-    rulePcts.flatMap { text ->
-        val cleaned = text.trim()
-
-        RULE_PCT_REGEX.findAll(cleaned).map { m ->
-            val attr = m.groupValues[1].trim()
-            val lo = m.groupValues[2].toInt()
-            val hi = m.groupValues[3].toInt()
-            Interval(attr, lo, hi)
-        }.toList()
+/**
+ * Parses rulePct strings that may contain multiple attributes.
+ *
+ * Every interval originating from the same rule receives that
+ * rule's confidence.
+ */
+fun parseWeightedIntervals(
+    rules: List<WeightedRulePct>
+): List<WeightedInterval> =
+    rules.flatMap { rule ->
+        RULE_PCT_REGEX
+            .findAll(rule.rulePct.trim())
+            .map { match ->
+                WeightedInterval(
+                    attr = match.groupValues[1].trim(),
+                    lo = match.groupValues[2].toInt(),
+                    hi = match.groupValues[3].toInt(),
+                    confidence = rule.confidence
+                )
+            }
+            .toList()
     }
 
 
@@ -105,42 +146,61 @@ private fun coverageChar(c: Double): Char {
 }
 
 /**
- * Build 20-bin boxed coverage bars per attribute.
- * Normalized to max (shape-based).
+ * Builds confidence-weighted coverage bars per attribute.
+ *
+ * A rule contributes its confidence to every bin that its interval covers.
+ * The final bar is normalized by the largest weighted bin value so that
+ * the output still visualizes the relative shape.
  */
 fun buildCoverageBars(
-    intervals: List<Interval>,
+    intervals: List<WeightedInterval>,
     bins: Int = 20
 ): Map<String, String> {
 
     val byAttr = intervals.groupBy { it.attr }
-    val result = mutableMapOf<String, String>()
+    val result = linkedMapOf<String, String>()
 
     for ((attr, ranges) in byAttr) {
-
         val coverages = DoubleArray(bins)
 
-        for (r in ranges) {
-            val lo = r.lo.toDouble()
-            val hi = r.hi.toDouble()
+        for (range in ranges) {
+            val lo = range.lo.toDouble()
+            val hi = range.hi.toDouble()
+
             if (hi <= lo) continue
+
+            val confidence = range.confidence.coerceAtLeast(0.0)
 
             val width = hi - lo
             val nSamples = max(20, width.roundToInt())
 
             for (k in 0 until nSamples) {
-                val x = lo + (hi - lo) * k / (nSamples - 1)
+                val x = if (nSamples == 1) {
+                    lo
+                } else {
+                    lo + width * k / (nSamples - 1)
+                }
+
                 val bin = ((x / 100.0) * bins)
                     .toInt()
                     .coerceIn(0, bins - 1)
-                coverages[bin] += 1.0
+
+                coverages[bin] += confidence
             }
         }
 
-        val maxCov = coverages.maxOrNull()?.takeIf { it > 0 } ?: 1.0
+        val maxCoverage =
+            coverages.maxOrNull()
+                ?.takeIf { it > 0.0 }
+                ?: 1.0
+
         val bar = buildString {
-            for (i in 0 until bins) {
-                append(coverageChar(coverages[i] / maxCov))
+            for (coverage in coverages) {
+                append(
+                    coverageChar(
+                        coverage / maxCoverage
+                    )
+                )
             }
         }
 
@@ -150,9 +210,13 @@ fun buildCoverageBars(
     return result
 }
 
-fun buildBarsFromHtml(htmlFile: File): Map<String, String> {
+fun buildBarsFromHtml(
+    htmlFile: File
+): Map<String, String> {
+
     val plotSpec = extractPlotSpecFromHtml(htmlFile)
-    val rulePcts = extractChildRulePct(plotSpec)
-    val intervals = parseIntervals(rulePcts)
+    val rules = extractChildRulePcts(plotSpec)
+    val intervals = parseWeightedIntervals(rules)
+
     return buildCoverageBars(intervals)
 }
