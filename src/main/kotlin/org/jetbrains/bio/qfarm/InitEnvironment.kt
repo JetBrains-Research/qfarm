@@ -19,7 +19,6 @@ import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.DiscreteColumnInfo
 import org.jetbrains.bio.qfarm.util.detectDiscreteColumns
 import org.jetbrains.bio.qfarm.util.loadNumericDataset
-import org.jetbrains.bio.qfarm.util.printFirstRows
 import org.jetbrains.bio.qfarm.util.removeRowsWithNaNRHS
 
 val rand = RandomRegistry.random()
@@ -59,8 +58,6 @@ fun initEnvironment(
         filePath = dataPath,
         excludeColumns = hp.excludedColumns.toSet()
     )
-
-    if (datasetWithHeader.header.size < 100) printFirstRows(datasetWithHeader)
 
     columnNames = datasetWithHeader.header
     rightAttrIndex = columnNames.indexOf(rhsName)
