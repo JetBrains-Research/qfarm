@@ -1,4 +1,6 @@
-package org.jetbrains.bio.qfarm.evaluation
+package org.jetbrains.bio.qfarm.evaluation.fronts
+
+import kotlin.collections.iterator
 
 data class ROCPoint(val fpr: Double, val tpr: Double)
 

@@ -3,7 +3,7 @@ package org.jetbrains.bio.qfarm.output.logs
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
-import org.jetbrains.bio.qfarm.util.HyperParameters
+import org.jetbrains.bio.qfarm.params.HyperParameters
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 import java.io.BufferedWriter

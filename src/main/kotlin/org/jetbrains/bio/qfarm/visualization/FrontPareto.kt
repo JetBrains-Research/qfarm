@@ -1,12 +1,12 @@
 package org.jetbrains.bio.qfarm.visualization
 
+import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
-import org.jetbrains.bio.qfarm.evaluation.MedianFront
-import org.jetbrains.bio.qfarm.evaluation.PFSeries
+import org.jetbrains.bio.qfarm.evaluation.random.MedianFront
+import org.jetbrains.bio.qfarm.evaluation.fronts.PFSeries
 import org.jetbrains.bio.qfarm.util.compactRuleString
-import org.jetbrains.bio.qfarm.util.computeSortedColumns
 import org.jetbrains.bio.qfarm.datasetWithHeader
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.numericRuleString
 import org.jetbrains.bio.qfarm.util.stripAnsi
 import org.jetbrains.letsPlot.geom.geomLine
@@ -40,8 +40,7 @@ fun buildParetoFrontPlotCombined(
 
     fun extractSortedPoints(
         s: PFSeries,
-        dataset: DatasetWithHeader,
-        sortedCols: List<DoubleArray>
+        dataset: DatasetWithHeader
     ): List<SeriesPoint> {
         return s.front.mapIndexedNotNull { idx, pt ->
             val f = pt.fitness().data()
@@ -54,7 +53,7 @@ fun buildParetoFrontPlotCombined(
 
             val y = f[1]
 
-            val rulePct = compactRuleString(dataset.header, sortedCols, pt.genotype())
+            val rulePct = compactRuleString(columnNames, pt.genotype())
                 .let { stripAnsi(it).split(")").joinToString(")\n") }
 
             val ruleNum = numericRuleString(dataset.header, pt.genotype())
@@ -103,13 +102,11 @@ fun buildParetoFrontPlotCombined(
     val childSeries  = seriesList.firstOrNull { !it.name.equals("Parent", ignoreCase = true) }
     if (parentSeries != null && childSeries != null) {
         val pDataset = datasetForSeries(parentSeries, dataset)
-        val pSorted  = computeSortedColumns(pDataset.data)
 
         val cDataset = datasetForSeries(childSeries, dataset)
-        val cSorted  = computeSortedColumns(cDataset.data)
 
-        val pPts = extractSortedPoints(parentSeries, pDataset, pSorted)
-        val cPts = extractSortedPoints(childSeries, cDataset, cSorted)
+        val pPts = extractSortedPoints(parentSeries, pDataset)
+        val cPts = extractSortedPoints(childSeries, cDataset)
 
         val px = pPts.map { it.x }
         val py = pPts.map { it.y }
@@ -198,9 +195,8 @@ fun buildParetoFrontPlotCombined(
 
     seriesList.forEachIndexed { _, s ->
         val sDataset = datasetForSeries(s, dataset)
-        val sSorted  = computeSortedColumns(sDataset.data)
 
-        val pts = extractSortedPoints(s, sDataset, sSorted)
+        val pts = extractSortedPoints(s, sDataset)
         val n = pts.size
         if (n == 0) return@forEachIndexed
 

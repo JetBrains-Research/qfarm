@@ -46,3 +46,7 @@ nbdist/
 .nb-gradle/
 /src/test/resources/
 delong_reference.py
+
+profile/
+
+exp_scripts/

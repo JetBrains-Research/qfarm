@@ -1,4 +1,4 @@
-package org.jetbrains.bio.qfarm.evaluation
+package org.jetbrains.bio.qfarm.evaluation.fronts
 
 import io.jenetics.Genotype
 import io.jenetics.Phenotype

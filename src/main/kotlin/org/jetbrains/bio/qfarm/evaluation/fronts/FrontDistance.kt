@@ -1,10 +1,10 @@
-package org.jetbrains.bio.qfarm.evaluation
+package org.jetbrains.bio.qfarm.evaluation.fronts
 
 import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 import kotlin.math.max
 
 fun frontDistance(

@@ -1,8 +1,9 @@
 package org.jetbrains.bio.qfarm.core
 
 import io.jenetics.Gene
+import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
-import org.jetbrains.bio.qfarm.rand
+import org.jetbrains.bio.qfarm.params.hp
 import kotlin.math.max
 import kotlin.math.min
 
@@ -20,17 +21,24 @@ data class AttributeGene(
     override fun allele(): Pair<Double, Double> = lowerBound to upperBound
 
     override fun isValid(): Boolean =
-        lowerBound <= upperBound && lowerBound >= min && upperBound <= max
+                lowerBound in min..upperBound &&
+                upperBound <= max &&
+                pLeft <= pRight &&
+                pLeft >= 0.0 &&
+                pRight <= 1.0 &&
+                (pRight - pLeft) <= hp.maxWidth
 
     val isDefault: Boolean
         get() = lowerBound == min && upperBound == max
 
     override fun newInstance(): AttributeGene {
-        val p1 = rand.nextDouble()
-        val p2 = rand.nextDouble()
+        val rand = RandomRegistry.random()
 
-        val loP = min(p1, p2)
-        val hiP = max(p1, p2)
+        val width = rand.nextDouble(1e-4, hp.maxWidth)
+        val center = rand.nextDouble(width / 2.0, 1.0 - width / 2.0)
+
+        val loP = center - width / 2.0
+        val hiP = center + width / 2.0
 
         val lower = cfg.percentile.value(attributeIndex, loP)
         val upper = cfg.percentile.value(attributeIndex, hiP)
@@ -43,8 +51,15 @@ data class AttributeGene(
         )
     }
 
-    override fun newInstance(value: Pair<Double, Double>): AttributeGene =
-        copy(lowerBound = value.first, upperBound = value.second)
+    override fun newInstance(value: Pair<Double, Double>): AttributeGene {
+        val lo = value.first.coerceIn(min, max)
+        val hi = value.second.coerceIn(min, max)
+
+        return copy(
+            lowerBound = min(lo, hi),
+            upperBound = max(lo, hi)
+        )
+    }
 
     companion object {
         fun of(attributeIndex: Int, min: Double, max: Double, cfg: RuleInitConfig): AttributeGene {

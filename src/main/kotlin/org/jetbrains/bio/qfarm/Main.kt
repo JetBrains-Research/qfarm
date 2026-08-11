@@ -6,6 +6,7 @@ fun main(args: Array<String>) =
     RootCommand()
         .subcommands(
             SearchCommand(),
-            ValidateCommand()
+            ValidateCommand(),
+            CheckCommand()
         )
         .main(args)

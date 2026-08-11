@@ -1,6 +1,6 @@
 package org.jetbrains.bio.qfarm.compare
 
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
 
 data class KsResult(
     val d: Double,

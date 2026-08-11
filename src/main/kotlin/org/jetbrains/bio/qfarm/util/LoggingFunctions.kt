@@ -4,8 +4,12 @@ import io.jenetics.Genotype
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.core.RuleSideChromosome
+import org.jetbrains.bio.qfarm.params.BLUE
+import org.jetbrains.bio.qfarm.params.RESET
+import org.jetbrains.bio.qfarm.params.YELLOW
 import kotlin.String
 import kotlin.collections.List
+import kotlin.math.roundToInt
 
 fun readLHS(
     side: List<Int>
@@ -29,7 +33,6 @@ fun readLHS(
 
 fun compactRuleString(
     colNames: List<String>,
-    sortedCols: List<DoubleArray>,
     genotype: Genotype<AttributeGene>,
     colored: Boolean = true,
     includeConsequent: Boolean = false,
@@ -41,27 +44,41 @@ fun compactRuleString(
     val colorYellow = if (colored) YELLOW else ""
     val colorReset = if (colored) RESET else ""
 
+    fun pct(p: Double): Int = (p * 100).roundToInt()
+
     fun geneLine(gene: AttributeGene, isConsequent: Boolean): String {
         val name = colNames[gene.attributeIndex]
-        val sortedVals = sortedCols[gene.attributeIndex]
-        val left = cumulativePercentage(sortedVals, gene.lowerBound).toInt()
-        val right = cumulativePercentage(sortedVals, gene.upperBound).toInt()
+
+        val left = pct(gene.pLeft)
+        val right = pct(gene.pRight)
         val range = right - left
 
         val percentilesStr =
-            if (range < 2 || range > 90) "${colorYellow}($left%,$right%)$colorReset"
-            else "($left%,$right%)"
+            if (range !in 2..90) {
+                "${colorYellow}($left%,$right%)$colorReset"
+            } else {
+                "($left%,$right%)"
+            }
 
         val body =
             if (percentilesOnly) {
                 percentilesStr
             } else {
                 "[%.4f, %.4f] from [%.4f, %.4f] %s"
-                    .format(gene.lowerBound, gene.upperBound, gene.min, gene.max, percentilesStr)
+                    .format(
+                        gene.lowerBound,
+                        gene.upperBound,
+                        gene.min,
+                        gene.max,
+                        percentilesStr
+                    )
             }
 
-        return if (isConsequent) "===>  $name $body"
-        else "  ${colorBlue}$name$colorReset $body"
+        return if (isConsequent) {
+            "===>  $name $body"
+        } else {
+            "  ${colorBlue}$name$colorReset $body"
+        }
     }
 
     val nonDefaultGenes = antecedentChromosome.filter { !it.isDefault }
@@ -71,8 +88,9 @@ fun compactRuleString(
             append(geneLine(gene, isConsequent = false))
             if (i < nonDefaultGenes.lastIndex) append('\t')
         }
+
         if (includeConsequent) {
-            appendLine("===>  BC_LDL.direct (90%, 100%)") // kept as-is per TODO
+            appendLine("===>  BC_LDL.direct (90%, 100%)")
         }
     }.trimEnd()
 }

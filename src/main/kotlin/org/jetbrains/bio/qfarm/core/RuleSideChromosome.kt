@@ -1,6 +1,8 @@
 package org.jetbrains.bio.qfarm.core
+
 import io.jenetics.Chromosome
 import io.jenetics.util.ISeq
+import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.evolution.IndexPool
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 
@@ -53,8 +55,11 @@ class RuleSideChromosome(
 
             // Pick ONE search attribute
             if (searchSet.isNotEmpty()) {
-                val idx = indexPool.takeRandom(1).firstOrNull()
-                    ?: searchSet.random()
+                val rand = RandomRegistry.random()
+
+                val idx =
+                    indexPool.takeRandom(1).firstOrNull()
+                        ?: searchSet[rand.nextInt(searchSet.size)]
 
                 val min = cfg.bounds[idx][0]
                 val max = cfg.bounds[idx][1]

@@ -2,10 +2,12 @@ package org.jetbrains.bio.qfarm
 
 import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.core.AttributeGene
-import org.jetbrains.bio.qfarm.evaluation.generateMedianFront
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
 import org.jetbrains.bio.qfarm.evolution.SortedColumnsPercentileProvider
+import org.jetbrains.bio.qfarm.logger.InitialRuntimeEstimator
+import org.jetbrains.bio.qfarm.logger.ProgressLogger
+import org.jetbrains.bio.qfarm.logger.ValidationProgressLogger
 import org.jetbrains.bio.qfarm.output.OutputManager
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeJsonWriter
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
@@ -13,15 +15,16 @@ import org.jetbrains.bio.qfarm.util.computeBoundsFromSorted
 import org.jetbrains.bio.qfarm.util.computeLabelsFast
 import org.jetbrains.bio.qfarm.util.computeSortedColumns
 import org.jetbrains.bio.qfarm.util.cumulativePercentage
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.hp
+import org.jetbrains.bio.qfarm.util.DiscreteColumnInfo
+import org.jetbrains.bio.qfarm.util.detectDiscreteColumns
 import org.jetbrains.bio.qfarm.util.loadNumericDataset
-import org.jetbrains.bio.qfarm.util.printFirstRows
 import org.jetbrains.bio.qfarm.util.removeRowsWithNaNRHS
-
-val rand = RandomRegistry.random()
 
 // all these become lateinit / vars, initialized by initEnvironment()
 lateinit var OUTPUT: OutputManager
+lateinit var PROGRESS: ProgressLogger
+lateinit var VALIDATION_PROGRESS: ValidationProgressLogger
 lateinit var GLOBAL_ENV: EvolutionEnvironment
 lateinit var datasetWithHeader: DatasetWithHeader
 lateinit var columnNames: List<String>
@@ -29,6 +32,7 @@ lateinit var sortedColumns: List<DoubleArray>
 lateinit var bounds: Array<DoubleArray>
 lateinit var percentileProvider: SortedColumnsPercentileProvider
 lateinit var init_cfg: RuleInitConfig
+lateinit var discreteInfo: DiscreteColumnInfo
 lateinit var rightGene: AttributeGene
 var rightAttrIndex: Int = -1
 
@@ -53,8 +57,6 @@ fun initEnvironment(
         excludeColumns = hp.excludedColumns.toSet()
     )
 
-    if (datasetWithHeader.header.size < 100) printFirstRows(datasetWithHeader)
-
     columnNames = datasetWithHeader.header
     rightAttrIndex = columnNames.indexOf(rhsName)
     require(rightAttrIndex >= 0) { "Right-hand-side column '$rhsName' not found." }
@@ -62,12 +64,17 @@ fun initEnvironment(
     datasetWithHeader = removeRowsWithNaNRHS(datasetWithHeader, rightAttrIndex)
 
     sortedColumns = computeSortedColumns(datasetWithHeader.data)
+    discreteInfo = detectDiscreteColumns(
+        sortedColumns = sortedColumns,
+        maxDistinct = 16
+    )
     bounds = computeBoundsFromSorted(sortedColumns)
     percentileProvider = SortedColumnsPercentileProvider(sortedColumns)
 
     val minC = bounds[rightAttrIndex][0]
     val maxC = bounds[rightAttrIndex][1]
 
+    // TODO: what the actual fuck... remove the double translation from percentile to percentile
     val (rhsLo, rhsHi) = when {
         rhsRange != null -> {
             val (loOpt, hiOpt) = rhsRange
@@ -130,9 +137,88 @@ fun initEnvironment(
         sortedColumns = sortedColumns,
         bounds = bounds,
         percentileProvider = percentileProvider,
+        discreteInfo = discreteInfo,
         rightAttrIndex = rightAttrIndex
     )
 
-    generateMedianFront()
+    val searchableAttributes =
+        columnNames.indices.count {
+            it != rightAttrIndex
+        }
 
+    val datasetRows =
+        datasetWithHeader.labels.size
+
+    PROGRESS = ProgressLogger(
+        maxDepth =
+            hp.maxDepth,
+
+        maxFirstChildren =
+            hp.maxFirstChildren,
+
+        maxChildren =
+            hp.maxChildren,
+
+        randomBaselineColumns =
+            hp.randomAucBaselineColumns,
+
+        availableThreads =
+            Runtime.getRuntime()
+                .availableProcessors(),
+
+        searchableAttributes =
+            searchableAttributes,
+
+        initialCheapEvolutionSeconds =
+            InitialRuntimeEstimator
+                .cheapEvolutionSeconds(
+                    datasetRows =
+                        datasetRows,
+                    population =
+                        hp.popSizeCheap,
+                    generations =
+                        hp.maxGenCheap
+                ),
+
+        initialFullEvolutionSeconds =
+            InitialRuntimeEstimator
+                .fullEvolutionSeconds(
+                    datasetRows =
+                        datasetRows,
+                    population =
+                        hp.popSizeFull,
+                    generations =
+                        hp.maxGenFull
+                ),
+
+        initialRandomAucSeconds =
+            InitialRuntimeEstimator
+                .randomAucSeconds(
+                    datasetRows =
+                        datasetRows,
+                    randomAucColumns =
+                        hp.randomAucBaselineColumns
+                ),
+
+        initialFinalizationSeconds =
+            1.0
+    )
+
+    val discreteNames = columnNames.indices
+        .filter { discreteInfo.isDiscrete[it] }
+        .map { columnNames[it] to discreteInfo.values[it]!!.contentToString() }
+
+    println("Discrete columns detected:")
+    discreteNames.forEach { (name, values) ->
+        println("  - $name: $values")
+    }
+
+}
+
+fun initializeRandomGenerator() {
+    RandomRegistry.random(
+        java.util.Random(hp.seed)
+    )
+
+    println("Random seed: ${hp.seed}")
 }

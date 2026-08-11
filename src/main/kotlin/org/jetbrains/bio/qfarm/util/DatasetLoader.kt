@@ -1,6 +1,8 @@
 package org.jetbrains.bio.qfarm.util
 
 import com.univocity.parsers.csv.*
+import org.jetbrains.bio.qfarm.params.BLUE
+import org.jetbrains.bio.qfarm.params.RESET
 import java.io.*
 import java.util.zip.GZIPInputStream
 
@@ -68,7 +70,7 @@ fun loadNumericDataset(
     val cols = header.size
     val rowsCount = rawData.size
 
-    println("=== Dataset parsing ===")
+    println("${BLUE}=== Dataset parsing ===$RESET")
     println("Columns present ($cols)")
 
     // -----------------------------------------------------------------
@@ -146,31 +148,12 @@ fun loadNumericDataset(
     }
 
     println("\nFinal dataset shape: rows=${data.size}, cols=${keptIndices.size}")
-    println("=======================\n")
 
     return DatasetWithHeader(
         header = keptNames,
         data = data,
         labels = intArrayOf()  // add after preprocessing RHS
     )
-}
-
-fun printFirstRows(dataset: DatasetWithHeader, n: Int = 1) {
-    val rows = dataset.data.take(n)
-
-    println(dataset.header.joinToString(prefix = "| ", postfix = " |", separator = " | "))
-
-    for (row in rows) {
-        println(
-            row.joinToString(
-                prefix = "| ",
-                postfix = " |",
-                separator = " | "
-            ) { v ->
-                if (v.isNaN()) "NaN" else "%.4f".format(v)
-            }
-        )
-    }
 }
 
 fun removeRowsWithNaNRHS(

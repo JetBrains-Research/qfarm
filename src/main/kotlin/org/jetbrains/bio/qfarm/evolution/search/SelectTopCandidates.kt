@@ -1,8 +1,8 @@
 package org.jetbrains.bio.qfarm.evolution.search
 
-import org.jetbrains.bio.qfarm.util.GREEN
-import org.jetbrains.bio.qfarm.util.RESET
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.GREEN
+import org.jetbrains.bio.qfarm.params.RESET
+import org.jetbrains.bio.qfarm.params.hp
 
 fun selectTopCandidates(
     cheap: List<CheapCandidate>,
@@ -19,5 +19,5 @@ fun selectTopCandidates(
 
     println("$GREEN Selected top ${selected.size}/${cheap.size} candidates $RESET")
 
-    return selected.map { it -> it.attr }
+    return selected.map { it.attr }
 }

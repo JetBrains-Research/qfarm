@@ -5,7 +5,7 @@ import io.jenetics.ext.moea.Vec
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.core.RuleSideChromosome
-import org.jetbrains.bio.qfarm.evaluation.ConfusionMetrics
+import org.jetbrains.bio.qfarm.evaluation.fronts.ConfusionMetrics
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
 import java.io.File
 

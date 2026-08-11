@@ -1,5 +1,6 @@
 package org.jetbrains.bio.qfarm
 
+import org.jetbrains.bio.qfarm.evaluation.random.generateAnalyticalRandomAucBaseline
 import org.jetbrains.bio.qfarm.evolution.search.treeTraversal
 import org.jetbrains.bio.qfarm.output.OutputManager
 import org.jetbrains.bio.qfarm.output.logs.RHS
@@ -8,9 +9,9 @@ import org.jetbrains.bio.qfarm.output.logs.RuleTreeJsonWriter
 import org.jetbrains.bio.qfarm.output.fronts.exportAllRuleFormats
 import org.jetbrains.bio.qfarm.output.tree.exportLeafRules
 import org.jetbrains.bio.qfarm.output.tree.toDOTFromTrie
-import org.jetbrains.bio.qfarm.util.BLUE
-import org.jetbrains.bio.qfarm.util.RESET
-import org.jetbrains.bio.qfarm.util.hp
+import org.jetbrains.bio.qfarm.params.BLUE
+import org.jetbrains.bio.qfarm.params.RESET
+import org.jetbrains.bio.qfarm.params.hp
 import java.io.File
 
 
@@ -26,6 +27,12 @@ fun runSearch() {
     )
     OUTPUT.init()
 
+    PROGRESS.runStarted()
+
+    generateAnalyticalRandomAucBaseline(nShuffles = hp.randomAucBaselineColumns)
+
+    PROGRESS.randomBaselineFinished()
+
     RULE_JSON_WRITER = RuleTreeJsonWriter(OUTPUT.logFile)
 
     RULE_JSON_WRITER.writeMetadata(
@@ -35,6 +42,8 @@ fun runSearch() {
 
     val emptyPrefix: MutableList<Int> = mutableListOf()
     treeTraversal(emptyPrefix)
+
+    PROGRESS.treeSearchFinished()
 
     exportLeafRules(
         RULE_TREE_ROOT,
@@ -75,5 +84,7 @@ fun runSearch() {
     )
 
     RULE_JSON_WRITER.close()
+
+    PROGRESS.runFinished()
 
 }
