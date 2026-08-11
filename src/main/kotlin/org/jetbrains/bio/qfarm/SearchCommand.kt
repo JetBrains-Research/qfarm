@@ -6,6 +6,8 @@ import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.*
 import org.jetbrains.bio.qfarm.params.RocComparisonMode
+import org.jetbrains.bio.qfarm.util.parseAbsoluteRange
+import org.jetbrains.bio.qfarm.util.parsePercentileRange
 
 
 class SearchCommand : CliktCommand(name = "search") {
@@ -318,12 +320,18 @@ class SearchCommand : CliktCommand(name = "search") {
         val rhsPercentiles: Pair<Double, Double>?
 
         if (hasRange) {
-            val (loOpt, hiOpt) = parseRangeDoubles(rhsRangeArg!!)
-            rhsRange = loOpt to hiOpt
+            rhsRange =
+                parseAbsoluteRange(rhsRangeArg!!)
+
             rhsPercentiles = null
         } else {
-            val (pLo, pHi) = parseIntPair(rhsPctArg!!)
-            rhsPercentiles = (pLo / 100.0) to (pHi / 100.0)
+            val (pLo, pHi) =
+                parsePercentileRange(rhsPctArg!!)
+
+            rhsPercentiles =
+                (pLo / 100.0) to
+                        (pHi / 100.0)
+
             rhsRange = null
         }
 
@@ -377,60 +385,6 @@ class SearchCommand : CliktCommand(name = "search") {
         )
 
         runSearch()
-    }
-
-    private fun parseRangeDoubles(arg: String): Pair<Double?, Double?> {
-        val cleaned = arg.trim()
-            .removePrefix("[")
-            .removeSuffix("]")
-            .replace("..", ",")
-
-        val parts = cleaned.split(",").map { it.trim() }
-
-        require(parts.size == 2) {
-            "Invalid RHS range '$arg'. Expected LOW,HIGH or LOW..HIGH."
-        }
-
-        fun parseEndpoint(value: String): Double? =
-            when (value.uppercase()) {
-                "MIN", "MAX" -> null
-                else -> value.toDoubleOrNull()
-                    ?: error(
-                        "Invalid range endpoint '$value'. " +
-                                "Use a number, MIN, or MAX."
-                    )
-            }
-
-        return parseEndpoint(parts[0]) to parseEndpoint(parts[1])
-    }
-
-    private fun parseIntPair(arg: String): Pair<Int, Int> {
-        val cleaned = arg.trim()
-            .removePrefix("[")
-            .removeSuffix("]")
-            .replace("..", ",")
-
-        val parts = cleaned.split(",").map { it.trim() }
-
-        require(parts.size == 2) {
-            "Invalid percentile range '$arg'. Expected LOW,HIGH or LOW..HIGH."
-        }
-
-        val lower = parts[0].toIntOrNull()
-            ?: error("Invalid lower percentile '${parts[0]}': expected an integer.")
-
-        val upper = parts[1].toIntOrNull()
-            ?: error("Invalid upper percentile '${parts[1]}': expected an integer.")
-
-        require(lower in 0..100 && upper in 0..100) {
-            "Percentiles must be between 0 and 100."
-        }
-
-        require(lower <= upper) {
-            "The lower percentile must not exceed the upper percentile."
-        }
-
-        return lower to upper
     }
 
     private fun parseRocComparisonMode(

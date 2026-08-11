@@ -15,6 +15,8 @@ data class CheckQuantile(
     val percentile: Double
 )
 
+private const val MAX_COLUMN_NAME_WIDTH = 30
+
 val CHECK_QUANTILES =
     listOf(
         CheckQuantile("q0.1", 0.001),
@@ -116,11 +118,15 @@ fun printColumnQuantiles(
 ) {
     println()
     println("${BLUE}=== Column quantiles ===$RESET")
+    println()
 
-    val maxNameLength =
-        dataset.header.maxOf { it.length }
+    val columnNameWidth =
+        minOf(
+            MAX_COLUMN_NAME_WIDTH,
+            dataset.header.maxOf { it.length }
+        )
 
-    // Compute all formatted quantile values first.
+    // Precompute all formatted quantile values.
     val formattedValues =
         dataset.header.indices.map { columnIndex ->
             CHECK_QUANTILES.map { quantile ->
@@ -133,43 +139,136 @@ fun printColumnQuantiles(
             }
         }
 
-    /*
-     * Find the longest value that actually occurs in this dataset.
-     *
-     * We add one extra character so neighbouring quantiles don't touch,
-     * but avoid the large fixed spacing from the previous version.
-     */
-    val valueWidth =
-        formattedValues
-            .flatten()
-            .maxOf { it.length } + 1
+    // Width of each quantile column.
+    val quantileWidths =
+        CHECK_QUANTILES.indices.map { quantileIndex ->
 
-    for (columnIndex in dataset.header.indices) {
+            val headerWidth =
+                CHECK_QUANTILES[quantileIndex].label.length
 
-        val quantileText =
-            CHECK_QUANTILES
-                .mapIndexed { quantileIndex, quantile ->
+            val valueWidth =
+                formattedValues.maxOf {
+                    it[quantileIndex].length
+                }
+
+            maxOf(
+                headerWidth,
+                valueWidth,
+                6
+            )
+        }
+
+    // -------------------------------------------------------------
+    // Header
+    // -------------------------------------------------------------
+
+    val header =
+        buildString {
+
+            append(
+                " ".padEnd(columnNameWidth)
+            )
+
+            append("  ")
+
+            CHECK_QUANTILES.forEachIndexed { index, quantile ->
+
+                val paddedLabel =
+                    quantile.label.padEnd(
+                        quantileWidths[index]
+                    )
+
+                append(
+                    "${YELLOW}$paddedLabel$RESET"
+                )
+
+                if (index != CHECK_QUANTILES.lastIndex) {
+                    append("  ")
+                }
+            }
+        }
+
+    println(header)
+
+    // -------------------------------------------------------------
+    // Rows
+    // -------------------------------------------------------------
+
+    dataset.header.indices.forEach { columnIndex ->
+
+        val shortName =
+            shortenColumnName(
+                name = dataset.header[columnIndex],
+                maxWidth = columnNameWidth
+            )
+
+        val row =
+            buildString {
+
+                val paddedName =
+                    shortName.padEnd(columnNameWidth)
+
+                append(
+                    "${CYAN}$paddedName$RESET"
+                )
+
+                append("  ")
+
+                CHECK_QUANTILES.indices.forEach { quantileIndex ->
 
                     val value =
                         formattedValues[columnIndex][quantileIndex]
 
-                    /*
-                     * Left-align the value.
-                     *
-                     * q labels are NOT padded. Only the value field gets
-                     * enough space to keep the following quantile aligned.
-                     */
-                    "${YELLOW}${quantile.label}$RESET: " +
-                            value.padEnd(valueWidth)
+                    append(
+                        value.padEnd(
+                            quantileWidths[quantileIndex]
+                        )
+                    )
+
+                    if (quantileIndex != CHECK_QUANTILES.lastIndex) {
+                        append("  ")
+                    }
                 }
-                .joinToString(" ")
+            }
 
-        val columnName =
-            dataset.header[columnIndex]
-                .padEnd(maxNameLength)
+        println(row)
+    }
+}
 
-        println(
-            "${CYAN}$columnName$RESET  $quantileText"
+private fun shortenColumnName(
+    name: String,
+    maxWidth: Int
+): String {
+
+    if (name.length <= maxWidth) {
+        return name
+    }
+
+    require(maxWidth >= 7) {
+        "Column name width must be at least 7."
+    }
+
+    val ellipsis = "..."
+
+    val available =
+        maxWidth - ellipsis.length
+
+    // Keep more of the beginning than the end.
+    val leftLength =
+        (available * 2) / 3
+
+    val rightLength =
+        available - leftLength
+
+    return buildString {
+        append(
+            name.take(leftLength)
+        )
+
+        append(ellipsis)
+
+        append(
+            name.takeLast(rightLength)
         )
     }
 }

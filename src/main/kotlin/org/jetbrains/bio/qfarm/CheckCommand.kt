@@ -331,7 +331,7 @@ class CheckCommand : CliktCommand(name = "check") {
                 } else {
 
                     println(
-                        "RANGE: $lower to $upper"
+                        "RANGE: ${formatCheckNumber(lower)} to ${formatCheckNumber(upper)}"
                     )
 
                     val labels =
@@ -371,7 +371,7 @@ class CheckCommand : CliktCommand(name = "check") {
         // -------------------------------------------------------------
 
         println()
-        println("Discrete columns detected:")
+        println("${BLUE}=== Discrete columns ===$RESET")
 
         val discreteNames =
             dataset.header.indices
