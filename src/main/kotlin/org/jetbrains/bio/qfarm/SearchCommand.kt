@@ -61,6 +61,7 @@ class SearchCommand : CliktCommand(name = "search") {
             --rhs y \
             --rhs-range-percentile 80,100 \
             --name KB-friedman \
+            --seed 42 \
             --min-support 1 \
             --max-support 500 \
             --max-children 3 \
@@ -127,6 +128,16 @@ class SearchCommand : CliktCommand(name = "search") {
         metavar = "NAME",
         help = "Name of the run and its results directory. Default: ${hp.runName}."
     )
+
+    private val seedOpt by option(
+        "--seed",
+        metavar = "LONG",
+        help = """
+        Seed controlling all random number generation.
+        Runs executed with the same seed and configuration are reproducible.
+        Default: ${hp.seed}.
+    """.trimIndent()
+    ).long()
 
     // =====================================================================
     // Dataset columns
@@ -372,6 +383,7 @@ class SearchCommand : CliktCommand(name = "search") {
             excludedColumns =
                 excludedColumnsOpt ?: hp.excludedColumns,
             runName = runNameOpt ?: hp.runName,
+            seed = seedOpt ?: hp.seed,
 
             dataPath = dataPath,
             rightAttribute = rhsName

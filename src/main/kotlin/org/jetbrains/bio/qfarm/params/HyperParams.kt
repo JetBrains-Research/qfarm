@@ -36,6 +36,7 @@ data class HyperParameters(
 
     // RUN CHARACTERISTICS
     val runName: String = "test_run",
+    val seed: Long = 42L,
 
     // RIGHT ATTRIBUTE
     val rightAttribute: String? = null,

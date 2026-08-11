@@ -5,6 +5,7 @@ import com.github.ajalt.clikt.core.Context
 import com.github.ajalt.clikt.parameters.options.*
 import com.github.ajalt.clikt.parameters.types.double
 import com.github.ajalt.clikt.parameters.types.int
+import com.github.ajalt.clikt.parameters.types.long
 import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.validate.loadRulesJson
 
@@ -28,6 +29,7 @@ class ValidateCommand : CliktCommand(name = "validate") {
           java -jar qfarm.jar validate \
             --data data.csv \
             --rules results/previous_run/log.jsonl \
+            --seed 42 \
             --min-support 5 \
             --max-support 500 \
             --spearman-threshold 0.20
@@ -51,6 +53,15 @@ class ValidateCommand : CliktCommand(name = "validate") {
             rules and run metadata, normally results/<run-name>/log.jsonl.
         """.trimIndent()
     ).required()
+
+    private val seedOpt by option(
+        "--seed",
+        metavar = "LONG",
+        help = """
+        Seed controlling all random number generation.
+        Default: ${hp.seed}.
+    """.trimIndent()
+    ).long()
 
     private val minSupportOpt by option(
         "--min-support",
@@ -101,6 +112,7 @@ class ValidateCommand : CliktCommand(name = "validate") {
         hp = hpFromJson.copy(
             dataPath = dataPath,
             rightAttribute = rhsName,
+            seed = seedOpt ?: hpFromJson.seed,
             minSupport = minSupportOpt ?: hpFromJson.minSupport,
             maxSupport = maxSupportOpt ?: hpFromJson.maxSupport,
             spearmanThreshold =
