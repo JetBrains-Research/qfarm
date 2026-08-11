@@ -65,6 +65,8 @@ fun evaluateAllAdditions(
             null
         }
 
+    val capturedParentFront = effectiveParent?.front
+
     val labels = dataset.labels
 
     val results = runBlocking {
@@ -73,7 +75,10 @@ fun evaluateAllAdditions(
 
             async(Dispatchers.Default) {
 
-                val candidateFront = fullTopRange(prefix + attr)
+                val candidateFront = fullTopRange(
+                        attributes = prefix + attr,
+                        parentFront = capturedParentFront
+                    )
 
                 if (isLevel1) {
 

@@ -3,16 +3,11 @@ package org.jetbrains.bio.qfarm.evaluation.random
 import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.statistics.delong.AUC
-import org.jetbrains.bio.qfarm.visualization.FrontStore
 import java.util.concurrent.Callable
 import java.util.concurrent.Executors
-import java.util.concurrent.ThreadLocalRandom
+import java.util.SplittableRandom
+import java.util.random.RandomGenerator
 import kotlin.math.min
-import org.jetbrains.letsPlot.geom.geomPoint
-import org.jetbrains.letsPlot.intern.Plot
-import org.jetbrains.letsPlot.label.ggtitle
-import org.jetbrains.letsPlot.label.labs
-import org.jetbrains.letsPlot.letsPlot
 
 data class WindowRule(
     val start: Int,
@@ -32,13 +27,6 @@ data class AnalyticalShuffleResult(
     val maxScore: Double,
     val coveredRows: Int
 )
-
-fun formatWindow(w: WindowRule): String {
-    return "[${w.start},${w.endExclusive}) " +
-            "support=${w.support} " +
-            "pos=${w.positives} " +
-            "rate=${"%.3f".format(w.positiveRate)}"
-}
 
 fun generateAnalyticalRandomAucBaseline(
     nShuffles: Int = hp.randomAucBaselineColumns,
@@ -81,13 +69,25 @@ fun generateAnalyticalRandomAucBaseline(
 
     val tasks = (0 until nShuffles).map { idx ->
         Callable {
-            val result = analyticalRandomAucOneShuffleDetailed(
-                labels = labels,
-                windowSizes = windowSizes
+
+            val rng = SplittableRandom(
+                seedForShuffle(
+                    rootSeed = hp.seed,
+                    shuffleIndex = idx
+                )
             )
 
-            if (idx == 0 || (idx + 1) % 25 == 0 || idx + 1 == nShuffles) {
+            val result = analyticalRandomAucOneShuffleDetailed(
+                labels = labels,
+                windowSizes = windowSizes,
+                random = rng
+            )
 
+            if (
+                idx == 0 ||
+                (idx + 1) % 25 == 0 ||
+                idx + 1 == nShuffles
+            ) {
                 println(
                     "[Analytical baseline] ${idx + 1}/$nShuffles | " +
                             "AUC=${"%.4f".format(result.auc)} | " +
@@ -95,32 +95,6 @@ fun generateAnalyticalRandomAucBaseline(
                             "coveredRows=${result.coveredRows} | " +
                             "maxScore=${"%.0f".format(result.maxScore)}"
                 )
-
-                if (false) {
-                    println("  surviving windows:")
-
-                    result.winningWindows.forEachIndexed { i, w ->
-                        println(
-                            "    ${i + 1}. " +
-                                    "[${w.start},${w.endExclusive}) " +
-                                    "support=${w.support} " +
-                                    "pos=${w.positives} " +
-                                    "rate=${"%.3f".format(w.positiveRate)}"
-                        )
-                    }
-                }
-
-//                val plot = buildRandomWindowFrontPlot(
-//                    windows = result.winningWindows,
-//                    shuffleIndex = idx + 1,
-//                    auc = result.auc
-//                )
-//
-//                FrontStore.saveAndUrl(
-//                    plot,
-//                    "analytical_random_front_${idx + 1}"
-//                )
-
             }
 
             result
@@ -161,10 +135,15 @@ fun generateAnalyticalRandomAucBaseline(
 
 fun analyticalRandomAucOneShuffleDetailed(
     labels: IntArray,
-    windowSizes: List<Int>
+    windowSizes: List<Int>,
+    random: RandomGenerator
 ): AnalyticalShuffleResult {
+
     val n = labels.size
-    val order = shuffledIndices(n)
+    val order = shuffledIndices(
+        n = n,
+        random = random
+    )
 
     val shuffledLabels = IntArray(n)
     for (i in 0 until n) {
@@ -199,12 +178,17 @@ data class WindowBuildResult(
     val survivedWindows: List<WindowRule>
 )
 
-fun shuffledIndices(n: Int): IntArray {
+fun shuffledIndices(
+    n: Int,
+    random: RandomGenerator
+): IntArray {
+
     val arr = IntArray(n) { it }
-    val rng = ThreadLocalRandom.current()
 
     for (i in n - 1 downTo 1) {
-        val j = rng.nextInt(i + 1)
+
+        val j = random.nextInt(i + 1)
+
         val tmp = arr[i]
         arr[i] = arr[j]
         arr[j] = tmp
@@ -338,40 +322,12 @@ fun percentile(
     return sortedValues[lo] * (1.0 - weight) + sortedValues[hi] * weight
 }
 
-fun buildRandomWindowFrontPlot(
-    windows: List<WindowRule>,
-    shuffleIndex: Int,
-    auc: Double
-): Plot {
-    val data = mapOf(
-        "support" to windows.map { it.support },
-        "positiveRate" to windows.map { it.positiveRate },
-        "positives" to windows.map { it.positives },
-        "start" to windows.map { it.start },
-        "end" to windows.map { it.endExclusive },
-        "label" to windows.map {
-            "[${it.start},${it.endExclusive}) | " +
-                    "support=${it.support} | " +
-                    "pos=${it.positives} | " +
-                    "rate=${"%.3f".format(it.positiveRate)}"
-        }
-    )
+private fun seedForShuffle(
+    rootSeed: Long,
+    shuffleIndex: Int
+): Long {
 
-    return letsPlot(data) {
-        x = "support"
-        y = "positiveRate"
-    } +
-            geomPoint(
-                size = 4,
-                alpha = 0.8,
-                tooltips = org.jetbrains.letsPlot.tooltips.layerTooltips()
-                    .line("@label")
-            ) +
-            ggtitle(
-                "Analytical random front | shuffle=$shuffleIndex | AUC=${"%.4f".format(auc)}"
-            ) +
-            labs(
-                x = "Support / covered rows",
-                y = "Positive rate"
-            )
+    return rootSeed +
+            shuffleIndex.toLong() *
+            -7046029254386353131L
 }

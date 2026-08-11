@@ -389,6 +389,8 @@ class SearchCommand : CliktCommand(name = "search") {
             rightAttribute = rhsName
         )
 
+        initializeRandomGenerator()
+
         initEnvironment(
             dataPath = dataPath,
             rhsName = rhsName,

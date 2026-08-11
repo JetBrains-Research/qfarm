@@ -1,8 +1,8 @@
 package org.jetbrains.bio.qfarm.core
 
 import io.jenetics.Gene
+import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.evolution.RuleInitConfig
-import org.jetbrains.bio.qfarm.rand
 import org.jetbrains.bio.qfarm.params.hp
 import kotlin.math.max
 import kotlin.math.min
@@ -32,6 +32,8 @@ data class AttributeGene(
         get() = lowerBound == min && upperBound == max
 
     override fun newInstance(): AttributeGene {
+        val rand = RandomRegistry.random()
+
         val width = rand.nextDouble(1e-4, hp.maxWidth)
         val center = rand.nextDouble(width / 2.0, 1.0 - width / 2.0)
 

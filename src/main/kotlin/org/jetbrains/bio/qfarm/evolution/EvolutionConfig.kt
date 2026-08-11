@@ -3,9 +3,9 @@ package org.jetbrains.bio.qfarm.evolution
 import io.jenetics.Phenotype
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
+import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
-import org.jetbrains.bio.qfarm.rand
 import org.jetbrains.bio.qfarm.util.DiscreteColumnInfo
 
 data class EvolutionEnvironment(
@@ -75,7 +75,7 @@ class SortedColumnsPercentileProvider(
 }
 
 class IndexPool(indices: Set<Int>) {
-    val all: List<Int> = indices.toList()
+    val all: List<Int> = indices.sorted()
     private val remaining = all.toMutableList()
 
     @Synchronized
@@ -86,7 +86,9 @@ class IndexPool(indices: Set<Int>) {
             remaining.addAll(all)
         }
 
+        val rand = RandomRegistry.random()
         val selected = mutableListOf<Int>()
+
         repeat(n.coerceAtMost(remaining.size)) {
             val idx = rand.nextInt(remaining.size)
             selected += remaining.removeAt(idx)

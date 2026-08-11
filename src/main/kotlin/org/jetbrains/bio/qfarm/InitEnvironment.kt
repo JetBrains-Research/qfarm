@@ -21,8 +21,6 @@ import org.jetbrains.bio.qfarm.util.detectDiscreteColumns
 import org.jetbrains.bio.qfarm.util.loadNumericDataset
 import org.jetbrains.bio.qfarm.util.removeRowsWithNaNRHS
 
-val rand = RandomRegistry.random()
-
 // all these become lateinit / vars, initialized by initEnvironment()
 lateinit var OUTPUT: OutputManager
 lateinit var PROGRESS: ProgressLogger
@@ -215,4 +213,12 @@ fun initEnvironment(
         println("  - $name: $values")
     }
 
+}
+
+fun initializeRandomGenerator() {
+    RandomRegistry.random(
+        java.util.Random(hp.seed)
+    )
+
+    println("Random seed: ${hp.seed}")
 }

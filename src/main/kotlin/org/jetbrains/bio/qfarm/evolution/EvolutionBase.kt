@@ -20,6 +20,8 @@ import org.jetbrains.bio.qfarm.evaluation.CountingKdTreeOracle
 import org.jetbrains.bio.qfarm.evaluation.evaluateRule
 import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.paretoFrontOf
+import io.jenetics.util.RandomRegistry
+import java.util.SplittableRandom
 
 /**
  * Run one NSGA-II evolution using only `searchAttributes` as LHS candidates.
@@ -32,85 +34,92 @@ fun runEvolution(
     generationCount: Int = hp.maxGenCheap,
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of(),
     env: EvolutionEnvironment = GLOBAL_ENV,
-    oracle: CountingKdTreeOracle
+    oracle: CountingKdTreeOracle,
+    evolutionSeed: Long
 ): ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> {
 
-//  Build the config:
-    val cfg = RuleInitConfig(
-        rightAttrIndex = env.rightAttrIndex,
-        bounds = env.bounds,
-        percentile = env.percentileProvider,
-        fixedAttributes = fixedAttributes,
-        searchAttributes = searchAttributes
-    )
+    return RandomRegistry.with(SplittableRandom(evolutionSeed)) {
 
-    // --- build engine using existing genotype factory ---
-    val indexPool = createIndexPool(cfg)
-    val genotypeFactory = createGenotypeFactory(cfg, indexPool)
+        val cfg = RuleInitConfig(
+            rightAttrIndex = env.rightAttrIndex,
+            bounds = env.bounds,
+            percentile = env.percentileProvider,
+            fixedAttributes = fixedAttributes,
+            searchAttributes = searchAttributes
+        )
 
-    val fitness: (Genotype<AttributeGene>) -> Vec<DoubleArray> = { gt ->
-        Vec.of(*evaluateRule(gt, oracle))
-    }
+        val indexPool = createIndexPool(cfg)
+        val genotypeFactory = createGenotypeFactory(cfg, indexPool)
 
-    val engine = Engine
-        .builder(fitness, genotypeFactory)
-        .optimize(Optimize.MAXIMUM)
-        .constraint(
-            SupportThresholdConstraint(
-                genotypeFactory = genotypeFactory,
-                oracle = oracle
+        val fitness: (Genotype<AttributeGene>) -> Vec<DoubleArray> = { gt ->
+            Vec.of(*evaluateRule(gt, oracle))
+        }
+
+        val engine = Engine
+            .builder(fitness, genotypeFactory)
+            .optimize(Optimize.MAXIMUM)
+            .constraint(
+                SupportThresholdConstraint(
+                    genotypeFactory = genotypeFactory,
+                    oracle = oracle
+                )
             )
-        )
-        .populationSize(popSize)
-        .offspringFraction(0.75)
-        .alterers(PercentileAttributeMutator(hp.probabilityMutation, cfg.fixedAttributes))
-        .survivorsSelector(NSGA2Selector.ofVec())
-        .offspringSelector(NSGA2Selector.ofVec())
-        .build()
+            .populationSize(popSize)
+            .offspringFraction(0.75)
+            .alterers(
+                PercentileAttributeMutator(
+                    hp.probabilityMutation,
+                    cfg.fixedAttributes
+                )
+            )
+            .survivorsSelector(NSGA2Selector.ofVec())
+            .offspringSelector(NSGA2Selector.ofVec())
+            .build()
 
-    lateinit var front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>
+        lateinit var front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>
 
-
-    val initGenotypes = parentFront?.map {
-        normalizeSeedGenotype(
-            genotype = it.genotype(),
-            cfg = cfg,
-            indexPool = indexPool
-        )
-    }
-
-    val padded = if (initGenotypes == null) {
-        // No seed: let the engine create the whole population (regular path)
-        null
-    } else {
-        val need = (popSize - initGenotypes.size()).coerceAtLeast(0)
-        val ms = MSeq.ofLength<Genotype<AttributeGene>>(need)
-        for (i in 0 until need) {
-            ms[i] = genotypeFactory.newInstance()
+        val initGenotypes = parentFront?.map {
+            normalizeSeedGenotype(
+                genotype = it.genotype(),
+                cfg = cfg,
+                indexPool = indexPool
+            )
         }
-        val randomFill: ISeq<Genotype<AttributeGene>> = ms.toISeq()
-        initGenotypes.append(randomFill)
-    }
 
-    // If provided a non-empty padded list, start from it; else use the normal stream()
-    val stream = if (padded != null) {
-        val init = EvolutionInit.of(padded, 1)
-        engine.stream(init) // starts from parent front genotypes
-    } else {
-        engine.stream() // default random init from genotypeFactory
-    }
+        val padded = if (initGenotypes == null) {
+            null
+        } else {
+            val need = (popSize - initGenotypes.size()).coerceAtLeast(0)
+            val ms = MSeq.ofLength<Genotype<AttributeGene>>(need)
 
-    stream
-        .limit(generationCount.toLong())
-        .peek { res ->
-            val population = res.population()
-            val g = res.generation()
-            if (g.toInt() == generationCount) {
-                front = ISeq.of(paretoFrontOf(population))
+            for (i in 0 until need) {
+                ms[i] = genotypeFactory.newInstance()
             }
-        }
-        .reduce { _, b -> b }
-        .orElseThrow()
 
-    return ISeq.of(front)
+            val randomFill: ISeq<Genotype<AttributeGene>> = ms.toISeq()
+            initGenotypes.append(randomFill)
+        }
+
+        val stream = if (padded != null) {
+            val init = EvolutionInit.of(padded, 1)
+            engine.stream(init)
+        } else {
+            engine.stream()
+        }
+
+        stream
+            .limit(generationCount.toLong())
+            .peek { res ->
+                val population = res.population()
+                val g = res.generation()
+
+                if (g.toInt() == generationCount) {
+                    front = ISeq.of(paretoFrontOf(population))
+                }
+            }
+            .reduce { _, b -> b }
+            .orElseThrow()
+
+        ISeq.of(front)
+    }
 }

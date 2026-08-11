@@ -17,6 +17,7 @@ import org.jetbrains.bio.qfarm.util.paretoFrontOf
 fun topRange(
     attributes: List<Int>,
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>?,
+    phase: EvolutionPhase,
     env: EvolutionEnvironment = GLOBAL_ENV,
     popSize: Int = hp.popSizeFull,
     generationCount: Int = hp.maxGenFull,
@@ -25,6 +26,12 @@ fun topRange(
 
     println("\n${PURPLE}$label : SEARCHING FOR THE BEST RANGE OF ${attributes.map { idx -> env.columnNames[idx]}} ... $RESET")
     require(attributes.isNotEmpty()) { "attributes must not be empty." }
+
+    val evolutionSeed = seedForEvolution(
+        rootSeed = hp.seed,
+        attributes = attributes,
+        phase = phase
+    )
 
     val oracle = CountingKdTreeOracle.fromDataset(
         dataset = env.datasetWithHeader,
@@ -42,7 +49,8 @@ fun topRange(
                 generationCount = generationCount,
                 parentFront = parentFront,
                 env = env,
-                oracle = it
+                oracle = it,
+                evolutionSeed = evolutionSeed
             )
         }
 
@@ -83,12 +91,14 @@ fun topRange(
 fun cheapTopRange(
     attributes: List<Int>,
     env: EvolutionEnvironment = GLOBAL_ENV,
+    parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? =
+        EvolutionContext.frontStack.lastOrNull()?.front
 ): ScoredFront {
-    val parentFront = EvolutionContext.frontStack.lastOrNull()?.front
 
     return topRange(
         attributes = attributes,
         parentFront = parentFront,
+        phase = EvolutionPhase.CHEAP,
         env = env,
         popSize = hp.popSizeCheap,
         generationCount = hp.maxGenCheap,
@@ -99,17 +109,14 @@ fun cheapTopRange(
 fun fullTopRange(
     attributes: List<Int>,
     env: EvolutionEnvironment = GLOBAL_ENV,
-    parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = null
+    parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? =
+        EvolutionContext.frontStack.lastOrNull()?.front
 ): ScoredFront {
-
-    val effectiveParent = when {
-        parentFront != null -> parentFront
-        else                -> EvolutionContext.frontStack.lastOrNull()?.front
-    }
 
     return topRange(
         attributes = attributes,
-        parentFront = effectiveParent,
+        parentFront = parentFront,
+        phase = EvolutionPhase.FULL,
         env = env,
         popSize = hp.popSizeFull,
         generationCount = hp.maxGenFull,
