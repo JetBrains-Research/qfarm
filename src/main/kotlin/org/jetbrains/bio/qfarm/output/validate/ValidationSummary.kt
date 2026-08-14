@@ -1,12 +1,13 @@
 package org.jetbrains.bio.qfarm.output.validate
 
 import org.jetbrains.bio.qfarm.output.fronts.ExportRuleRow
+import org.jetbrains.bio.qfarm.output.fronts.buildTreePrefix
 import org.jetbrains.bio.qfarm.output.fronts.flattenLabel
-import org.jetbrains.bio.qfarm.output.fronts.formatArea
 import org.jetbrains.bio.qfarm.output.fronts.formatAuc
 import org.jetbrains.bio.qfarm.output.fronts.formatDistance
 import org.jetbrains.bio.qfarm.output.fronts.formatNumber
 import org.jetbrains.bio.qfarm.output.fronts.formatP
+import org.jetbrains.bio.qfarm.output.fronts.getDepth
 import org.jetbrains.bio.qfarm.output.fronts.pad
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeRow
 import org.jetbrains.bio.qfarm.output.tree.RuleTreeNode
@@ -17,18 +18,13 @@ import kotlin.math.roundToInt
 
 data class Column(val name: String, val width: Int)
 
-val COLUMNS = listOf(
-    Column("ID", 6),
-    Column("Pn", 6),
+val VALIDATED_COLUMNS = listOf(
     Column("ROC p", 12),
-    Column("AUC", 10),
-    Column("area", 10),
+    Column("AUC", 6),
     Column("dist", 12),
     Column("status", 20)
 )
 
-val PREFIX_WIDTH = COLUMNS.sumOf { it.width }
-val SEPARATOR_WIDTH = PREFIX_WIDTH + 60 // extra space for plots
 
 fun writeTxtValidated(
     rows: List<ExportRuleRow>,
@@ -38,94 +34,291 @@ fun writeTxtValidated(
     previousRunName: String,
     file: File
 ) {
-
-    val rhs = "${hp.rightAttribute} ∈ [${rightGene.pLeft.roundToInt()}%, ${rightGene.pRight.roundToInt()}%], i.e. [${formatNumber(rightGene.lowerBound)}, ${formatNumber(rightGene.upperBound)}]"
+    val rhs =
+        "${hp.rightAttribute} ∈ " +
+                "[${rightGene.pLeft.roundToInt()}%, ${rightGene.pRight.roundToInt()}%], " +
+                "i.e. [${formatNumber(rightGene.lowerBound)}, ${formatNumber(rightGene.upperBound)}]"
 
     val originalMap = originalRows.associateBy {
         it.rule.sorted().joinToString(",")
     }
 
+    // -------------------------------------------------------------------------
+    // Build tree
+    // -------------------------------------------------------------------------
+
+    val childrenByParent = rows.groupBy { it.parentId }
+    val byId = rows.associateBy { it.id }
+
+    val roots = childrenByParent[null].orEmpty()
+
+    val maxDepth = rows.maxOfOrNull { row ->
+        getDepth(row, byId)
+    } ?: 0
+
+    // Same tree sizing as writeTxtLight().
+    //
+    // ├──             = 4
+    // │   ├──         = 8
+    // │   │   └──     = 12
+    val treeWidth = maxOf(
+        "Tree".length,
+        "START".length,
+        maxDepth * 4
+    )
+
+    val rocPWidth = VALIDATED_COLUMNS[0].width
+    val aucWidth = VALIDATED_COLUMNS[1].width
+    val distWidth = VALIDATED_COLUMNS[2].width
+    val statusWidth = VALIDATED_COLUMNS[3].width
+
+    // Equal spacing between all columns.
+    val columnGap = 4
+
+    // Exact character position at which the plots column begins.
+    // This is also used for the PREVIOUS RUN FRONT line.
+    val plotsStartColumn =
+        treeWidth +
+                columnGap +
+                rocPWidth +
+                columnGap +
+                aucWidth +
+                columnGap +
+                distWidth +
+                columnGap +
+                statusWidth +
+                columnGap
+
+    val separatorWidth = plotsStartColumn + 60
+
     file.bufferedWriter().use { w ->
 
-        // ---------------- META ----------------
-        w.appendLine("dataset: $datasetName    |    prev run: $previousRunName    |    RHS: $rhs")
-        w.appendLine("-".repeat(SEPARATOR_WIDTH))
+        // ---------------------------------------------------------------------
+        // META
+        // ---------------------------------------------------------------------
 
-        // ---------------- HEADER ----------------
-        w.appendLine(renderRow(COLUMNS.map { it.name }) + "plots")
-        w.appendLine("-".repeat(SEPARATOR_WIDTH))
+        w.appendLine(
+            "dataset: $datasetName    |    " +
+                    "prev run: $previousRunName    |    " +
+                    "RHS: $rhs"
+        )
 
-        // ---------------- ROWS ----------------
-        for (r in rows) {
+        w.appendLine("-".repeat(separatorWidth))
 
-            val node = idToNode[r.id] ?: continue
-            val meta = node.steps.lastOrNull()?.meta
+        // ---------------------------------------------------------------------
+        // HEADER
+        // ---------------------------------------------------------------------
 
-            val dist = meta?.get("distributionDistance") as? Double
-            val failure = meta?.get("failure") as? String ?: "OK"
-            val validated = meta?.get("validation") as? Boolean ?: true
+        val header = buildString {
+            append(pad("Tree", treeWidth))
+            append(" ".repeat(columnGap))
 
-            val status = if (validated) "OK" else failure
+            append(pad("ROC p", rocPWidth))
+            append(" ".repeat(columnGap))
 
-            val key = collectAttrs(node).sorted().joinToString(",")
-            val original = originalMap[key]
-            val prevPlots = flattenLabel(original?.label)
+            append(pad("AUC", aucWidth))
+            append(" ".repeat(columnGap))
 
-            val rowColor = if (validated) Ansi.GREEN else Ansi.RED
+            append(pad("dist", distWidth))
+            append(" ".repeat(columnGap))
 
-            val plots = when {
-                failure.startsWith("DIST_FAIL") -> flattenLabel(r.label)
+            append(pad("status", statusWidth))
+            append(" ".repeat(columnGap))
 
-                failure.startsWith("MISSING") -> {
-                    val expectedAttrs = collectAttrs(node)
-                    buildPlotsWithMissing(r.label, expectedAttrs, rowColor)
+            append("plots")
+        }
+
+        w.appendLine(header)
+        w.appendLine("-".repeat(separatorWidth))
+
+        // ---------------------------------------------------------------------
+        // Recursive tree writer
+        // ---------------------------------------------------------------------
+
+        fun writeSubtree(
+            r: ExportRuleRow,
+            treeLabel: String,
+            ancestorLastStates: List<Boolean>
+        ) {
+            val node = idToNode[r.id]
+
+            if (node != null) {
+                val meta = node.steps.lastOrNull()?.meta
+
+                val dist =
+                    meta?.get("distributionDistance") as? Double
+
+                val failure =
+                    meta?.get("failure") as? String ?: "OK"
+
+                val validated =
+                    meta?.get("validation") as? Boolean ?: true
+
+                val status =
+                    if (validated) "OK" else failure
+
+                val key =
+                    collectAttrs(node)
+                        .sorted()
+                        .joinToString(",")
+
+                val original = originalMap[key]
+
+                val prevPlots =
+                    flattenLabel(original?.label)
+
+                val rowColor =
+                    if (validated) {
+                        Ansi.GREEN
+                    } else {
+                        Ansi.RED
+                    }
+
+                val plots = when {
+                    failure.startsWith("DIST_FAIL") -> {
+                        flattenLabel(r.label)
+                    }
+
+                    failure.startsWith("MISSING") -> {
+                        val expectedAttrs = collectAttrs(node)
+
+                        buildPlotsWithMissing(
+                            r.label,
+                            expectedAttrs,
+                            rowColor
+                        )
+                    }
+
+                    else -> {
+                        flattenLabel(r.label)
+                    }
                 }
 
-                else -> flattenLabel(r.label)
-            }
+                // -------------------------------------------------------------
+                // Prepare fixed-width columns
+                // -------------------------------------------------------------
 
-            val values = listOf(
-                r.id.toString(),
-                r.parentId?.toString() ?: "-",
-                formatP(r.pValue),   // ROC p
-                formatAuc(r.auc),
-                formatArea(r.area),
-                formatDistance(dist), // smooth Spearman distance
-                status
-            )
+                var rocPColumn =
+                    pad(formatP(r.pValue), rocPWidth)
 
-            val padded = values.zip(COLUMNS).map { (v, col) ->
-                pad(v, col.width)
-            }.toMutableList()
+                val aucColumn =
+                    pad(formatAuc(r.auc), aucWidth)
 
-            // Apply highlighting
-            when {
-                failure.startsWith("ROC_FAIL") -> {
-                    padded[2] = highlight(padded[2], rowColor)
+                var distColumn =
+                    pad(formatDistance(dist), distWidth)
+
+                val statusColumn =
+                    pad(status, statusWidth)
+
+                // -------------------------------------------------------------
+                // Apply highlighting
+                // -------------------------------------------------------------
+
+                if (failure.startsWith("ROC_FAIL")) {
+                    rocPColumn =
+                        highlight(rocPColumn, rowColor)
                 }
 
-                failure.startsWith("DIST_FAIL") -> {
-                    padded[5] = highlight(padded[5], rowColor)
+                if (failure.startsWith("DIST_FAIL")) {
+                    distColumn =
+                        highlight(distColumn, rowColor)
                 }
-            }
 
-            val rowStr = padded.joinToString("") + plots
+                // -------------------------------------------------------------
+                // Main row
+                // -------------------------------------------------------------
 
-            val finalRow = "$rowColor$rowStr${Ansi.RESET}"
+                val rowStr = buildString {
+                    append(pad(treeLabel, treeWidth))
+                    append(" ".repeat(columnGap))
 
-            w.appendLine(finalRow)
+                    append(rocPColumn)
+                    append(" ".repeat(columnGap))
 
-            // ---------------- EXTRA LINE (DIST FAIL) ----------------
-            if (failure.startsWith("DIST_FAIL")) {
-                val txt = "     └── PREVIOUS RUN FRONT: "
-                val prefixWidth =
-                    PREFIX_WIDTH - txt.length
+                    append(aucColumn)
+                    append(" ".repeat(columnGap))
 
-                val indent = " ".repeat(prefixWidth)
+                    append(distColumn)
+                    append(" ".repeat(columnGap))
+
+                    append(statusColumn)
+                    append(" ".repeat(columnGap))
+
+                    append(plots)
+                }
 
                 w.appendLine(
-                    "$txt$indent$prevPlots"
+                    "$rowColor$rowStr${Ansi.RESET}"
                 )
+
+                // -------------------------------------------------------------
+                // EXTRA LINE — DIST FAIL
+                //
+                // prevPlots begins at exactly the same character position
+                // as the normal plots column above.
+                // -------------------------------------------------------------
+
+                if (failure.startsWith("DIST_FAIL")) {
+                    val txt = "     └── PREVIOUS RUN FRONT: "
+
+                    val prefix =
+                        if (txt.length < plotsStartColumn) {
+                            txt.padEnd(plotsStartColumn)
+                        } else {
+                            "$txt "
+                        }
+
+                    w.appendLine(
+                        prefix + prevPlots
+                    )
+                }
+            }
+
+            // -----------------------------------------------------------------
+            // Children
+            // -----------------------------------------------------------------
+
+            val children =
+                childrenByParent[r.id].orEmpty()
+
+            children.forEachIndexed { index, child ->
+
+                val isLastChild =
+                    index == children.lastIndex
+
+                val prefix =
+                    buildTreePrefix(ancestorLastStates)
+
+                val connector =
+                    if (isLastChild) {
+                        "└── "
+                    } else {
+                        "├── "
+                    }
+
+                writeSubtree(
+                    r = child,
+                    treeLabel = prefix + connector,
+                    ancestorLastStates =
+                        ancestorLastStates + isLastChild
+                )
+            }
+        }
+
+        // ---------------------------------------------------------------------
+        // Write roots
+        // ---------------------------------------------------------------------
+
+        roots.forEachIndexed { index, root ->
+
+            writeSubtree(
+                r = root,
+                treeLabel = "START",
+                ancestorLastStates = emptyList()
+            )
+
+            if (index != roots.lastIndex) {
+                w.appendLine()
             }
         }
     }
