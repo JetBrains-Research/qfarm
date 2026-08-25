@@ -512,7 +512,7 @@ java -jar build/libs/qfarm-0.1.build.jar validate \
   --spearman-threshold 0.20
 ```
 
-# 🧠 Notes
+# Notes
 
 - The CLI is built using **Clikt** and exposes independent `check`, `search`, and `validate` subcommands.
 - `check` performs dataset and optional RHS inspection without running the genetic algorithm.
@@ -601,11 +601,6 @@ Run `validate` with:
 
 ---
 
-## Repository Structure (high-level)
-
-...
----
-
 ## Contributing
 
 1. Fork this repository  
@@ -619,10 +614,4 @@ Run `validate` with:
        git push origin feature/my-feature
 
 5. Open a pull request
-
----
-
-## License
-
-...
 
