@@ -316,7 +316,7 @@ MIN,6.0
 4.0,MAX
 ```
 
-⚠️ **zsh note**: quote bracket expressions if used:
+**zsh note**: quote bracket expressions if used:
 
 ```bash
 --rhs-range-percentile "[90,100]"
