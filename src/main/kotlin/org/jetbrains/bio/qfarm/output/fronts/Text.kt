@@ -86,7 +86,7 @@ fun writeTxtLight(rows: List<ExportRuleRow>, file: File) {
 }
 
 
-private fun writeChildren(
+fun writeChildren(
     parent: ExportRuleRow,
     childrenByParent: Map<Int?, List<ExportRuleRow>>,
     writer: BufferedWriter,
@@ -135,7 +135,7 @@ private fun writeChildren(
 }
 
 
-private fun buildTreePrefix(
+fun buildTreePrefix(
     ancestorLastStates: List<Boolean>
 ): String {
     return buildString {
@@ -150,7 +150,7 @@ private fun buildTreePrefix(
 }
 
 
-private fun writeTreeRow(
+fun writeTreeRow(
     row: ExportRuleRow,
     writer: BufferedWriter,
     treeWidth: Int,
@@ -178,7 +178,7 @@ private fun writeTreeRow(
 }
 
 
-private fun getDepth(
+fun getDepth(
     row: ExportRuleRow,
     byId: Map<Int, ExportRuleRow>
 ): Int {
@@ -202,7 +202,7 @@ private fun getDepth(
 }
 
 
-private fun center(
+fun center(
     value: String,
     width: Int
 ): String {

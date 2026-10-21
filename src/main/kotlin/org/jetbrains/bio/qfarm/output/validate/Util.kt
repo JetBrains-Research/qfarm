@@ -3,14 +3,7 @@ package org.jetbrains.bio.qfarm.output.validate
 import org.jetbrains.bio.qfarm.columnNames
 import org.jetbrains.bio.qfarm.compare.RAMP
 import org.jetbrains.bio.qfarm.compare.extractBarsFromLabel
-import org.jetbrains.bio.qfarm.output.fronts.pad
 import org.jetbrains.bio.qfarm.output.tree.RuleTreeNode
-
-fun renderRow(values: List<String>): String {
-    return values.zip(COLUMNS).joinToString("") { (v, col) ->
-            pad(v, col.width)
-    }
-}
 
 fun centeredMissingBar(width: Int = 20, text: String = "...MISSING..."): String {
     val textLen = text.length
