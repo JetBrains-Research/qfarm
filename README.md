@@ -530,6 +530,7 @@ Both `search` and `validate` commands produce a full set of result files inside 
     ├── validation_summary.txt      (only for validate)
     ├── final_rules_summary.txt
     ├── final_rules_table.csv
+    ├── tree.jsonl                  (only for search)
     ├── representative_rules.txt
     ├── log.jsonl
     ├── full_tree.dot
@@ -570,6 +571,37 @@ Both `search` and `validate` commands produce a full set of result files inside 
 
 - `front_plots/`  
   HTML files with Pareto front visualizations for each rule.
+
+- `tree.jsonl`  
+  Machine-readable, full-precision export of the retained rule tree and the rules on
+  every node's Pareto front (written by `search` only). JSON Lines, one record per line,
+  like `log.jsonl`. Doubles are written with Kotlin `Double.toString`, so they
+  round-trip exactly; non-finite values are strings (`"NaN"`).
+
+  - `"type": "metadata"` (first line): `schema_version`, `qfarm_commit`, `startedAt`,
+    `parameters` (all hyperparameters), `rhs` (`attribute`, `lo`, `hi`), `dataset`
+    (`path`, `sha256`, `n_rows`, `columns` in input order, `n_pos`, `n_neg`) and
+    `conventions`.
+  - `"type": "node"`: one line per node in `final_rules_table.csv`. Fields: `createdAt`,
+    `key` (the `front_plots/<key>_pf.html` stem, e.g. `X3_AND_X1`), `nID` (id in
+    `final_rules_table.csv`), `parent_key` (`null` at depth 1), `depth`, `attributes`
+    (in the order added), `children`, `test` (`random_auc_baseline` at depth 1,
+    `delong` otherwise), `auc`, `parent_auc`, `delong` (`z`, `p_one_sided`,
+    `p_two_sided`, `var_parent`, `var_child`, `covariance`), `random_auc_p`,
+    `random_auc_p_adjusted`, `delta_area`, `total_area`, `n_rules` and `rules`.
+  - `"type": "summary"` (last line): `runName`, `totalRuntimeSeconds`, `finishedAt`.
+  - `rules` (per node, the node's final Pareto front): `rule_id`, `support`,
+    `confidence`, `tp`, `fp`, `tn`, `fn`, `objectives` (NSGA-II fitness:
+    `[support, confidence]`) and `conditions` (list of `attribute`, `kind`
+    (`numeric`/`discrete`), `lo`, `hi`, `p_lo`, `p_hi`; `p_*` are the gene's percentile
+    positions in [0, 1], from which `lo`/`hi` are interpolated).
+
+  Conventions: intervals are closed (`lo <= x <= hi`) for rule conditions and the RHS
+  label. ROC curves are not stored; they can be rebuilt from the rules. A node's ROC
+  score for a row is the number of rules covering it, with a `1e-6` tolerance on the
+  bounds. Which rules count depends on `parameters.rocComparison`:
+  `CHILD` uses the node's rules, `CHILD_PLUS_PARENT` adds the parent's rules, and
+  `MERGE` uses the Pareto front of both. Rows with a NaN RHS are dropped at load.
 
 ---
 

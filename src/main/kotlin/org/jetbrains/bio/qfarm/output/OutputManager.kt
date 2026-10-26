@@ -15,6 +15,7 @@ data class OutputManager(
     val reprRulesFile = File(runDir, "representative_rules_table.tsv")
     val rulesTreeTxt = File(runDir, "final_rules_summary.txt")
     val rulesTreeCsv = File(runDir, "final_rules_table.csv")
+    val treeJsonl = File(runDir, "tree.jsonl")
 
     val treeDot = File(runDir, "full_tree.dot")
     val treeSvg = File(runDir, "full_tree.svg")
