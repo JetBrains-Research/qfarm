@@ -7,6 +7,7 @@ fun main(args: Array<String>) =
         .subcommands(
             SearchCommand(),
             ValidateCommand(),
-            CheckCommand()
+            CheckCommand(),
+            AnalyzeCommand()
         )
         .main(args)

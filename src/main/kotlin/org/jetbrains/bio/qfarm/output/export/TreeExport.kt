@@ -155,7 +155,7 @@ private fun nodeJson(
     })
 }
 
-private fun sha256(file: File): String? = runCatching {
+fun sha256(file: File): String? = runCatching {
     val md = MessageDigest.getInstance("SHA-256")
     file.inputStream().use { s ->
         val buf = ByteArray(1 shl 16)

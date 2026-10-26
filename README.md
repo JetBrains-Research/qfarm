@@ -468,6 +468,79 @@ java -jar qfarm.jar search \
 
 ---
 
+# Analyze Command
+
+The `analyze` command post-processes a finished `search` run. It reads the run's
+`tree.jsonl` and the dataset the run was built on, and computes:
+
+1. **Scores**: for every node, the score of each donor (dataset row) is the number of the
+   node's own rules covering it (closed intervals, exact bounds). Every rule's TP/FP is
+   recounted and checked against `tree.jsonl`.
+2. **Pairwise agreement** between all node pairs, per class (positive = inside the RHS
+   range, negative = outside), at two operating points: `score >= --flag-score-min`
+   and "top `--flag-top-frac` of donors". Metrics: Jaccard, positive/negative specific
+   agreement, disagreement, Cohen's kappa, Yule's Q, double fault, McNemar p,
+   Kendall tau-b and Spearman.
+3. **Null calibration**: each metric against its independence null (exact
+   hypergeometric for Jaccard and kappa, analytic for Spearman and Kendall), with
+   Benjamini-Hochberg q-values per class and heatmaps of `--heatmap-metric`.
+4. **Donor clustering** (hierarchical) of the donors of `--donor-class` on their
+   transformed node scores, with silhouette-based choice of k, outlier clusters and
+   bootstrap (Hennig) stability.
+5. **Node clustering** per class on `1 - Spearman` or Jaccard distance, with
+   cophenetic correlation, bootstrap co-clustering and ARI.
+
+## Basic syntax
+
+```bash
+java -jar qfarm.jar analyze \
+  --tree results/<run_name>/tree.jsonl \
+  --data data.csv
+```
+
+The dataset must be the one the run used (checked through the class counts; a
+different file hash only gives a warning). Results go to `results/<run_name>/analysis/`
+unless `--out DIR` is given.
+
+## Options
+
+| Option | Default | Meaning |
+|---|---|---|
+| `--flag-score-min` | `1` | A donor is flagged by a node if its score is at least this. |
+| `--flag-top-frac` | `0.1` | Flag the top fraction of all donors per node (ties included); `0` uses `--flag-score-min`. A score of 0 is never flagged. |
+| `--heatmap-metric` | `spearman` | `spearman`, `kendall_tau_b`, `kappa` or `jaccard`. |
+| `--fdr` | `0.05` | Significance level after Benjamini-Hochberg. |
+| `--leaves-only` | off | Null calibration on leaf nodes only. |
+| `--node-metric` | `spearman` | Node distance: `spearman` (raw scores) or `jaccard` (flags). |
+| `--node-linkage` | `average` | `average` or `ward`. |
+| `--node-bootstraps` | `200` | Bootstrap resamples of the donors for node clustering. |
+| `--donor-class` | `positive` | `positive`, `negative`, `both` or `none`. |
+| `--donor-transform` | `log1p_z` | `log1p_z`, `z` or `rank_z`, applied per node before donor clustering. |
+| `--donor-linkage` | `ward` | `ward` or `average`. |
+| `--donor-bootstraps` | `50` | Bootstraps for cluster stability. |
+| `--min-cluster-size`, `--min-cluster-frac` | `20`, `0.02` | Donor clusters smaller than `max(size, frac * n)` become outliers (cluster 0). |
+| `--k-min`, `--k-max`, `--k` | `2`, `8`, none | Range of cluster counts tried, or a fixed k. |
+| `--seed` | `0` | Seed for the bootstraps. |
+
+Donor clustering keeps a full donor-by-donor distance matrix in memory
+(8 bytes * n^2 * 2), so clustering tens of thousands of donors needs several GB of heap.
+
+## Output
+
+    analysis/
+    ├── scores/scores.csv, rule_check.csv, node_check.csv
+    ├── pairwise_agreement.csv
+    ├── flag_rates.csv, null_calibrated.csv
+    ├── <metric>_heatmaps.png / .svg
+    └── clustering/
+        ├── donor_k_selection_<class>.csv, donor_clusters_<class>.csv,
+        │   donor_cluster_profiles_<class>.csv / .png / .svg
+        └── node_distance_<class>_<metric>.csv, node_coclustering_<class>_<metric>.csv,
+            node_clusters_<metric>.csv, cluster_summary_<metric>.csv,
+            node_dendrogram_<class>_<metric>.png / .svg
+
+---
+
 # Validate Command
 
 Validate a previously generated QFARM rule tree on another dataset.
