@@ -3,6 +3,7 @@ package org.jetbrains.bio.qfarm
 import org.jetbrains.bio.qfarm.evaluation.random.generateAnalyticalRandomAucBaseline
 import org.jetbrains.bio.qfarm.evolution.search.treeTraversal
 import org.jetbrains.bio.qfarm.output.OutputManager
+import org.jetbrains.bio.qfarm.output.export.writeTreeJsonl
 import org.jetbrains.bio.qfarm.output.logs.RHS
 import org.jetbrains.bio.qfarm.output.tree.RULE_TREE_ROOT
 import org.jetbrains.bio.qfarm.output.logs.RuleTreeJsonWriter
@@ -17,6 +18,7 @@ import java.io.File
 
 fun runSearch() {
     val start = System.nanoTime()
+    val startedAt = java.time.Instant.now()
 
     val timestamp = java.time.LocalDateTime.now()
         .format(java.time.format.DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss"))
@@ -77,6 +79,8 @@ fun runSearch() {
 
     val elapsed = (System.nanoTime() - start) / 1_000_000_000.0
     println("\nTOTAL RUNTIME: $elapsed s")
+
+    writeTreeJsonl(RULE_TREE_ROOT, OUTPUT.treeJsonl, startedAt, elapsed)
 
     RULE_JSON_WRITER.writeSummary(
         runtimeSeconds = elapsed,

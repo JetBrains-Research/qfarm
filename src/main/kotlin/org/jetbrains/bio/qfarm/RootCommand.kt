@@ -7,7 +7,7 @@ class RootCommand : CliktCommand(name = "qfarm") {
 
     override fun commandHelp(context: Context): String = """
     QFARM checks tabular datasets, mines quantitative association rules,
-    and validates previously generated rule trees.
+    validates previously generated rule trees, and analyzes their results.
 
     Select one of the commands below to continue.
 """.trimIndent()
@@ -42,11 +42,17 @@ class RootCommand : CliktCommand(name = "qfarm") {
               --data validation.csv \
               --rules results/test_run/log.jsonl
 
+          Analyze the rules of a finished run:
+            java -jar qfarm.jar analyze \
+              --tree results/test_run/tree.jsonl \
+              --data data.csv
+
         Run a command with --help for command-specific options:
 
           java -jar qfarm.jar check --help
           java -jar qfarm.jar search --help
           java -jar qfarm.jar validate --help
+          java -jar qfarm.jar analyze --help
     """.trimIndent()
 
     override fun run() = Unit
