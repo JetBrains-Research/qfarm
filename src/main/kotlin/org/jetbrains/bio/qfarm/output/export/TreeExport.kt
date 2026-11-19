@@ -6,10 +6,13 @@ import org.jetbrains.bio.qfarm.core.RuleSideChromosome
 import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.discreteInfo
 import org.jetbrains.bio.qfarm.evaluation.fronts.toPFSeries
+import org.jetbrains.bio.qfarm.evolution.EvolutionStats
+import org.jetbrains.bio.qfarm.evolution.EvolutionTotals
 import org.jetbrains.bio.qfarm.output.logs.RuleStep
 import org.jetbrains.bio.qfarm.output.fronts.buildExportRows
 import org.jetbrains.bio.qfarm.output.tree.RuleTreeNode
 import org.jetbrains.bio.qfarm.params.hp
+import org.jetbrains.bio.qfarm.params.stopParams
 import org.jetbrains.bio.qfarm.rightAttrIndex
 import org.jetbrains.bio.qfarm.rightGene
 import org.jetbrains.bio.qfarm.statistics.delong.DeLongResult
@@ -18,7 +21,7 @@ import java.io.File
 import java.security.MessageDigest
 import java.time.Instant
 
-const val TREE_JSON_SCHEMA_VERSION = 3
+const val TREE_JSON_SCHEMA_VERSION = 4
 
 /** Node key: same stem as the front_plots/<key>_pf.html files. */
 private fun nodeKey(path: List<Int>): String = attrsToFileName(path)
@@ -46,6 +49,7 @@ fun writeTreeJsonl(root: RuleTreeNode, file: File, startedAt: Instant, runtimeSe
         put("qfarm_commit", gitCommit())
         put("startedAt", startedAt.toString())
         put("parameters", Json { encodeDefaults = true }.encodeToJsonElement(hp))
+        put("stop_criterion", Json { encodeDefaults = true }.encodeToJsonElement(stopParams))
         put("rhs", buildJsonObject {
             put("attribute", columnNames[rightAttrIndex])
             put("lo", num(rightGene.lowerBound))
@@ -64,6 +68,14 @@ fun writeTreeJsonl(root: RuleTreeNode, file: File, startedAt: Instant, runtimeSe
             put("score_tolerance", num(1e-6))
             put("nan", "rows with NaN RHS are dropped at load; NaN in an LHS attribute used by a rule aborts the run")
             put("roc_scores", "per-row count of covering rules, over the rule set given by parameters.rocComparison")
+            put(
+                "evolution",
+                "node.evolution: the FULL evolution that produced the node's front. generations < max_generations " +
+                        "only when the stop criterion ended it (stop_mode STOP); stop_generation is the first generation " +
+                        "the criterion fired (null if never or OFF). seconds: wall-clock time of the evolution (evolutions " +
+                        "run in parallel); evolve_seconds: Jenetics engine time only, without stop-criterion logging. " +
+                        "summary.evolutions: the same summed per phase over all evolutions of the run, retained or not."
+            )
         })
     }
 
@@ -83,6 +95,14 @@ fun writeTreeJsonl(root: RuleTreeNode, file: File, startedAt: Instant, runtimeSe
             put("type", "summary")
             put("runName", hp.runName)
             put("totalRuntimeSeconds", num(runtimeSeconds))
+            put("evolutions", buildJsonObject {
+                for ((phase, t) in EvolutionTotals.snapshot()) put(phase.name, buildJsonObject {
+                    put("count", t.evolutions)
+                    put("generations", t.generations)
+                    put("seconds", num(t.seconds))
+                    put("evolve_seconds", num(t.evolveSeconds))
+                })
+            })
             put("finishedAt", Instant.now().toString())
         })
     }
@@ -124,6 +144,7 @@ private fun nodeJson(
     put("delta_area", num(meta["deltaArea"] as? Double))
     put("total_area", num(meta["totalArea"] as? Double))
     put("n_rules", front.size())
+    put("evolution", step.scoredFront.evolution?.let(::evolutionJson) ?: JsonNull)
 
     val metrics = toPFSeries(front, "Child", datasetWithHeader).metrics!!
     put("rules", buildJsonArray {
@@ -153,6 +174,17 @@ private fun nodeJson(
             })
         }
     })
+}
+
+private fun evolutionJson(e: EvolutionStats): JsonObject = buildJsonObject {
+    put("phase", e.phase.name)
+    put("population_size", e.populationSize)
+    put("max_generations", e.maxGenerations)
+    put("generations", e.generations)
+    put("seconds", num(e.seconds))
+    put("evolve_seconds", num(e.evolveSeconds))
+    put("stop_mode", e.stopMode.name)
+    put("stop_generation", e.stopGeneration)
 }
 
 fun sha256(file: File): String? = runCatching {

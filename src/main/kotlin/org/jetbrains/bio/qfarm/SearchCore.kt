@@ -1,7 +1,9 @@
 package org.jetbrains.bio.qfarm
 
 import org.jetbrains.bio.qfarm.evaluation.random.generateAnalyticalRandomAucBaseline
+import org.jetbrains.bio.qfarm.evolution.EvolutionTotals
 import org.jetbrains.bio.qfarm.evolution.search.treeTraversal
+import org.jetbrains.bio.qfarm.evolution.stopping.StopCalibrationLog
 import org.jetbrains.bio.qfarm.output.OutputManager
 import org.jetbrains.bio.qfarm.output.export.writeTreeJsonl
 import org.jetbrains.bio.qfarm.output.logs.RHS
@@ -12,7 +14,9 @@ import org.jetbrains.bio.qfarm.output.tree.exportLeafRules
 import org.jetbrains.bio.qfarm.output.tree.toDOTFromTrie
 import org.jetbrains.bio.qfarm.params.BLUE
 import org.jetbrains.bio.qfarm.params.RESET
+import org.jetbrains.bio.qfarm.params.StopMode
 import org.jetbrains.bio.qfarm.params.hp
+import org.jetbrains.bio.qfarm.params.stopParams
 import java.io.File
 
 
@@ -28,6 +32,12 @@ fun runSearch() {
         runName = "${hp.runName}_$timestamp"
     )
     OUTPUT.init()
+
+    if (stopParams.mode != StopMode.OFF) {
+        StopCalibrationLog.open(OUTPUT.stopCalibrationJsonl, stopParams)
+    }
+
+    EvolutionTotals.reset()
 
     PROGRESS.runStarted()
 
@@ -88,6 +98,8 @@ fun runSearch() {
     )
 
     RULE_JSON_WRITER.close()
+
+    StopCalibrationLog.close()
 
     PROGRESS.runFinished()
 

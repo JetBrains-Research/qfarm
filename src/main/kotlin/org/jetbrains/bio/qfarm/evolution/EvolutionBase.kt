@@ -18,14 +18,30 @@ import org.jetbrains.bio.qfarm.core.createIndexPool
 import org.jetbrains.bio.qfarm.core.normalizeSeedGenotype
 import org.jetbrains.bio.qfarm.evaluation.CountingKdTreeOracle
 import org.jetbrains.bio.qfarm.evaluation.evaluateRule
+import org.jetbrains.bio.qfarm.evolution.stopping.StopMonitor
+import org.jetbrains.bio.qfarm.evolution.stopping.SurvivorNoveltyCriterion
+import org.jetbrains.bio.qfarm.evolution.stopping.SurvivorRecorder
+import org.jetbrains.bio.qfarm.params.StopCriterionParams
+import org.jetbrains.bio.qfarm.params.StopMode
 import org.jetbrains.bio.qfarm.params.hp
+import org.jetbrains.bio.qfarm.params.stopParams
 import org.jetbrains.bio.qfarm.util.paretoFrontOf
 import io.jenetics.util.RandomRegistry
 import java.util.SplittableRandom
+import java.util.function.Predicate
+
+/** Final Pareto front of one evolution and how long it ran. */
+class EvolutionRun(
+    val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>,
+    val stats: EvolutionStats
+)
 
 /**
  * Run one NSGA-II evolution using only `searchAttributes` as LHS candidates.
  * Genotype = one RuleSideChromosome (LHS). RHS is handled by evaluation as before.
+ *
+ * `generationCount` is the maximum number of generations; with
+ * `stop.mode == STOP` the evolution can end earlier (see [StopCriterionParams]).
  */
 fun runEvolution(
     fixedAttributes: List<Int>,
@@ -35,10 +51,14 @@ fun runEvolution(
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = ISeq.of(),
     env: EvolutionEnvironment = GLOBAL_ENV,
     oracle: CountingKdTreeOracle,
-    evolutionSeed: Long
-): ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> {
+    evolutionSeed: Long,
+    phase: EvolutionPhase,
+    stop: StopCriterionParams = stopParams
+): EvolutionRun {
 
     return RandomRegistry.with(SplittableRandom(evolutionSeed)) {
+
+        val startNanos = System.nanoTime()
 
         val cfg = RuleInitConfig(
             rightAttrIndex = env.rightAttrIndex,
@@ -54,6 +74,9 @@ fun runEvolution(
         val fitness: (Genotype<AttributeGene>) -> Vec<DoubleArray> = { gt ->
             Vec.of(*evaluateRule(gt, oracle))
         }
+
+        // Records the survivor set of every generation for the stop criterion.
+        val survivors = SurvivorRecorder(NSGA2Selector.ofVec())
 
         val engine = Engine
             .builder(fitness, genotypeFactory)
@@ -72,11 +95,9 @@ fun runEvolution(
                     cfg.fixedAttributes
                 )
             )
-            .survivorsSelector(NSGA2Selector.ofVec())
+            .survivorsSelector(survivors)
             .offspringSelector(NSGA2Selector.ofVec())
             .build()
-
-        lateinit var front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>
 
         val initGenotypes = parentFront?.map {
             normalizeSeedGenotype(
@@ -107,19 +128,63 @@ fun runEvolution(
             engine.stream()
         }
 
-        stream
-            .limit(generationCount.toLong())
-            .peek { res ->
-                val population = res.population()
-                val g = res.generation()
+        val monitor = if (stop.mode == StopMode.OFF) {
+            null
+        } else {
+            StopMonitor(
+                criterion = SurvivorNoveltyCriterion(stop),
+                survivors = survivors,
+                env = env,
+                phase = phase,
+                attributes = fixedAttributes + searchAttributes,
+                populationSize = popSize,
+                maxGenerations = generationCount,
+                seeded = parentFront != null && !parentFront.isEmpty
+            )
+        }
 
-                if (g.toInt() == generationCount) {
-                    front = ISeq.of(paretoFrontOf(population))
+        // Engine time of every generation, including the one on which STOP fires
+        // (the stream does not emit that one, so it is counted in the predicate).
+        var evolveNanos = 0L
+        val stopping = monitor != null && stop.mode == StopMode.STOP
+
+        val stoppable = if (stopping) {
+            stream.limit(Predicate { result ->
+                evolveNanos += result.durations().evolveDuration().toNanos()
+                !monitor!!.observe(result)
+            })
+        } else {
+            stream
+        }
+
+        val lastEmitted = stoppable
+            .limit(generationCount.toLong())
+            .peek { result ->
+                if (!stopping) evolveNanos += result.durations().evolveDuration().toNanos()
+                if (monitor != null && stop.mode == StopMode.LOG_ONLY) {
+                    monitor.observe(result)
                 }
             }
             .reduce { _, b -> b }
-            .orElseThrow()
 
-        ISeq.of(front)
+        // In STOP mode the stream does not emit the generation on which the
+        // criterion fired, but the monitor has seen it: use that one.
+        val last = monitor?.lastResult ?: lastEmitted.orElseThrow()
+
+        monitor?.finish(stop.mode)
+
+        EvolutionRun(
+            front = ISeq.of(paretoFrontOf(last.population())),
+            stats = EvolutionStats(
+                phase = phase,
+                populationSize = popSize,
+                maxGenerations = generationCount,
+                generations = last.generation(),
+                seconds = (System.nanoTime() - startNanos) / 1e9,
+                evolveSeconds = evolveNanos / 1e9,
+                stopMode = stop.mode,
+                stopGeneration = monitor?.stopGeneration
+            )
+        )
     }
 }

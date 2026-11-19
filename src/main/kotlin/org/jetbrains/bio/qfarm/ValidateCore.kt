@@ -1,6 +1,7 @@
 package org.jetbrains.bio.qfarm
 
 import org.jetbrains.bio.qfarm.evaluation.random.generateAnalyticalRandomAucBaseline
+import org.jetbrains.bio.qfarm.evolution.stopping.StopCalibrationLog
 import org.jetbrains.bio.qfarm.evolution.validate.reevaluateTree
 import org.jetbrains.bio.qfarm.logger.ValidationProgressLogger
 import org.jetbrains.bio.qfarm.output.OutputManager
@@ -11,7 +12,9 @@ import org.jetbrains.bio.qfarm.output.tree.RULE_TREE_ROOT
 import org.jetbrains.bio.qfarm.output.tree.exportLeafRules
 import org.jetbrains.bio.qfarm.output.tree.toDOTFromTrie
 import org.jetbrains.bio.qfarm.output.validate.writeTxtValidated
+import org.jetbrains.bio.qfarm.params.StopMode
 import org.jetbrains.bio.qfarm.params.hp
+import org.jetbrains.bio.qfarm.params.stopParams
 import org.jetbrains.bio.qfarm.util.validate.LoadedRulesFile
 import java.io.File
 
@@ -37,6 +40,10 @@ fun runValidation(
     )
 
     OUTPUT.init()
+
+    if (stopParams.mode != StopMode.OFF) {
+        StopCalibrationLog.open(OUTPUT.stopCalibrationJsonl, stopParams)
+    }
 
     RULE_JSON_WRITER =
         RuleTreeJsonWriter(
@@ -170,6 +177,8 @@ fun runValidation(
     )
 
     RULE_JSON_WRITER.close()
+
+    StopCalibrationLog.close()
 
     VALIDATION_PROGRESS.runFinished()
 }
