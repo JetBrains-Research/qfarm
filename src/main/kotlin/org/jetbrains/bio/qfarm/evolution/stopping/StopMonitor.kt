@@ -67,6 +67,13 @@ class StopMonitor(
     var stopGeneration: Long? = null
         private set
 
+    /**
+     * Pareto front of the population at [stopGeneration]: the rules an early stop reports.
+     * Extracted like the final front of `runEvolution`; null while the criterion has not fired.
+     */
+    var stopFront: ISeq<RulePhenotype>? = null
+        private set
+
     /** Last generation seen by [observe]. */
     var lastResult: EvolutionResult<AttributeGene, Vec<DoubleArray>>? = null
         private set
@@ -91,7 +98,9 @@ class StopMonitor(
 
         if (observation.shouldStop && stopGeneration == null) {
             stopGeneration = result.generation()
-            if (logging) aucAtStop = frontAuc(result.population())
+            val front = ISeq.of(paretoFrontOf(result.population()))
+            stopFront = front
+            if (logging) aucAtStop = frontAuc(front)
         }
 
         return observation.shouldStop
@@ -116,7 +125,7 @@ class StopMonitor(
                 generationsRun = last.generation(),
                 stopGeneration = stopGeneration,
                 aucAtStop = aucAtStop,
-                aucFinal = frontAuc(last.population()),
+                aucFinal = frontAuc(ISeq.of(paretoFrontOf(last.population()))),
                 signal = signal,
                 hypervolume = hypervolume,
                 frontPoints = frontPoints
@@ -124,11 +133,9 @@ class StopMonitor(
         )
     }
 
-    private fun frontAuc(population: ISeq<RulePhenotype>): Double? {
+    private fun frontAuc(front: ISeq<RulePhenotype>): Double? {
         val labels = env.datasetWithHeader.labels
         if (labels.size != rows) return null
-
-        val front = paretoFrontOf(population)
         if (front.isEmpty) return null
 
         return AUC.compute(labels, computeFrontScores(front, env))

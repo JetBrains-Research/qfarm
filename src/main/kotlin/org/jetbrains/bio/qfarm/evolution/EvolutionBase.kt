@@ -183,7 +183,8 @@ fun runEvolution(
                 seconds = (System.nanoTime() - startNanos) / 1e9,
                 evolveSeconds = evolveNanos / 1e9,
                 stopMode = stop.mode,
-                stopGeneration = monitor?.stopGeneration
+                stopGeneration = monitor?.stopGeneration,
+                stopFront = monitor?.stopFront
             )
         )
     }

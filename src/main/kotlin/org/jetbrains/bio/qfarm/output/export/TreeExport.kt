@@ -1,7 +1,11 @@
 package org.jetbrains.bio.qfarm.output.export
 
+import io.jenetics.Phenotype
+import io.jenetics.ext.moea.Vec
+import io.jenetics.util.ISeq
 import kotlinx.serialization.json.*
 import org.jetbrains.bio.qfarm.columnNames
+import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.core.RuleSideChromosome
 import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.discreteInfo
@@ -21,7 +25,7 @@ import java.io.File
 import java.security.MessageDigest
 import java.time.Instant
 
-const val TREE_JSON_SCHEMA_VERSION = 4
+const val TREE_JSON_SCHEMA_VERSION = 5
 
 /** Node key: same stem as the front_plots/<key>_pf.html files. */
 private fun nodeKey(path: List<Int>): String = attrsToFileName(path)
@@ -75,6 +79,12 @@ fun writeTreeJsonl(root: RuleTreeNode, file: File, startedAt: Instant, runtimeSe
                         "the criterion fired (null if never or OFF). seconds: wall-clock time of the evolution (evolutions " +
                         "run in parallel); evolve_seconds: Jenetics engine time only, without stop-criterion logging. " +
                         "summary.evolutions: the same summed per phase over all evolutions of the run, retained or not."
+            )
+            put(
+                "rules_at_stop",
+                "node.rules_at_stop: the Pareto front at evolution.stop_generation, i.e. the rules an early stop " +
+                        "reports, same format as node.rules. STOP: equal to node.rules. LOG_ONLY: the evolution went on " +
+                        "to max_generations and node.rules is its final front. null when the criterion never fired or OFF."
             )
         })
     }
@@ -143,11 +153,21 @@ private fun nodeJson(
     put("random_auc_p_adjusted", num(meta["randomAucAdjustedP"] as? Double))
     put("delta_area", num(meta["deltaArea"] as? Double))
     put("total_area", num(meta["totalArea"] as? Double))
+    val stopFront = step.scoredFront.evolution?.stopFront
+
     put("n_rules", front.size())
+    put("n_rules_at_stop", stopFront?.size())
     put("evolution", step.scoredFront.evolution?.let(::evolutionJson) ?: JsonNull)
+    put("rules", rulesJson(front))
+    put("rules_at_stop", stopFront?.let(::rulesJson) ?: JsonNull)
+}
+
+/** The rules of a Pareto front, with their confusion counts on the dataset. */
+private fun rulesJson(front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>): JsonArray {
+    if (front.isEmpty) return JsonArray(emptyList())
 
     val metrics = toPFSeries(front, "Child", datasetWithHeader).metrics!!
-    put("rules", buildJsonArray {
+    return buildJsonArray {
         for ((i, pt) in front.withIndex()) {
             val m = metrics[i]
             val fitness = pt.fitness().data()
@@ -173,7 +193,7 @@ private fun nodeJson(
                 })
             })
         }
-    })
+    }
 }
 
 private fun evolutionJson(e: EvolutionStats): JsonObject = buildJsonObject {

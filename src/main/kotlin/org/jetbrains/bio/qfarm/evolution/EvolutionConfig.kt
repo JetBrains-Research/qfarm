@@ -19,7 +19,7 @@ data class EvolutionEnvironment(
     val rightAttrIndex: Int
 )
 
-/** Length of one evolution (reported per node in tree.jsonl). */
+/** Length of one evolution and its early-stop result (reported per node in tree.jsonl). */
 data class EvolutionStats(
     val phase: EvolutionPhase,
     val populationSize: Int,
@@ -32,7 +32,12 @@ data class EvolutionStats(
     val evolveSeconds: Double,
     val stopMode: StopMode,
     /** First generation on which the stop criterion fired; null when it never did or mode is OFF. */
-    val stopGeneration: Long?
+    val stopGeneration: Long?,
+    /**
+     * Pareto front at [stopGeneration]: the rules an early stop reports. In STOP mode it is the
+     * evolution's final front; in LOG_ONLY the evolution went on to maxGenerations.
+     */
+    val stopFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? = null
 )
 
 data class ScoredFront(

@@ -42,7 +42,7 @@ data class StopCriterionParams(
      * Two rules count as the same when, for every attribute, their percentile
      * intervals overlap (intersection / union) at least this much.
      */
-    val similarityThreshold: Double = 0.5,
+    val similarityThreshold: Double = 0.95,
 
     /** A generation is stagnant when at most this many of its survivors are new. */
     val maxNewSurvivors: Int = 0,
