@@ -21,6 +21,10 @@ lets-plot-images
 # VS Code
 .vscode/
 
+.claude/
+QFARM_research_november/
+
+
 .venv/
 
 # macOS

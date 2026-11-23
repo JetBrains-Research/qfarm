@@ -24,6 +24,8 @@ data class OutputManager(
 
     val rangeTimingsCsv = File(runDir, "range_timings.csv")
 
+    val stopCalibrationJsonl = File(runDir, "stop_calibration.jsonl")
+
     fun init() {
         require(baseDir.exists() || baseDir.mkdirs()) {
             "Failed to create base directory: $baseDir"

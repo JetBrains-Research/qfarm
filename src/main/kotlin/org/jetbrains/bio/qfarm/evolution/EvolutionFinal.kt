@@ -41,7 +41,7 @@ fun topRange(
         leafSize = 32
     )
 
-    val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> =
+    val run: EvolutionRun =
         oracle.use {
             runEvolution(
                 fixedAttributes = attributes,
@@ -50,15 +50,19 @@ fun topRange(
                 parentFront = parentFront,
                 env = env,
                 oracle = it,
-                evolutionSeed = evolutionSeed
+                evolutionSeed = evolutionSeed,
+                phase = phase
             )
         }
+
+    val front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>> = run.front
+    EvolutionTotals.add(run.stats)
 
     println("$PURPLE [🏁 Pareto front (all) has ${front.size()} solutions] $RESET")
 
     if (front.isEmpty) {
         println("$YELLOW [⚠️ No solutions matched the requested attributes. Returning empty result.] $RESET")
-        return ScoredFront(front, doubleArrayOf())
+        return ScoredFront(front, doubleArrayOf(), run.stats)
     }
 
     val rocFront = when (hp.rocComparison) {
@@ -85,7 +89,7 @@ fun topRange(
 
     val scores = computeFrontScores(rocFront, env)
 
-    return ScoredFront(front, scores)
+    return ScoredFront(front, scores, run.stats)
 }
 
 fun cheapTopRange(
