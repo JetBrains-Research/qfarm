@@ -134,7 +134,8 @@ fun runEvolution(
                 attributes = fixedAttributes + searchAttributes,
                 populationSize = popSize,
                 maxGenerations = generationCount,
-                seeded = parentFront != null && !parentFront.isEmpty
+                seeded = parentFront != null && !parentFront.isEmpty,
+                aucEvery = stop.aucEveryGenerations
             )
         }
 
@@ -165,17 +166,21 @@ fun runEvolution(
         // In STOP mode the stream does not emit the generation on which the
         // criterion fired, but the monitor has seen it: use that one.
         val last = monitor?.lastResult ?: lastEmitted.orElseThrow()
+        val front = ISeq.of(paretoFrontOf(last.population()))
 
-        monitor?.finish(stop.mode)
+        // Wall time of the evolution itself: analysis-only work of the monitor is left out,
+        // and the per-generation AUC is computed in finish(), after the time is taken.
+        val seconds = (System.nanoTime() - startNanos - (monitor?.analysisNanos ?: 0L)) / 1e9
+        monitor?.finish(stop.mode, seconds = seconds, engineSeconds = evolveNanos / 1e9)
 
         EvolutionRun(
-            front = ISeq.of(paretoFrontOf(last.population())),
+            front = front,
             stats = EvolutionStats(
                 phase = phase,
                 populationSize = popSize,
                 maxGenerations = generationCount,
                 generations = last.generation(),
-                seconds = (System.nanoTime() - startNanos) / 1e9,
+                seconds = seconds,
                 evolveSeconds = evolveNanos / 1e9,
                 stopMode = stop.mode,
                 stopGeneration = monitor?.stopGeneration,

@@ -45,7 +45,20 @@ data class StopCalibrationRecord(
     /** Hypervolume of the population front in (support / rows, confidence) space, per generation. */
     val hypervolume: List<Double>,
     /** Number of distinct non-dominated objective vectors in the population, per generation. */
-    val frontPoints: List<Int>
+    val frontPoints: List<Int>,
+    /** Wall time of the evolution in seconds, without the analysis-only work (AUC per generation). */
+    val seconds: Double = Double.NaN,
+    /** Jenetics engine time of the evolution in seconds. */
+    val evolveSeconds: Double = Double.NaN,
+    /** Time spent on analysis-only work for this evolution; not part of [seconds]. */
+    val analysisSeconds: Double = Double.NaN,
+    /** Jenetics engine time of each generation in seconds. */
+    val evolveSecondsPerGeneration: List<Double> = emptyList(),
+    /**
+     * ANALYSIS ONLY (temporary): own-front AUC per generation, every `aucEveryGenerations`
+     * generations and at generation 1; NaN in between. Computed after the evolution ended.
+     */
+    val auc: List<Double> = emptyList()
 )
 
 /**

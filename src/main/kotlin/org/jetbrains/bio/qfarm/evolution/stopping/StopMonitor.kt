@@ -4,11 +4,9 @@ import io.jenetics.engine.EvolutionResult
 import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
-import org.jetbrains.bio.qfarm.evaluation.fronts.computeFrontScores
 import org.jetbrains.bio.qfarm.evolution.EvolutionEnvironment
 import org.jetbrains.bio.qfarm.evolution.EvolutionPhase
 import org.jetbrains.bio.qfarm.params.StopMode
-import org.jetbrains.bio.qfarm.statistics.delong.AUC
 import org.jetbrains.bio.qfarm.util.paretoFrontOf
 
 /**
@@ -25,7 +23,9 @@ class StopMonitor(
     private val attributes: List<Int>,
     private val populationSize: Int,
     private val maxGenerations: Int,
-    private val seeded: Boolean
+    private val seeded: Boolean,
+    /** Own-front AUC every this many generations (analysis only); 0 = only at the stop and at the end. */
+    private val aucEvery: Int = 0
 ) {
     private val logging = StopCalibrationLog.isOpen
     private val rows = env.datasetWithHeader.data.size
@@ -34,8 +34,19 @@ class StopMonitor(
     private val indicator = ArrayList<Double>()
     private val hypervolume = ArrayList<Double>()
     private val frontPoints = ArrayList<Int>()
+    private val evolveSeconds = ArrayList<Double>()
 
-    private var aucAtStop: Double? = null
+    // Analysis only: fronts as rule keys, turned into AUC values in finish(), after the evolution.
+    private val sampledFronts = ArrayList<Pair<Int, List<RuleKey>>>()   // (index in generation lists, front)
+    private var stopKeys: List<RuleKey>? = null
+    private var lastKeys: List<RuleKey> = emptyList()
+
+    /**
+     * Time spent on analysis-only work (collecting fronts for the AUC, computing it).
+     * runEvolution subtracts it from the evolution's wall time.
+     */
+    var analysisNanos = 0L
+        private set
 
     /** First generation on which the criterion fired, or null. */
     var stopGeneration: Long? = null
@@ -65,22 +76,44 @@ class StopMonitor(
             val front = frontSummary(result.population(), rows)
             hypervolume += front.hypervolume
             frontPoints += front.points
+            evolveSeconds += Math.round(result.durations().evolveDuration().toNanos() / 1e3) / 1e6
         }
 
-        if (observation.shouldStop && stopGeneration == null) {
+        val firesNow = observation.shouldStop && stopGeneration == null
+        if (firesNow) {
             stopGeneration = result.generation()
-            val front = ISeq.of(paretoFrontOf(result.population()))
-            stopFront = front
-            if (logging) aucAtStop = frontAuc(front)
+            stopFront = ISeq.of(paretoFrontOf(result.population()))
+        }
+
+        if (logging) {
+            val t0 = System.nanoTime()
+            val keys = FrontAucTracker.keys(stopFront.takeIf { firesNow } ?: ISeq.of(paretoFrontOf(result.population())))
+            lastKeys = keys
+            if (firesNow) stopKeys = keys
+            val g = result.generation()
+            if (aucEvery > 0 && (g == 1L || g % aucEvery == 0L)) sampledFronts += (signal.size - 1) to keys
+            analysisNanos += System.nanoTime() - t0
         }
 
         return observation.shouldStop
     }
 
-    /** Writes the calibration record for this evolution (no-op when the log is closed). */
-    fun finish(mode: StopMode) {
+    /**
+     * Writes the calibration record for this evolution (no-op when the log is closed).
+     * Call after the evolution's time was taken: the AUC values are computed here.
+     * [seconds] is the evolution's wall time without analysis, [engineSeconds] its Jenetics engine time.
+     */
+    fun finish(mode: StopMode, seconds: Double, engineSeconds: Double) {
         if (!logging) return
         val last = lastResult ?: return
+
+        val t0 = System.nanoTime()
+        val tracker = FrontAucTracker(env)
+        val auc = MutableList(signal.size) { Double.NaN }
+        for ((i, keys) in sampledFronts) auc[i] = tracker.auc(keys) ?: Double.NaN
+        val aucAtStop = stopKeys?.let { FrontAucTracker(env).auc(it) }
+        val aucFinal = FrontAucTracker(env).auc(lastKeys)
+        analysisNanos += System.nanoTime() - t0
 
         StopCalibrationLog.write(
             StopCalibrationRecord(
@@ -96,21 +129,18 @@ class StopMonitor(
                 generationsRun = last.generation(),
                 stopGeneration = stopGeneration,
                 aucAtStop = aucAtStop,
-                aucFinal = frontAuc(ISeq.of(paretoFrontOf(last.population()))),
+                aucFinal = aucFinal,
+                seconds = seconds,
+                evolveSeconds = engineSeconds,
+                analysisSeconds = analysisNanos / 1e9,
                 signal = signal,
                 indicator = indicator,
                 hypervolume = hypervolume,
-                frontPoints = frontPoints
+                frontPoints = frontPoints,
+                evolveSecondsPerGeneration = evolveSeconds,
+                auc = auc
             )
         )
-    }
-
-    private fun frontAuc(front: ISeq<RulePhenotype>): Double? {
-        val labels = env.datasetWithHeader.labels
-        if (labels.size != rows) return null
-        if (front.isEmpty) return null
-
-        return AUC.compute(labels, computeFrontScores(front, env))
     }
 }
 
