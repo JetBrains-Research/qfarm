@@ -128,14 +128,16 @@ fun runEvolution(
             null
         } else {
             StopMonitor(
-                criterion = CrowdingStabilityCriterion(stop),
+                // each evolution (cheap or full) gets the limit of its own population
+                criterion = CrowdingStabilityCriterion(stop.copy(maxStdDev = stop.limitFor(popSize))),
                 env = env,
                 phase = phase,
                 attributes = fixedAttributes + searchAttributes,
                 populationSize = popSize,
                 maxGenerations = generationCount,
                 seeded = parentFront != null && !parentFront.isEmpty,
-                aucEvery = stop.aucEveryGenerations
+                aucEvery = stop.aucEveryGenerations,
+                keepStopFront = stop.mode == StopMode.LOG_ONLY
             )
         }
 

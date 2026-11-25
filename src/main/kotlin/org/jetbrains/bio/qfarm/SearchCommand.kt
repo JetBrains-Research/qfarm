@@ -68,7 +68,7 @@ class SearchCommand : CliktCommand(name = "search") {
             --max-depth 5 \
             --max-first-children 5 \
             --alpha-threshold 0.01 \
-            --evo-cheap-pop 100 \
+            --evo-cheap-pop 200 \
             --evo-cheap-gen 100 \
             --evo-full-pop 500 \
             --evo-full-gen 500 \
@@ -223,6 +223,9 @@ class SearchCommand : CliktCommand(name = "search") {
         metavar = "COUNT",
         help = """
             Population size used during the initial cheap evolution phase.
+            Use 150 for wide datasets (thousands of columns), where cheap
+            evolutions dominate the run time. Keep it at 150 or more: the
+            stop rule is not safe for smaller populations.
             Default: ${hp.popSizeCheap}.
         """.trimIndent()
     ).int()

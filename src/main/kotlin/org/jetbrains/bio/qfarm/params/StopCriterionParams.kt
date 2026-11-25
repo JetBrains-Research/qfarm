@@ -9,16 +9,21 @@ import kotlin.math.max
  */
 @Serializable
 enum class StopMode {
-    /** Criterion is not evaluated; every evolution runs the fixed number of generations. */
+    /** Criterion is not evaluated; every evolution runs the fixed number of generations (the old behaviour). */
     OFF,
 
     /**
-     * Criterion is evaluated every generation and written to `stop_calibration.jsonl`,
-     * but every evolution still runs the fixed number of generations.
+     * ANALYSIS ONLY, for tuning: the criterion is evaluated every generation and written to
+     * `stop_calibration.jsonl` together with per-generation front statistics (and the AUC, see
+     * [StopCriterionParams.aucEveryGenerations]), but every evolution still runs the fixed number
+     * of generations. Slow; not for normal runs.
      */
     LOG_ONLY,
 
-    /** Evolution ends on the generation where the criterion fires (maxGen* stays the cap). */
+    /**
+     * Default: each evolution, cheap and full, ends on the generation where the criterion fires
+     * (maxGen* stays the cap). Only the criterion itself is computed; nothing extra is logged.
+     */
     STOP
 }
 
@@ -33,16 +38,18 @@ enum class StopMode {
  *
  * The level where that standard deviation settles falls as about 5 / population, so the limit
  * follows the evolution's population: limit = max([maxStdDev], [limitPerIndividual] / population),
- * see [limitFor]. With the defaults: 0.07 at population 100, 0.035 at 200, 0.02 from 350 up.
+ * see [limitFor]. With the defaults: 0.035 at the default cheap population 200, 0.047 at 150,
+ * 0.023 at full population 300, 0.02 from 350 up. Each evolution, cheap or full, gets the limit of its own population.
  * Tuning: `.claude/stop_param_tuning/final_report/` (window 40, constant 7, Friedman1 and two real datasets).
+ * Below population 150 the rule is not recommended (small fronts are too jumpy to stop safely).
  */
 @Serializable
 data class StopCriterionParams(
 
     // ---- what the criterion does -----------------------------------------------------------
 
-    /** OFF, LOG_ONLY or STOP (see [StopMode]). */
-    val mode: StopMode = StopMode.LOG_ONLY,
+    /** STOP (default), OFF or LOG_ONLY (see [StopMode]). */
+    val mode: StopMode = StopMode.STOP,
 
     /** Name written to the outputs, so runs with different criteria can be told apart. */
     val criterion: String = "crowding-stability",
@@ -70,13 +77,12 @@ data class StopCriterionParams(
      */
     val limitPerIndividual: Double = 7.0,
 
-    // ---- analysis only -----------------------------------------------------------------------
+    // ---- analysis only (used in LOG_ONLY, ignored in STOP and OFF) ----------------------------
 
     /**
-     * ANALYSIS ONLY, temporary: in LOG_ONLY and STOP, write the own-front AUC of every this many
-     * generations (and of generation 1) to `stop_calibration.jsonl`. It is computed after each
-     * evolution has ended and its time is not counted in the evolution's seconds. 0 = off
-     * (the AUC at the stop and at the end is still written).
+     * LOG_ONLY only: write the own-front AUC of every this many generations (and of generation 1)
+     * to `stop_calibration.jsonl`. It is computed after each evolution has ended and its time is
+     * not counted in the evolution's seconds. 0 = off (the AUC at the stop and at the end is still written).
      */
     val aucEveryGenerations: Int = 1,
 ) {

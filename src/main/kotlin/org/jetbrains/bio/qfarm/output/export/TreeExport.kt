@@ -82,16 +82,18 @@ fun writeTreeJsonl(root: RuleTreeNode, file: File, startedAt: Instant, runtimeSe
             )
             put(
                 "rules_at_stop",
-                "node.rules_at_stop: the Pareto front at evolution.stop_generation, i.e. the rules an early stop " +
-                        "reports, same format as node.rules. STOP: equal to node.rules. LOG_ONLY: the evolution went on " +
-                        "to max_generations and node.rules is its final front. null when the criterion never fired or OFF."
+                "node.rules_at_stop: LOG_ONLY only, the Pareto front at evolution.stop_generation, i.e. the rules an " +
+                        "early stop would report, same format as node.rules (node.rules is then the front after " +
+                        "max_generations). null in STOP (node.rules already is the front at the stop), in OFF, and when " +
+                        "the criterion never fired."
             )
             put(
                 "stop_criterion",
                 "metadata.stop_criterion: settings of the criterion named in stop_criterion.criterion. crowding-stability " +
                         "(Rudenko and Schoenauer 2004): d(l) = largest finite crowding distance among the distinct " +
                         "non-dominated (support, confidence) points of generation l; fires when the standard deviation of " +
-                        "d over the last windowLength generations is at most maxStdDev, from minGenerations on."
+                        "d over the last windowLength generations is at most the limit, from minGenerations on. " +
+                        "limit = max(maxStdDev, limitPerIndividual / population), per evolution with its own population."
             )
         })
     }

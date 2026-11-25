@@ -5,7 +5,7 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class HyperParameters(
     // PARTICULAR EVOLUTIONS
-    val popSizeCheap: Int = 100,
+    val popSizeCheap: Int = 200,
     val maxGenCheap: Int = 100,
     val popSizeFull: Int = 500,
     val maxGenFull: Int = 500,

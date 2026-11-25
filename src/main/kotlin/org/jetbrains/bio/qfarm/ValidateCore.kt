@@ -41,7 +41,7 @@ fun runValidation(
 
     OUTPUT.init()
 
-    if (stopParams.mode != StopMode.OFF) {
+    if (stopParams.mode == StopMode.LOG_ONLY) {     // analysis only; STOP and OFF write no calibration log
         StopCalibrationLog.open(OUTPUT.stopCalibrationJsonl, stopParams)
     }
 

@@ -25,7 +25,12 @@ class StopMonitor(
     private val maxGenerations: Int,
     private val seeded: Boolean,
     /** Own-front AUC every this many generations (analysis only); 0 = only at the stop and at the end. */
-    private val aucEvery: Int = 0
+    private val aucEvery: Int = 0,
+    /**
+     * Keep the Pareto front of the stop generation ([stopFront]). Needed in LOG_ONLY, where the
+     * evolution goes on; in STOP the final front is that front, so it is not computed twice.
+     */
+    private val keepStopFront: Boolean = true
 ) {
     private val logging = StopCalibrationLog.isOpen
     private val rows = env.datasetWithHeader.data.size
@@ -54,7 +59,8 @@ class StopMonitor(
 
     /**
      * Pareto front of the population at [stopGeneration]: the rules an early stop reports.
-     * Extracted like the final front of `runEvolution`; null while the criterion has not fired.
+     * Extracted like the final front of `runEvolution`; null while the criterion has not fired,
+     * and not kept in STOP (see keepStopFront).
      */
     var stopFront: ISeq<RulePhenotype>? = null
         private set
@@ -82,7 +88,7 @@ class StopMonitor(
         val firesNow = observation.shouldStop && stopGeneration == null
         if (firesNow) {
             stopGeneration = result.generation()
-            stopFront = ISeq.of(paretoFrontOf(result.population()))
+            if (keepStopFront || logging) stopFront = ISeq.of(paretoFrontOf(result.population()))
         }
 
         if (logging) {

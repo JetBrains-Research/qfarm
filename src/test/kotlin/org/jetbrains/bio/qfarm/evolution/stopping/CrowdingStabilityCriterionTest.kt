@@ -110,6 +110,32 @@ class CrowdingStabilityCriterionTest {
     }
 }
 
+class StopLimitTest {
+
+    @Test
+    fun `limit scales with the population and never drops below maxStdDev`() {
+        val p = StopCriterionParams()
+        assertEquals(0.07, p.limitFor(100), 1e-12)
+        assertEquals(7.0 / 150, p.limitFor(150), 1e-12)
+        assertEquals(0.035, p.limitFor(200), 1e-12)
+        assertEquals(0.02, p.limitFor(350), 1e-12)
+        assertEquals(0.02, p.limitFor(500), 1e-12)
+        assertEquals(0.02, p.limitFor(1000), 1e-12)
+    }
+
+    @Test
+    fun `limitPerIndividual 0 gives the fixed limit`() {
+        val p = StopCriterionParams(limitPerIndividual = 0.0)
+        assertEquals(0.02, p.limitFor(100), 1e-12)
+        assertEquals(0.02, p.limitFor(1000), 1e-12)
+    }
+
+    @Test
+    fun `STOP is the default mode`() {
+        assertEquals(org.jetbrains.bio.qfarm.params.StopMode.STOP, StopCriterionParams().mode)
+    }
+}
+
 class FrontSummaryTest {
 
     @Test
