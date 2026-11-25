@@ -9,7 +9,7 @@ import org.jetbrains.letsPlot.label.xlab
 import org.jetbrains.letsPlot.label.ylab
 import org.jetbrains.letsPlot.letsPlot
 import org.jetbrains.letsPlot.scale.scaleColorManual
-import org.jetbrains.letsPlot.geom.geomHistogram
+import org.jetbrains.letsPlot.geom.geomRect
 import org.jetbrains.letsPlot.geom.geomVLine
 import org.jetbrains.letsPlot.label.labs
 
@@ -66,6 +66,38 @@ fun buildROCPlot(
     return plot
 }
 
+/** 20-bin histogram of a random-AUC baseline: bin edges and counts. */
+class AucHistogram(val lo: List<Double>, val hi: List<Double>, val count: List<Int>)
+
+private object AucHistogramCache {
+    private var source: List<Double>? = null
+    private var histogram: AucHistogram? = null
+
+    /** Bins the baseline once; every node's plot reuses the same bins (only its AUC line differs). */
+    @Synchronized
+    fun of(randomAucs: List<Double>, bins: Int): AucHistogram {
+        if (source !== randomAucs || histogram == null || histogram!!.count.size != bins) {
+            histogram = binAucs(randomAucs, bins)
+            source = randomAucs
+        }
+        return histogram!!
+    }
+}
+
+internal fun binAucs(values: List<Double>, bins: Int): AucHistogram {
+    var min = Double.POSITIVE_INFINITY
+    var max = Double.NEGATIVE_INFINITY
+    for (v in values) { if (v < min) min = v; if (v > max) max = v }
+    val width = if (max > min) (max - min) / bins else 1.0
+    val counts = IntArray(bins)
+    for (v in values) counts[((v - min) / width).toInt().coerceIn(0, bins - 1)]++
+    return AucHistogram(
+        lo = List(bins) { min + it * width },
+        hi = List(bins) { min + (it + 1) * width },
+        count = counts.toList()
+    )
+}
+
 fun buildRandomAucDistributionPlot(
     randomAucs: List<Double>,
     observedAuc: Double,
@@ -75,19 +107,26 @@ fun buildRandomAucDistributionPlot(
         "Random AUC baseline is empty."
     }
 
+    // the baseline (up to millions of values) is binned once, not once per node
+    val h = AucHistogramCache.of(randomAucs, bins = 20)
     val data = mapOf(
-        "auc" to randomAucs
+        "lo" to h.lo,
+        "hi" to h.hi,
+        "count" to h.count,
+        "zero" to List(h.count.size) { 0 }
     )
 
-    return letsPlot(data) {
-        x = "auc"
-    } +
-            geomHistogram(
-                bins = 20,
+    return letsPlot(data) +
+            geomRect(
                 alpha = 0.75,
                 fill = "#4C78A8",
                 color = "#2F4B7C"
-            ) +
+            ) {
+                xmin = "lo"
+                xmax = "hi"
+                ymin = "zero"
+                ymax = "count"
+            } +
             geomVLine(
                 xintercept = observedAuc,
                 linetype = "dashed",

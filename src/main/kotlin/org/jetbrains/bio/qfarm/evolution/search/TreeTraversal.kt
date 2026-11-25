@@ -8,7 +8,9 @@ import org.jetbrains.bio.qfarm.params.YELLOW
 import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.evolution.EvolutionContext
 import org.jetbrains.bio.qfarm.logger.NodeTiming
+import org.jetbrains.bio.qfarm.output.logs.ensurePath
 import org.jetbrains.bio.qfarm.output.logs.recordStep
+import org.jetbrains.bio.qfarm.output.logs.renderStepPlots
 import org.jetbrains.bio.qfarm.params.CYAN
 import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.readLHS
@@ -221,6 +223,25 @@ fun treeTraversal(prefix: List<Int>) {
         // STEP 5: recursively explore surviving children
         // ============================================================
 
+        // Plots of all children are independent of each other: render them in parallel first,
+        // then record the children (tree, log, recursion) one by one in the usual order.
+        val childMeta = candidates.map { candidate ->
+            mapOf(
+                "depth" to prefix.size + 1,
+                "improvement" to candidate.improvement,
+                "deLong" to candidate.deLong,
+                "auc" to candidate.auc,
+                "randomAucP" to candidate.randomAucP,
+                "randomAucAdjustedP" to candidate.randomAucAdjustedP,
+                "randomAucPass" to candidate.randomAucPass
+            )
+        }
+        val parentFrontForPlots = EvolutionContext.frontStack.lastOrNull()
+        ensurePath(prefix)
+        val prerendered = candidates.indices.toList().parallelStream().map { i ->
+            renderStepPlots(prefix, candidates[i].attr, candidates[i].front, parentFrontForPlots, childMeta[i])
+        }.toList()
+
         for ((childIndex, candidate) in candidates.withIndex()) {
             val attr = candidate.attr
             val currentRule = prefix + attr
@@ -239,21 +260,8 @@ fun treeTraversal(prefix: List<Int>) {
                     prefix = prefix,
                     addition = attr,
                     scoredFront = candidate.front,
-                    meta = mapOf(
-                        "depth" to currentRule.size,
-                        "improvement" to candidate.improvement,
-
-                        // depth > 1
-                        "deLong" to candidate.deLong,
-
-                        // level 1
-                        "auc" to candidate.auc,
-                        "randomAucP" to candidate.randomAucP,
-                        "randomAucAdjustedP" to
-                                candidate.randomAucAdjustedP,
-                        "randomAucPass" to
-                                candidate.randomAucPass
-                    )
+                    meta = childMeta[childIndex],     // depth > 1: deLong; level 1: auc and random-AUC p-values
+                    prerendered = prerendered[childIndex]
                 )
 
                 USED += attr

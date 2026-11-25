@@ -1,76 +1,15 @@
 package org.jetbrains.bio.qfarm.output.tree
 
-import org.jsoup.Jsoup
-import org.apache.commons.text.StringEscapeUtils
-import kotlinx.serialization.json.*
-import java.io.File
-import kotlin.collections.iterator
+import io.jenetics.Phenotype
+import io.jenetics.ext.moea.Vec
+import io.jenetics.util.ISeq
+import org.jetbrains.bio.qfarm.columnNames
+import org.jetbrains.bio.qfarm.core.AttributeGene
+import org.jetbrains.bio.qfarm.params.hp
+import org.jetbrains.bio.qfarm.util.compactRuleString
+import org.jetbrains.bio.qfarm.util.stripAnsi
 import kotlin.math.roundToInt
 import kotlin.math.max
-
-/**
- * Reads a Lets-Plot HTML file and extracts plotSpec JSON.
- */
-fun extractPlotSpecFromHtml(htmlFile: File): JsonObject {
-    val pfDoc = Jsoup.parse(htmlFile, "UTF-8")
-
-    val innerIframe = pfDoc.selectFirst("iframe")
-        ?: error("Inner iframe not found in PF file: ${htmlFile.absolutePath}")
-
-    val raw = innerIframe.attr("srcdoc")
-    if (raw.isBlank()) {
-        error("Inner srcdoc is empty in PF file: ${htmlFile.absolutePath}")
-    }
-
-    val lvl1 = StringEscapeUtils.unescapeHtml4(raw)
-    val lvl2 = StringEscapeUtils.unescapeHtml4(lvl1)
-
-    val inner = Jsoup.parse(lvl2)
-
-    val script = inner.selectFirst("script[data-lets-plot-script=plot]")
-        ?: error("Lets-Plot script not found in PF file: ${htmlFile.absolutePath}")
-
-    val scriptText = script.data()
-
-    val regex = Regex(
-        """const plotSpec = (\{.*});""",
-        RegexOption.DOT_MATCHES_ALL
-    )
-
-    val match = regex.find(scriptText)
-        ?: error("plotSpec JSON not found in PF file: ${htmlFile.absolutePath}")
-
-    val jsonText = match.groupValues[1]
-        .replace("undefined", "null")
-
-    return Json.parseToJsonElement(jsonText).jsonObject
-}
-
-/**
- * Extracts rulePct strings for CHILD series only.
- */
-fun extractChildRulePct(plotSpec: JsonObject): List<String> {
-    val out = mutableListOf<String>()
-    val layers = plotSpec["layers"]?.jsonArray ?: return out
-
-    for (layer in layers) {
-        val obj = layer.jsonObject
-        val data = obj["data"]?.jsonObject ?: continue
-
-        if (!data.containsKey("rulePct")) continue
-
-        val series = data["series"]?.jsonArray ?: continue
-        val rulePct = data["rulePct"]!!.jsonArray
-
-        for (i in rulePct.indices) {
-            if (series[i].jsonPrimitive.content == "Child") {
-                out += rulePct[i].jsonPrimitive.content
-            }
-        }
-    }
-
-    return out
-}
 
 private val RULE_PCT_REGEX =
     Regex("""([^()\n]+?)\s*\(\s*(\d{1,3})\s*%\s*,\s*(\d{1,3})\s*%\s*\)""")
@@ -150,9 +89,16 @@ fun buildCoverageBars(
     return result
 }
 
-fun buildBarsFromHtml(htmlFile: File): Map<String, String> {
-    val plotSpec = extractPlotSpecFromHtml(htmlFile)
-    val rulePcts = extractChildRulePct(plotSpec)
-    val intervals = parseIntervals(rulePcts)
-    return buildCoverageBars(intervals)
+/**
+ * Coverage bars computed directly from a front, without writing and re-reading a plot.
+ * Uses the same rule strings and support filter as the Pareto-front plot's points
+ * (see buildParetoFrontPlotCombined); it replaced parsing those strings back out of the saved plot HTML.
+ */
+fun buildBarsFromFront(front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>): Map<String, String> {
+    val rulePcts = front.asList().mapNotNull { pt ->
+        val support = pt.fitness().data()[0]
+        if (support < hp.minSupport || support > hp.maxSupport) return@mapNotNull null
+        stripAnsi(compactRuleString(columnNames, pt.genotype())).split(")").joinToString(")\n")
+    }
+    return buildCoverageBars(parseIntervals(rulePcts))
 }
