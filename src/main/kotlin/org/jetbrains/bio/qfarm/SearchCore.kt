@@ -2,6 +2,7 @@ package org.jetbrains.bio.qfarm
 
 import org.jetbrains.bio.qfarm.evaluation.random.generateAnalyticalRandomAucBaseline
 import org.jetbrains.bio.qfarm.evolution.EvolutionTotals
+import org.jetbrains.bio.qfarm.evolution.ScanTotals
 import org.jetbrains.bio.qfarm.evolution.search.treeTraversal
 import org.jetbrains.bio.qfarm.evolution.stopping.StopCalibrationLog
 import org.jetbrains.bio.qfarm.output.OutputManager
@@ -38,6 +39,7 @@ fun runSearch() {
     }
 
     EvolutionTotals.reset()
+    ScanTotals.reset()
 
     PROGRESS.runStarted()
 

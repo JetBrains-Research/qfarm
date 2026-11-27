@@ -18,6 +18,8 @@ import org.jetbrains.bio.qfarm.core.createIndexPool
 import org.jetbrains.bio.qfarm.core.normalizeSeedGenotype
 import org.jetbrains.bio.qfarm.evaluation.CountingKdTreeOracle
 import org.jetbrains.bio.qfarm.evaluation.evaluateRule
+import org.jetbrains.bio.qfarm.evaluation.scan.CheapScan
+import org.jetbrains.bio.qfarm.evaluation.scan.ScanBox
 import org.jetbrains.bio.qfarm.evolution.stopping.CrowdingStabilityCriterion
 import org.jetbrains.bio.qfarm.evolution.stopping.StopMonitor
 import org.jetbrains.bio.qfarm.params.StopCriterionParams
@@ -52,7 +54,9 @@ fun runEvolution(
     oracle: CountingKdTreeOracle,
     evolutionSeed: Long,
     phase: EvolutionPhase,
-    stop: StopCriterionParams = stopParams
+    stop: StopCriterionParams = stopParams,
+    /** Boxes of the cheap scan over `fixedAttributes`, seeded into the initial population after the parent front. */
+    extraSeeds: List<ScanBox> = emptyList()
 ): EvolutionRun {
 
     return RandomRegistry.with(SplittableRandom(evolutionSeed)) {
@@ -95,12 +99,27 @@ fun runEvolution(
             .offspringSelector(NSGA2Selector.ofVec())
             .build()
 
-        val initGenotypes = parentFront?.map {
+        val parentSeeds: ISeq<Genotype<AttributeGene>> = parentFront?.map {
             normalizeSeedGenotype(
                 genotype = it.genotype(),
                 cfg = cfg,
                 indexPool = indexPool
             )
+        } ?: ISeq.empty()
+
+        // Scan boxes become genotypes; a box that breaks a gene constraint is left out (null).
+        // At most a third of the population comes from boxes, evenly spread over their supports,
+        // so that the parent front and random individuals keep their share.
+        val boxSeeds: ISeq<Genotype<AttributeGene>> = ISeq.of(
+            CheapScan.thinSeeds(extraSeeds, popSize / 3)
+                .mapNotNull { CheapScan.seedGenotype(it, fixedAttributes, cfg, indexPool) }
+        )
+
+        val allSeeds = parentSeeds.append(boxSeeds)
+        val initGenotypes: ISeq<Genotype<AttributeGene>>? = when {
+            allSeeds.isEmpty -> null
+            allSeeds.size() > popSize -> allSeeds.subSeq(0, popSize)
+            else -> allSeeds
         }
 
         val padded = if (initGenotypes == null) {

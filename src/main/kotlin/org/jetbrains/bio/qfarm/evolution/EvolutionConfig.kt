@@ -5,6 +5,7 @@ import io.jenetics.ext.moea.Vec
 import io.jenetics.util.ISeq
 import io.jenetics.util.RandomRegistry
 import org.jetbrains.bio.qfarm.core.AttributeGene
+import org.jetbrains.bio.qfarm.evaluation.scan.ColumnOrders
 import org.jetbrains.bio.qfarm.params.StopMode
 import org.jetbrains.bio.qfarm.util.DatasetWithHeader
 import org.jetbrains.bio.qfarm.util.DiscreteColumnInfo
@@ -17,7 +18,30 @@ data class EvolutionEnvironment(
     val percentileProvider: SortedColumnsPercentileProvider,
     val discreteInfo: DiscreteColumnInfo,
     val rightAttrIndex: Int
-)
+) {
+    /** Per-column row orders for the cheap box scan; each column is computed on first use. */
+    val columnOrders: ColumnOrders by lazy { ColumnOrders(datasetWithHeader.data) }
+}
+
+/** Count and time of the cheap box scans of the run (reported in the tree.jsonl summary). */
+object ScanTotals {
+    data class Totals(val scans: Int = 0, val seconds: Double = 0.0)
+
+    private var totals = Totals()
+
+    @Synchronized
+    fun add(seconds: Double) {
+        totals = Totals(totals.scans + 1, totals.seconds + seconds)
+    }
+
+    @Synchronized
+    fun snapshot(): Totals = totals
+
+    @Synchronized
+    fun reset() {
+        totals = Totals()
+    }
+}
 
 /** Length of one evolution and its early-stop result (reported per node in tree.jsonl). */
 data class EvolutionStats(

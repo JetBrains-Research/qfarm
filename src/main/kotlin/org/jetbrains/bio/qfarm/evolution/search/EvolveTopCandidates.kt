@@ -31,13 +31,17 @@ data class CandidateAddition(
     val auc: Double? = null,
     val randomAucP: Double? = null,
     val randomAucAdjustedP: Double? = null,
-    val randomAucPass: Boolean? = null
+    val randomAucPass: Boolean? = null,
+
+    /** The cheap phase's result for this addition (box scan: boxes, modes), reported per node. */
+    val cheap: CheapCandidate? = null
 )
 
 fun evaluateAllAdditions(
     prefix: List<Int>,
     searchAttributes: List<Int>,
-    dataset: DatasetWithHeader = datasetWithHeader
+    dataset: DatasetWithHeader = datasetWithHeader,
+    cheap: Map<Int, CheapCandidate> = emptyMap()
 ): List<CandidateAddition> {
 
     val label = if (prefix.isEmpty()) "empty rule" else readLHS(prefix)
@@ -77,7 +81,8 @@ fun evaluateAllAdditions(
 
                 val candidateFront = fullTopRange(
                         attributes = prefix + attr,
-                        parentFront = capturedParentFront
+                        parentFront = capturedParentFront,
+                        extraSeeds = cheap[attr]?.boxes ?: emptyList()
                     )
 
                 if (isLevel1) {
@@ -105,7 +110,8 @@ fun evaluateAllAdditions(
                         auc = auc,
                         randomAucP = rawP,
                         randomAucAdjustedP = adjustedP,
-                        randomAucPass = adjustedP < hp.alphaThreshold
+                        randomAucPass = adjustedP < hp.alphaThreshold,
+                        cheap = cheap[attr]
                     )
 
                 } else {
@@ -130,7 +136,8 @@ fun evaluateAllAdditions(
                         front = candidateFront,
                         improvement = improvement,
                         deLong = delong,
-                        auc = delong.auc2
+                        auc = delong.auc2,
+                        cheap = cheap[attr]
                     )
                 }
             }

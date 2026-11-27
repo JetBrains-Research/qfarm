@@ -373,11 +373,19 @@ Maximum number of children for the root node.
 
 ### Evolution parameters
 
-`--evo-cheap-pop` (default: 100)  
-Population size used in the **cheap (initial) evolution phase**. 
+The cheap phase, which ranks every possible addition before the full evolution, is an exact
+**box scan** by default: at depth 1 the best window of rows for every window size along the
+attribute (the same statistic as the random-AUC baseline, on the real order), deeper all boxes of
+a percentile grid over the rule's attributes, reduced to their (support, confidence) Pareto set and
+scored by AUC like a front. The scan also looks for a second, separate mode of the attribute and
+hands its boxes to the full evolution as seeds. Its settings live in `params/CheapScanParams.kt`
+(no CLI options); `-Dqfarm.cheapScan=false` switches back to the cheap evolution below.
+
+`--evo-cheap-pop` (default: 200)  
+Population size used in the **cheap (initial) evolution phase**. Only used when the box scan is disabled.
 
 `--evo-cheap-gen` (default: 100)  
-Number of generations for the cheap evolution phase.  
+Number of generations for the cheap evolution phase. Only used when the box scan is disabled.  
 
 `--evo-full-pop` (default: 500)  
 Population size used in the **full evolution phase**.  

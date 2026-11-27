@@ -29,6 +29,21 @@ object InitialRuntimeEstimator {
     private const val REFERENCE_FULL_SECONDS =
         2.20
 
+    /**
+     * One cheap box scan of a candidate: about a few hundred prefix-sum passes over the rows
+     * (depth 1) or a grid of bounded size (deeper), so linear in the rows with a small constant.
+     */
+    fun cheapScanSeconds(
+        datasetRows: Int
+    ): Double {
+        require(datasetRows > 0) {
+            "datasetRows must be > 0"
+        }
+
+        return (datasetRows * 5e-7 + 0.002)
+            .coerceAtLeast(0.002)
+    }
+
     fun randomAucSeconds(
         datasetRows: Int,
         randomAucColumns: Int

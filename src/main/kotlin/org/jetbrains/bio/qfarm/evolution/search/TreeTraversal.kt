@@ -159,7 +159,8 @@ fun treeTraversal(prefix: List<Int>) {
         val evaluated = evaluateAllAdditions(
             prefix = prefix,
             searchAttributes = selected,
-            dataset = datasetWithHeader
+            dataset = datasetWithHeader,
+            cheap = cheap.associateBy { it.attr }
         )
 
         val fullSeconds =
@@ -233,7 +234,8 @@ fun treeTraversal(prefix: List<Int>) {
                 "auc" to candidate.auc,
                 "randomAucP" to candidate.randomAucP,
                 "randomAucAdjustedP" to candidate.randomAucAdjustedP,
-                "randomAucPass" to candidate.randomAucPass
+                "randomAucPass" to candidate.randomAucPass,
+                "cheap" to candidate.cheap
             )
         }
         val parentFrontForPlots = EvolutionContext.frontStack.lastOrNull()

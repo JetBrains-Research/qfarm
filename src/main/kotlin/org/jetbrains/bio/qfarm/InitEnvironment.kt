@@ -15,6 +15,7 @@ import org.jetbrains.bio.qfarm.util.computeBoundsFromSorted
 import org.jetbrains.bio.qfarm.util.computeLabelsFast
 import org.jetbrains.bio.qfarm.util.computeSortedColumns
 import org.jetbrains.bio.qfarm.util.cumulativePercentage
+import org.jetbrains.bio.qfarm.params.cheapScanParams
 import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.util.DiscreteColumnInfo
 import org.jetbrains.bio.qfarm.util.detectDiscreteColumns
@@ -170,15 +171,22 @@ fun initEnvironment(
             searchableAttributes,
 
         initialCheapEvolutionSeconds =
-            InitialRuntimeEstimator
-                .cheapEvolutionSeconds(
-                    datasetRows =
-                        datasetRows,
-                    population =
-                        hp.popSizeCheap,
-                    generations =
-                        hp.maxGenCheap
-                ),
+            if (cheapScanParams.enabled)
+                InitialRuntimeEstimator
+                    .cheapScanSeconds(
+                        datasetRows =
+                            datasetRows
+                    )
+            else
+                InitialRuntimeEstimator
+                    .cheapEvolutionSeconds(
+                        datasetRows =
+                            datasetRows,
+                        population =
+                            hp.popSizeCheap,
+                        generations =
+                            hp.maxGenCheap
+                    ),
 
         initialFullEvolutionSeconds =
             InitialRuntimeEstimator

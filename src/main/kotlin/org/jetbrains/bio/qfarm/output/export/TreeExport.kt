@@ -10,11 +10,15 @@ import org.jetbrains.bio.qfarm.core.RuleSideChromosome
 import org.jetbrains.bio.qfarm.datasetWithHeader
 import org.jetbrains.bio.qfarm.discreteInfo
 import org.jetbrains.bio.qfarm.evaluation.fronts.toPFSeries
+import org.jetbrains.bio.qfarm.evaluation.scan.ScanBox
 import org.jetbrains.bio.qfarm.evolution.EvolutionStats
 import org.jetbrains.bio.qfarm.evolution.EvolutionTotals
+import org.jetbrains.bio.qfarm.evolution.ScanTotals
+import org.jetbrains.bio.qfarm.evolution.search.CheapCandidate
 import org.jetbrains.bio.qfarm.output.logs.RuleStep
 import org.jetbrains.bio.qfarm.output.fronts.buildExportRows
 import org.jetbrains.bio.qfarm.output.tree.RuleTreeNode
+import org.jetbrains.bio.qfarm.params.cheapScanParams
 import org.jetbrains.bio.qfarm.params.hp
 import org.jetbrains.bio.qfarm.params.stopParams
 import org.jetbrains.bio.qfarm.rightAttrIndex
@@ -25,7 +29,7 @@ import java.io.File
 import java.security.MessageDigest
 import java.time.Instant
 
-const val TREE_JSON_SCHEMA_VERSION = 5
+const val TREE_JSON_SCHEMA_VERSION = 6
 
 /** Node key: same stem as the front_plots/<key>_pf.html files. */
 private fun nodeKey(path: List<Int>): String = attrsToFileName(path)
@@ -54,6 +58,7 @@ fun writeTreeJsonl(root: RuleTreeNode, file: File, startedAt: Instant, runtimeSe
         put("startedAt", startedAt.toString())
         put("parameters", Json { encodeDefaults = true }.encodeToJsonElement(hp))
         put("stop_criterion", Json { encodeDefaults = true }.encodeToJsonElement(stopParams))
+        put("cheap_scan", Json { encodeDefaults = true }.encodeToJsonElement(cheapScanParams))
         put("rhs", buildJsonObject {
             put("attribute", columnNames[rightAttrIndex])
             put("lo", num(rightGene.lowerBound))
@@ -95,6 +100,22 @@ fun writeTreeJsonl(root: RuleTreeNode, file: File, startedAt: Instant, runtimeSe
                         "d over the last windowLength generations is at most the limit, from minGenerations on. " +
                         "limit = max(maxStdDev, limitPerIndividual / population), per evolution with its own population."
             )
+            put(
+                "cheap_scan",
+                "metadata.cheap_scan: settings of the cheap phase's box scan (cheap_scan.enabled false = cheap evolution " +
+                        "as before, summary.evolutions.CHEAP). With the scan, every candidate prefix+attr is ranked by " +
+                        "node.cheap_auc: AUC of the per-row count of scan boxes (plus the parent rules as parameters.rocComparison " +
+                        "says). Boxes: depth 1 = best window per window size along the attribute (the random-AUC baseline's " +
+                        "statistic on the real order); depth >= 2 = all boxes of a percentile grid; thinned to one per window-size " +
+                        "bin and reduced to the (support, confidence) Pareto set. node.cheap_boxes: the boxes, same conditions " +
+                        "format as rules, support/positives on all rows, pass = box set: 1 = first set (whole Pareto set); " +
+                        "2 = knee boxes (up to the largest WRAcc) of the scan over the rows not covered by set 1's knee boxes, " +
+                        "kept only if significant (hypergeometric, Bonferroni over boxes searched; node.cheap_mode2_p is that " +
+                        "adjusted p, null without a second pass), above the base rate on all rows, and separated from set 1 by a " +
+                        "dip below the base rate. node.cheap_modes = number of sets. All boxes seed the full evolution. " +
+                        "node.cheap_seconds: wall time of the scan while other scans run in parallel (JIT warm-up inflates the " +
+                        "first ones). summary.cheap_scans: count and seconds of all scans of the run."
+            )
         })
     }
 
@@ -121,6 +142,12 @@ fun writeTreeJsonl(root: RuleTreeNode, file: File, startedAt: Instant, runtimeSe
                     put("seconds", num(t.seconds))
                     put("evolve_seconds", num(t.evolveSeconds))
                 })
+            })
+            put("cheap_scans", ScanTotals.snapshot().let { s ->
+                buildJsonObject {
+                    put("count", s.scans)
+                    put("seconds", num(s.seconds))
+                }
             })
             put("finishedAt", Instant.now().toString())
         })
@@ -162,6 +189,14 @@ private fun nodeJson(
     put("random_auc_p_adjusted", num(meta["randomAucAdjustedP"] as? Double))
     put("delta_area", num(meta["deltaArea"] as? Double))
     put("total_area", num(meta["totalArea"] as? Double))
+
+    val cheap = meta["cheap"] as? CheapCandidate
+    put("cheap_auc", num(cheap?.auc))
+    put("cheap_modes", cheap?.modes)
+    put("cheap_mode2_p", num(cheap?.secondModeP))
+    put("cheap_seconds", num(cheap?.scanSeconds))
+    put("cheap_boxes", cheap?.let { cheapBoxesJson(it.boxes) } ?: JsonNull)
+
     val stopFront = step.scoredFront.evolution?.stopFront
 
     put("n_rules", front.size())
@@ -203,6 +238,28 @@ private fun rulesJson(front: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>): 
             })
         }
     }
+}
+
+/** The boxes of the cheap scan, in the conditions format of [rulesJson]. */
+private fun cheapBoxesJson(boxes: List<ScanBox>): JsonArray = buildJsonArray {
+    for ((i, b) in boxes.withIndex()) add(buildJsonObject {
+        put("box_id", i)
+        put("pass", b.pass)
+        put("support", b.support)
+        put("positives", b.positives)
+        put("confidence", num(b.confidence))
+        put("conditions", buildJsonArray {
+            for (j in b.attributes.indices) add(buildJsonObject {
+                val attr = b.attributes[j]
+                put("attribute", columnNames[attr])
+                put("kind", if (discreteInfo.isDiscrete[attr]) "discrete" else "numeric")
+                put("lo", num(b.lo[j]))
+                put("hi", num(b.hi[j]))
+                put("p_lo", num(b.pLo[j]))
+                put("p_hi", num(b.pHi[j]))
+            })
+        })
+    })
 }
 
 private fun evolutionJson(e: EvolutionStats): JsonObject = buildJsonObject {

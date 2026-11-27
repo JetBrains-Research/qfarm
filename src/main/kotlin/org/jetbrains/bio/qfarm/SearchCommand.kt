@@ -223,6 +223,8 @@ class SearchCommand : CliktCommand(name = "search") {
         metavar = "COUNT",
         help = """
             Population size used during the initial cheap evolution phase.
+            Only used when the cheap box scan is disabled (CheapScanParams.enabled,
+            or -Dqfarm.cheapScan=false); by default the cheap phase is the scan.
             Use 150 for wide datasets (thousands of columns), where cheap
             evolutions dominate the run time. Keep it at 150 or more: the
             stop rule is not safe for smaller populations.
@@ -235,6 +237,7 @@ class SearchCommand : CliktCommand(name = "search") {
         metavar = "COUNT",
         help = """
             Number of generations in the initial cheap evolution phase.
+            Only used when the cheap box scan is disabled (see --evo-cheap-pop).
             Default: ${hp.maxGenCheap}.
         """.trimIndent()
     ).int()

@@ -6,6 +6,7 @@ import io.jenetics.util.ISeq
 import org.jetbrains.bio.qfarm.core.AttributeGene
 import org.jetbrains.bio.qfarm.GLOBAL_ENV
 import org.jetbrains.bio.qfarm.evaluation.CountingKdTreeOracle
+import org.jetbrains.bio.qfarm.evaluation.scan.ScanBox
 import org.jetbrains.bio.qfarm.params.PURPLE
 import org.jetbrains.bio.qfarm.params.RESET
 import org.jetbrains.bio.qfarm.params.YELLOW
@@ -21,7 +22,8 @@ fun topRange(
     env: EvolutionEnvironment = GLOBAL_ENV,
     popSize: Int = hp.popSizeFull,
     generationCount: Int = hp.maxGenFull,
-    label: String = "🏆"
+    label: String = "🏆",
+    extraSeeds: List<ScanBox> = emptyList()
 ): ScoredFront {
 
     println("\n${PURPLE}$label : SEARCHING FOR THE BEST RANGE OF ${attributes.map { idx -> env.columnNames[idx]}} ... $RESET")
@@ -51,7 +53,8 @@ fun topRange(
                 env = env,
                 oracle = it,
                 evolutionSeed = evolutionSeed,
-                phase = phase
+                phase = phase,
+                extraSeeds = extraSeeds
             )
         }
 
@@ -114,7 +117,9 @@ fun fullTopRange(
     attributes: List<Int>,
     env: EvolutionEnvironment = GLOBAL_ENV,
     parentFront: ISeq<Phenotype<AttributeGene, Vec<DoubleArray>>>? =
-        EvolutionContext.frontStack.lastOrNull()?.front
+        EvolutionContext.frontStack.lastOrNull()?.front,
+    /** Boxes of the cheap scan over [attributes]: extra seeds of the initial population. */
+    extraSeeds: List<ScanBox> = emptyList()
 ): ScoredFront {
 
     return topRange(
@@ -124,6 +129,7 @@ fun fullTopRange(
         env = env,
         popSize = hp.popSizeFull,
         generationCount = hp.maxGenFull,
-        label = "🏆 FULL SEARCH"
+        label = "🏆 FULL SEARCH",
+        extraSeeds = extraSeeds
     )
 }
